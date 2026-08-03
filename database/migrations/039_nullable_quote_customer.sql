@@ -1,0 +1,1 @@
+ALTER TABLE quotes MODIFY customer_id INT UNSIGNED NULL;

@@ -1,0 +1,13 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Exceptions;
+
+class AuthorizationException extends \RuntimeException
+{
+    public function __construct(string $message = 'Unauthorized.', int $code = 403)
+    {
+        parent::__construct($message, $code);
+    }
+}

@@ -1,0 +1,14 @@
+# Uploaded files are data, never code.
+# Even though upload handling whitelists extensions, this is a hard stop:
+# nothing in this tree may ever be executed by the server.
+
+php_flag engine off
+
+<IfModule mod_mime.c>
+    RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .phtml .phps .pl .py .cgi .sh
+    RemoveType    .php .php3 .php4 .php5 .php7 .php8 .phtml .phps
+    AddType text/plain .php .phtml .pl .py .cgi .sh
+</IfModule>
+
+# Directory listings off
+Options -Indexes -ExecCGI

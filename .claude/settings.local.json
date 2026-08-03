@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l /Users/artdeptmac/Desktop/BusinessOS/app/Controllers/OpportunityController.php)",
+      "Bash(php8.3 -l /Users/artdeptmac/Desktop/BusinessOS/app/Controllers/OpportunityController.php)",
+      "Bash(php8 -l /Users/artdeptmac/Desktop/BusinessOS/app/Controllers/OpportunityController.php)",
+      "Bash(dig +short os.usscos.com)",
+      "Bash(dig +short @8.8.8.8 os.usscos.com)",
+      "Bash(curl -sI http://os.usscos.com)",
+      "Bash(curl -s http://os.usscos.com)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" http://os.usscos.com/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -L http://os.usscos.com/login)",
+      "Bash(curl -s -w \"\\\\nHTTP: %{http_code}\\\\n\" -X POST http://os.usscos.com/webhook/lead -H \"Content-Type: application/json\" -d '{\"form_type\":\"contact\",\"first_name\":\"Webhook\",\"last_name\":\"Test\",\"email\":\"test@test.com\",\"subject\":\"General Inquiry\",\"message\":\"testing new subdomain webhook\"}')",
+      "Bash(unzip -o -q \"/Users/artdeptmac/Desktop/Custom_BMS_Blueprint_InHouse.docx\" word/document.xml)",
+      "Bash(python3 -c ' *)",
+      "Bash(node build_overview.js)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/artdeptmac/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/a0219550-4bb6-4307-8539-1ea90efc857c/11ff3a1e-722e-4e90-86c0-26195b42538d/skills/docx/**)",
+      "Bash(python3 -c \"import docx; print\\('python-docx ok'\\)\")",
+      "Read(//Applications/**)",
+      "Bash(pip3 install *)",
+      "Bash(python3 -c \"import docx; print\\('ok'\\)\")",
+      "Bash(python3 /private/tmp/claude-501/-Users-artdeptmac-Desktop-BusinessOS/b4d2cabe-b9ff-4467-b08f-d270e65d30ac/scratchpad/build_overview.py)",
+      "Bash(python3 -)",
+      "WebFetch(domain:usscproducts.com)",
+      "Bash(curl -s -m 25 https://usscproducts.com/wp-sitemap.xml)",
+      "Bash(curl -s -m 25 https://usscproducts.com/sitemap_index.xml)",
+      "Bash(curl -sL -m 20 -A 'Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120 Safari/537.36' https://usscproducts.com/robots.txt)",
+      "Bash(curl -sIL -m 25 -A 'Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 Chrome/120 Safari/537.36' https://usscproducts.com/)",
+      "Bash(curl -sL -m 45 -A 'Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 Chrome/120 Safari/537.36' https://usscproducts.com/product_cat-sitemap.xml)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(grep -E \"\\\\.env$|\\\\.env\\\\.txt|\\\\.xlsx|\\\\.xls$|Spreadsheets/\")"
+    ]
+  }
+}
