@@ -1,6 +1,6 @@
 # Architecture
 
-BusinessOS is a hand-rolled MVC application. No framework — the `app/Core` directory
+USSCOS is a hand-rolled MVC application. No framework — the `app/Core` directory
 *is* the framework, at roughly 17 small classes.
 
 ---

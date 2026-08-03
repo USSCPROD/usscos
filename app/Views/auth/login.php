@@ -6,7 +6,7 @@ $success = \App\Core\Session::getFlash('success');
 <div class="auth-card">
     <div class="auth-card__header">
         <div class="auth-logo">
-            <span class="auth-logo__text">BusinessOS</span>
+            <span class="auth-logo__text">USSCOS</span>
         </div>
         <h1 class="auth-card__title">Welcome back</h1>
         <p class="auth-card__subtitle">Sign in to your account</p>

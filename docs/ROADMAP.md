@@ -35,7 +35,7 @@ weren't in the original plan.
 - [x] Custom MVC framework, session auth, nine roles
 - [x] Admin area — users, departments, company defaults, lookups, lead routing
 - [x] Role-aware dashboard
-- [x] BusinessOS moved to its own subdomain, separated from the public website
+- [x] USSCOS moved to its own subdomain, separated from the public website
 
 ## Next up
 
@@ -70,7 +70,7 @@ weren't in the original plan.
    > anywhere tracks targets today.
 5. **Customer portal** — order history, invoices, quotes, and a **Reorder** button that
    creates a new sales order from a past one. Accounts created internally via an invite
-   sent from the customer record. Lives on the public site, not inside BusinessOS.
+   sent from the customer record. Lives on the public site, not inside USSCOS.
 6. **Digital Job Binder** — expand the sales order into a full job record: artwork with
    revision history, production notes, QA checklist, shop-floor photos, shipping
    documents. Everything about a job in one place, retrievable years later.
@@ -139,7 +139,7 @@ get harder to retrofit the longer the catalog grows.
 ## Deferred on purpose
 
 **Full general ledger.** The blueprint's Phase 2 called for double-entry bookkeeping and
-financial statements. QuickBooks remains the ledger, with BusinessOS owning invoicing and
+financial statements. QuickBooks remains the ledger, with USSCOS owning invoicing and
 AR. This is the highest-risk, lowest-differentiation part of the plan — nothing that makes
 this system valuable (job binder, portals, production, AI) depends on it. The scaffolding
 tables (`chart_of_accounts`, `journal_entries`, `journal_entry_lines`) exist but are unused.

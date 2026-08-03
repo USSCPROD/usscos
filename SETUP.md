@@ -52,10 +52,10 @@ php database/seeders/DatabaseSeeder.php
 
 ```apache
 <VirtualHost *:80>
-    DocumentRoot /path/to/BusinessOS/public
+    DocumentRoot /path/to/USSCOS/public
     ServerName businessos.local
 
-    <Directory /path/to/BusinessOS/public>
+    <Directory /path/to/USSCOS/public>
         AllowOverride All
         Require all granted
     </Directory>

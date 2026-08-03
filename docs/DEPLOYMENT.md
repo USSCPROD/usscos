@@ -11,7 +11,7 @@ Hosting account root: `/home/t2a2ymc1f3z4/public_html/`
 
 | Domain | Document root | Serves |
 |---|---|---|
-| `os.usscos.com` | `public_html/businessos/public` | BusinessOS (internal) |
+| `os.usscos.com` | `public_html/businessos/public` | USSCOS (internal) |
 | `usscos.com` | `public_html/usscos.com` | Public website + `/forms` |
 | `usscproducts.net` | `public_html` | Hosting primary domain |
 
@@ -80,7 +80,7 @@ server copy with a local one.
 The public site lives in `website/` in this repo and deploys to
 `public_html/usscos.com/`. Forms go in `usscos.com/forms/`.
 
-`website/config.php` must point at the BusinessOS webhook over **plain HTTP**:
+`website/config.php` must point at the USSCOS webhook over **plain HTTP**:
 
 ```php
 define('BUSINESSOS_WEBHOOK', 'http://os.usscos.com/webhook/lead');
@@ -149,6 +149,6 @@ a small deploy script would remove most of it.
 **No automated tests.** Schema and type mismatches are currently found by clicking
 through the UI or by a script failing mid-run.
 
-**Security hardening still pending.** BusinessOS is reachable from anywhere with only a
+**Security hardening still pending.** USSCOS is reachable from anywhere with only a
 password. Two-factor authentication, login lockout, and an audit log are planned but not
 built. An IP allowlist was ruled out because staff log in remotely.

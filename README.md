@@ -1,4 +1,4 @@
-# BusinessOS
+# USSCOS
 
 A custom business management platform built for **US Specialty Coatings** — a paint and
 stencil manufacturer operating a distributor network. It replaces a stack of QuickBooks,
@@ -48,7 +48,7 @@ Built in-house on PHP + MySQL. No framework, no licensing cost, no vendor lock-i
 
 | URL | Serves | Document root |
 |---|---|---|
-| `os.usscos.com` | BusinessOS (internal) | `public_html/businessos/public` |
+| `os.usscos.com` | USSCOS (internal) | `public_html/businessos/public` |
 | `usscos.com` | Public website + lead forms | `public_html/usscos.com` |
 
 Both eventually move to `usscproducts.com` with the same structure.

@@ -30,7 +30,17 @@
       "Bash(curl -sL -m 45 -A 'Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 Chrome/120 Safari/537.36' https://usscproducts.com/product_cat-sitemap.xml)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(grep -E \"\\\\.env$|\\\\.env\\\\.txt|\\\\.xlsx|\\\\.xls$|Spreadsheets/\")"
+      "Bash(grep -E \"\\\\.env$|\\\\.env\\\\.txt|\\\\.xlsx|\\\\.xls$|Spreadsheets/\")",
+      "Bash(sed 's/^0$/0 — correct, excluded/')",
+      "Bash(git diff *)",
+      "Bash(xargs -0 du -h)",
+      "Bash(xargs -0 du -ch)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Initial commit — BusinessOS *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)",
+      "Bash(perl -pi -e 's/BusinessOS\\(?!_\\)/USSCOS/g' README.md SETUP.md docs/ROADMAP.md docs/ARCHITECTURE.md docs/DEPLOYMENT.md docs/DATABASE.md docs/MODULES.md CLAUDE.md TODO.md)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Rename product from BusinessOS to USSCOS *)"
     ]
   }
 }
