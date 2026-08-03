@@ -12,6 +12,11 @@ use App\Core\Session;
 $dotenv = Dotenv\Dotenv::createImmutable(BASE_PATH);
 $dotenv->load();
 
+// Document root of the public marketing site, which lives outside this application
+// on servers where the two are deployed separately (currently usscos.com). Used for
+// shared assets such as the company logo. Set PUBLIC_SITE_PATH in .env to override.
+define('PUBLIC_PATH', $_ENV['PUBLIC_SITE_PATH'] ?? BASE_PATH . '/public');
+
 // Boot configuration
 Config::load(BASE_PATH . '/config');
 

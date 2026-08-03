@@ -40,7 +40,12 @@
       "Bash(git branch *)",
       "Bash(git push *)",
       "Bash(perl -pi -e 's/BusinessOS\\(?!_\\)/USSCOS/g' README.md SETUP.md docs/ROADMAP.md docs/ARCHITECTURE.md docs/DEPLOYMENT.md docs/DATABASE.md docs/MODULES.md CLAUDE.md TODO.md)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Rename product from BusinessOS to USSCOS *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Rename product from BusinessOS to USSCOS *)",
+      "Bash(grep -E \"^\\\\.env$|\\\\.env\\\\.txt|\\\\.xlsx$|^Spreadsheets/\")",
+      "Bash(chmod +x deploy/*.sh)",
+      "Bash(bash -n deploy/provision.sh)",
+      "Bash(bash -n deploy/deploy.sh)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add DigitalOcean provisioning, nginx configs, and deploy script *)"
     ]
   }
 }
