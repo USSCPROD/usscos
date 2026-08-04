@@ -235,7 +235,26 @@ $colStyle  = 'vertical-align:top;padding:0';
                     pfield('Product Line', $pr['product_line']);
                     pfield('Color', $pr['color']);
                     pfield('Brand', $pr['brand_name']);
-                    pfield('Category', $pr['category']);
+                    ?>
+                    <tr>
+                        <td class="text-muted" style="width:42%;padding:.45rem .6rem;font-size:.875rem;vertical-align:top">Categories</td>
+                        <td style="padding:.45rem .6rem;vertical-align:top">
+                            <?php if (!empty($productCategories)): ?>
+                                <?php foreach ($productCategories as $pc): ?>
+                                    <a href="/categories/<?= (int)$pc['id'] ?>/edit"
+                                       class="badge <?= (int)$pc['is_primary'] === 1 ? 'badge--info' : 'badge--neutral' ?>"
+                                       style="font-size:.72rem;text-decoration:none;margin-bottom:.15rem;display:inline-block"
+                                       title="<?= (int)$pc['is_primary'] === 1 ? 'Primary category' : '' ?>">
+                                        <?= !empty($pc['parent_name']) ? e($pc['parent_name']) . ' › ' : '' ?><?= e($pc['name']) ?>
+                                    </a>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <span class="text-muted">— </span>
+                                <a href="/products/<?= (int)$pr['id'] ?>/edit" style="font-size:.78rem;color:#0A3D91">assign</a>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php
                     pfield('Brand Category', $pr['brand_category']);
                     pfield('UOM', $pr['uom_code']);
                     pfield('Pack Level', $pr['pack_level']);

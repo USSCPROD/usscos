@@ -94,6 +94,39 @@ class CategoryController extends Controller
         return $response->redirect('/categories');
     }
 
+    /** Assign a batch of products to one category, from the products list. */
+    public function bulkAssign(Request $request, Response $response): Response
+    {
+        $categoryId = (int)($_POST['category_id'] ?? 0);
+        $productIds = (array)($_POST['product_ids'] ?? []);
+        $back       = $_POST['redirect'] ?? '/products';
+
+        if ($categoryId <= 0 || !$this->repo->find($categoryId)) {
+            Session::flash('error', 'Choose a category to assign to.');
+            return $response->redirect($back);
+        }
+
+        $productIds = array_filter(array_map('intval', $productIds), fn($i) => $i > 0);
+        if (empty($productIds)) {
+            Session::flash('error', 'No products were selected.');
+            return $response->redirect($back);
+        }
+
+        $added    = $this->repo->assignProducts($categoryId, $productIds);
+        $category = $this->repo->find($categoryId);
+        $skipped  = count($productIds) - $added;
+
+        Session::flash('success', sprintf(
+            '%d product%s added to %s.%s',
+            $added,
+            $added === 1 ? '' : 's',
+            $category['name'],
+            $skipped > 0 ? " {$skipped} were already in it." : ''
+        ));
+
+        return $response->redirect($back);
+    }
+
     public function destroy(Request $request, Response $response, string $id = '0'): Response
     {
         $category = $this->repo->find((int)$id);

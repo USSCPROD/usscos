@@ -175,31 +175,55 @@ class CategoryRepository
     /** Replace a product's category assignments; the first becomes primary. */
     public function setProductCategories(int $productId, array $categoryIds): void
     {
+        // The form submits a trailing empty value so an all-unticked selection still
+        // arrives — strip it and anything else that isn't a real id.
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $categoryIds),
+            fn($id) => $id > 0
+        )));
+
         Database::statement("DELETE FROM product_categories WHERE product_id = ?", [$productId]);
-        if (empty($categoryIds)) return;
+        if (empty($ids)) return;
 
         $stmt = Database::connection()->prepare("
             INSERT INTO product_categories (product_id, category_id, is_primary)
             VALUES (?, ?, ?)
         ");
-        foreach (array_values(array_unique(array_map('intval', $categoryIds))) as $i => $catId) {
+        foreach ($ids as $i => $catId) {
             $stmt->execute([$productId, $catId, $i === 0 ? 1 : 0]);
         }
     }
 
-    /** Assign many products to one category in a single action (bulk categorise). */
+    /**
+     * Assign many products to one category in a single action (bulk categorise).
+     * Existing assignments are kept; a product with no primary yet gets one.
+     */
     public function assignProducts(int $categoryId, array $productIds): int
     {
-        if (empty($productIds)) return 0;
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $productIds),
+            fn($id) => $id > 0
+        )));
+        if (empty($ids)) return 0;
 
-        $stmt = Database::connection()->prepare("
+        $insert = Database::connection()->prepare("
             INSERT IGNORE INTO product_categories (product_id, category_id, is_primary)
             VALUES (?, ?, 0)
         ");
+        $promote = Database::connection()->prepare("
+            UPDATE product_categories SET is_primary = 1
+            WHERE product_id = ? AND category_id = ?
+              AND NOT EXISTS (
+                  SELECT 1 FROM (SELECT * FROM product_categories) x
+                  WHERE x.product_id = ? AND x.is_primary = 1
+              )
+        ");
+
         $n = 0;
-        foreach (array_map('intval', $productIds) as $pid) {
-            $stmt->execute([$pid, $categoryId]);
-            $n += $stmt->rowCount();
+        foreach ($ids as $pid) {
+            $insert->execute([$pid, $categoryId]);
+            $n += $insert->rowCount();
+            $promote->execute([$pid, $categoryId, $pid]);
         }
         return $n;
     }

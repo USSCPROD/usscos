@@ -79,7 +79,7 @@ class ProductRepository extends Repository
         return 'products';
     }
 
-    public function paginateWithBrand(int $page, int $perPage, string $search = '', string $brand = '', string $filter = 'active'): array
+    public function paginateWithBrand(int $page, int $perPage, string $search = '', string $brand = '', string $filter = 'active', string $category = ''): array
     {
         $params     = [];
         $conditions = ["p.item_type != 'raw_material'"];
@@ -93,6 +93,19 @@ class ProductRepository extends Repository
         if ($brand !== '') {
             $conditions[] = 'b.name = ?';
             $params[]     = $brand;
+        }
+
+        if ($category === 'none') {
+            $conditions[] = 'NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id)';
+        } elseif ($category !== '') {
+            // Selecting a parent also matches everything in its children
+            $conditions[] = 'EXISTS (
+                SELECT 1 FROM product_categories pc
+                JOIN categories c2 ON c2.id = pc.category_id
+                WHERE pc.product_id = p.id AND (c2.id = ? OR c2.parent_id = ?)
+            )';
+            $params[] = (int)$category;
+            $params[] = (int)$category;
         }
 
         if ($filter === 'inactive') {
@@ -116,7 +129,14 @@ class ProductRepository extends Repository
             "SELECT p.id, p.sku, p.name, p.short_description, p.color,
                     p.price, p.cost, p.uom_code, p.is_active, p.is_taxable,
                     p.qty_on_hand, p.category, p.product_line,
-                    b.name AS brand_name
+                    b.name AS brand_name,
+                    (SELECT CONCAT(COALESCE(CONCAT(pa.name, ' › '), ''), c.name)
+                       FROM product_categories pc
+                       JOIN categories c       ON c.id  = pc.category_id
+                       LEFT JOIN categories pa ON pa.id = c.parent_id
+                      WHERE pc.product_id = p.id
+                      ORDER BY pc.is_primary DESC, c.sort_order
+                      LIMIT 1) AS primary_category
              FROM products p
              LEFT JOIN product_brands b ON b.id = p.brand_id
              $where

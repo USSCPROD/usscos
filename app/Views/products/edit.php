@@ -131,6 +131,58 @@ if (!function_exists('peTextarea')) {
         </div>
 
         <div style="<?= $cardStyle ?>">
+            <div style="<?= $cardHead ?>">
+                Categories
+                <span style="float:right;font-weight:400;text-transform:none;letter-spacing:0;font-size:.72rem">
+                    <a href="/categories" style="color:#0A3D91">Manage</a>
+                </span>
+            </div>
+            <div style="padding:.6rem .9rem">
+                <p style="margin:0 0 .5rem;font-size:.75rem;color:#9ca3af">
+                    The first one ticked becomes the primary category. Products with none
+                    won't appear on the website.
+                </p>
+                <?php if (empty($categoryTree)): ?>
+                    <p style="margin:0;font-size:.85rem;color:#9ca3af">
+                        No categories yet — <a href="/categories/create" style="color:#0A3D91">create one</a>.
+                    </p>
+                <?php else: ?>
+                    <table style="width:100%;border-collapse:collapse">
+                        <?php foreach ($categoryTree as $parent): ?>
+                            <tr>
+                                <td style="padding:.2rem 0">
+                                    <label style="cursor:pointer;font-size:.87rem;font-weight:600">
+                                        <input type="checkbox" name="category_ids[]" value="<?= (int)$parent['id'] ?>"
+                                            <?= in_array((int)$parent['id'], $categoryIds, true) ? 'checked' : '' ?>
+                                            style="accent-color:#0A3D91;margin-right:.35rem">
+                                        <?= e($parent['name']) ?>
+                                        <?php if ((int)$parent['show_on_website'] === 0): ?>
+                                            <span style="font-size:.68rem;color:#9ca3af;font-weight:400">(internal)</span>
+                                        <?php endif; ?>
+                                    </label>
+                                </td>
+                            </tr>
+                            <?php foreach ($parent['children'] as $child): ?>
+                            <tr>
+                                <td style="padding:.2rem 0 .2rem 1.5rem">
+                                    <label style="cursor:pointer;font-size:.85rem">
+                                        <input type="checkbox" name="category_ids[]" value="<?= (int)$child['id'] ?>"
+                                            <?= in_array((int)$child['id'], $categoryIds, true) ? 'checked' : '' ?>
+                                            style="accent-color:#0A3D91;margin-right:.35rem">
+                                        <?= e($child['name']) ?>
+                                    </label>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </table>
+                <?php endif; ?>
+                <!-- Ensures an empty selection still submits, so all categories can be cleared -->
+                <input type="hidden" name="category_ids[]" value="">
+            </div>
+        </div>
+
+        <div style="<?= $cardStyle ?>">
             <div style="<?= $cardHead ?>">Descriptions</div>
             <table style="width:100%;border-collapse:collapse">
                 <?php

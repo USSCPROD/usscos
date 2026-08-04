@@ -110,6 +110,7 @@ Router::group(['middleware' => 'auth'], function () {
     Router::get('/categories',                [CategoryController::class, 'index'])->name('categories');
     Router::get('/categories/create',         [CategoryController::class, 'create'])->name('categories.create');
     Router::post('/categories',               [CategoryController::class, 'store'])->name('categories.store');
+    Router::post('/categories/bulk-assign',   [CategoryController::class, 'bulkAssign'])->name('categories.bulk_assign');
     Router::get('/categories/{id}/edit',      [CategoryController::class, 'edit'])->name('categories.edit');
     Router::post('/categories/{id}/edit',     [CategoryController::class, 'update'])->name('categories.update');
     Router::post('/categories/{id}/delete',   [CategoryController::class, 'destroy'])->name('categories.delete');

@@ -15,12 +15,13 @@ class ProductService
         $this->repo = new ProductRepository();
     }
 
-    public function list(int $page, int $perPage, string $search, string $brand, string $filter): array
+    public function list(int $page, int $perPage, string $search, string $brand, string $filter, string $category = ''): array
     {
-        $paginated = $this->repo->paginateWithBrand($page, $perPage, $search, $brand, $filter);
-        $brands    = $this->repo->getAllBrands();
+        $paginated    = $this->repo->paginateWithBrand($page, $perPage, $search, $brand, $filter, $category);
+        $brands       = $this->repo->getAllBrands();
+        $categoryTree = (new \App\Repositories\CategoryRepository())->tree();
 
-        return compact('paginated', 'brands', 'search', 'brand', 'filter');
+        return compact('paginated', 'brands', 'search', 'brand', 'filter', 'category', 'categoryTree');
     }
 
     public function show(int $id): array
@@ -33,6 +34,11 @@ class ProductService
         $images    = $this->repo->getImages($id);
         $documents = $this->repo->getDocuments($id);
 
+        $catRepo          = new \App\Repositories\CategoryRepository();
+        $productCategories = $catRepo->categoriesForProduct($id);
+        $categoryTree      = $catRepo->tree();
+        $categoryIds       = $catRepo->categoryIdsForProduct($id);
+
         // Primary image is the flagged one, else the first uploaded
         $primaryImage = null;
         foreach ($images as $img) {
@@ -42,7 +48,10 @@ class ProductService
             $primaryImage = $images[0];
         }
 
-        return compact('product', 'brands', 'images', 'documents', 'primaryImage');
+        return compact(
+            'product', 'brands', 'images', 'documents', 'primaryImage',
+            'productCategories', 'categoryTree', 'categoryIds'
+        );
     }
 
     public function update(int $id, array $post): void
@@ -52,6 +61,13 @@ class ProductService
             throw new \RuntimeException("Product $id not found");
         }
         $this->repo->update($id, $post);
+
+        // Category checkboxes are only saved when the form actually submitted them,
+        // so other callers of update() can't wipe a product's categories by omission.
+        if (array_key_exists('category_ids', $post)) {
+            (new \App\Repositories\CategoryRepository())
+                ->setProductCategories($id, (array)$post['category_ids']);
+        }
     }
 
     public function listRawMaterials(int $page, int $perPage, string $search): array

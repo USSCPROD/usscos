@@ -28,8 +28,9 @@ class ProductController extends Controller
         $search  = trim($request->query('q') ?? '');
         $brand   = trim($request->query('brand') ?? '');
         $filter  = $request->query('filter') ?? 'active';
+        $category = trim((string)($request->query('category') ?? ''));
 
-        $data = $this->service->list($page, $perPage, $search, $brand, $filter);
+        $data = $this->service->list($page, $perPage, $search, $brand, $filter, $category);
 
         return $this->view('products.index', ['title' => 'Products', ...$data]);
     }
