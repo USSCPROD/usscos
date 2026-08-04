@@ -41,9 +41,10 @@ View                      renders into $content, wrapped by layouts/app.php
 Response
 ```
 
-`.htaccess` in `public/` rewrites everything that isn't a real file or directory to
-`index.php`, which is what makes clean URLs work. **If that file is missing, every route
-except `/` returns 404.**
+nginx rewrites everything that isn't a real file or directory to `index.php`
+(`try_files $uri $uri/ /index.php?$query_string`), which is what makes clean URLs work.
+The `.htaccess` in `public/` does the same job on Apache and is kept for portability —
+on the current nginx droplet it is ignored.
 
 ## Layers
 
@@ -161,4 +162,4 @@ permission layer. Something to consolidate as the portals arrive.
 
 No build step, no bundler, no framework. Plain HTML, CSS, and vanilla JavaScript
 inline in views. Chart.js is used for dashboard graphs. This is deliberate — it keeps
-deployment to "copy files onto the server."
+deployment to a `git pull` with nothing to compile.

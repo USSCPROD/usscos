@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Core\Router;
 use App\Controllers\AdminController;
+use App\Controllers\CategoryController;
 use App\Controllers\TaskController;
 use App\Controllers\DocumentController;
 use App\Controllers\AuthController;
@@ -105,6 +106,14 @@ Router::group(['middleware' => 'auth'], function () {
     Router::post('/customers/{id}/note',     [CustomerController::class, 'storeNote'])->name('customers.note');
 
     // Products
+    // Categories — literal routes must precede /categories/{id}
+    Router::get('/categories',                [CategoryController::class, 'index'])->name('categories');
+    Router::get('/categories/create',         [CategoryController::class, 'create'])->name('categories.create');
+    Router::post('/categories',               [CategoryController::class, 'store'])->name('categories.store');
+    Router::get('/categories/{id}/edit',      [CategoryController::class, 'edit'])->name('categories.edit');
+    Router::post('/categories/{id}/edit',     [CategoryController::class, 'update'])->name('categories.update');
+    Router::post('/categories/{id}/delete',   [CategoryController::class, 'destroy'])->name('categories.delete');
+
     Router::get('/products',                  [ProductController::class, 'index'])->name('products');
     Router::get('/products/autocomplete',     [ProductController::class, 'autocomplete'])->name('products.autocomplete');
     Router::get('/products/autocomplete-all', [ProductController::class, 'autocompleteAll'])->name('products.autocomplete_all');

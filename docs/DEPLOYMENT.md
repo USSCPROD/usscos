@@ -1,84 +1,72 @@
 # Deployment & Operations
 
-Production runs on GoDaddy cPanel shared hosting. Deployment is currently a manual file
-copy — see [Known risks](#known-risks) at the end.
+Production runs on a **DigitalOcean droplet** (Ubuntu 24.04 LTS), deployed from Git.
+Migrated off GoDaddy cPanel on 2026-08-03 — see [DIGITALOCEAN.md](DIGITALOCEAN.md) for
+how the server was built and how to rebuild it.
 
 ---
 
 ## Server layout
 
-Hosting account root: `/home/t2a2ymc1f3z4/public_html/`
+Droplet **159.223.177.58**
 
 | Domain | Document root | Serves |
 |---|---|---|
-| `os.usscos.com` | `public_html/businessos/public` | USSCOS (internal) |
-| `usscos.com` | `public_html/usscos.com` | Public website + `/forms` |
-| `usscproducts.net` | `public_html` | Hosting primary domain |
+| `os.usscos.com` | `/var/www/usscos/public` | USSCOS (internal) |
+| `usscos.com`, `www.usscos.com` | `/var/www/usscos.com` | Public website + `/forms` |
 
-The application code sits in `public_html/businessos/`, but only its `public/`
-subdirectory is web-reachable. `app/`, `config/`, `database/`, and `.env` are all
-outside the served path — that's what keeps them private, and it's why the subdomain
-document root **must** point at `businessos/public`, not `businessos`.
+The application lives in `/var/www/usscos`, but only its `public/` subdirectory is
+web-reachable. `app/`, `config/`, `database/`, and `.env` sit outside the served path —
+that's what keeps them private, and why the nginx `root` **must** point at
+`/var/www/usscos/public`, not `/var/www/usscos`.
 
-### DNS
+Owned by the `deploy` user, group `www-data`.
 
-`usscos.com` DNS is managed at **GoDaddy**, not cPanel — so cPanel cannot create
-subdomain DNS records itself. Adding a subdomain takes two steps:
+### TLS
 
-1. cPanel → **Domains** → Create A New Domain, document root `public_html/businessos/public`
-2. GoDaddy → **DNS** → add an **A** record (`os` → the same IP as the `@` record,
-   currently `160.153.189.158`)
+Let's Encrypt via certbot, covering all three names, renewing automatically through
+`certbot.timer`. HTTP 301-redirects to HTTPS.
 
-Then let AutoSSL issue the certificate (cPanel → SSL/TLS Status → Run AutoSSL).
-
-### Required .htaccess files
-
-**`businessos/public/.htaccess`** — the rewrite that makes routing work. Without it,
-every URL except `/` returns 404:
-
-```apache
-Options -Indexes
-Options +FollowSymLinks
-RewriteEngine On
-RewriteRule ^\.env - [F,L]
-RewriteRule ^composer\.(json|lock)$ - [F,L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
-Header always set X-Content-Type-Options nosniff
-Header always set X-Frame-Options SAMEORIGIN
-Header always set X-XSS-Protection "1; mode=block"
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
+```bash
+certbot certificates          # check status
+certbot renew --dry-run       # test renewal
 ```
 
-**`businessos/public/uploads/.htaccess`** — disables script execution for uploaded files.
-Never remove it.
+### nginx
 
-> File Manager hides dotfiles by default. Settings → **Show Hidden Files** or you'll
-> think these are missing when they aren't (and vice versa).
+Server blocks live in `deploy/` in this repo and are copied to
+`/etc/nginx/sites-available/`. After editing:
+
+```bash
+nginx -t && systemctl reload nginx
+```
+
+Uploads are blocked from executing scripts in both server blocks. The `.htaccess` files
+under `public/` are Apache-only and ignored here — kept for portability.
 
 ## Deploying a change
 
-1. **Run any new SQL first.** phpMyAdmin → select database → **SQL** → paste the
-   migration → Go. Uploading PHP that queries tables which don't exist yet produces
-   confusing failures.
-2. Upload changed files via File Manager or FTP, preserving paths.
-3. Load the affected page and confirm.
-
-`BASE_PATH` is **hardcoded** in `public/index.php`:
-
-```php
-define('BASE_PATH', '/home/t2a2ymc1f3z4/public_html/businessos');
-define('PUBLIC_PATH', '/home/t2a2ymc1f3z4/public_html/usscos.com');
+```bash
+ssh deploy@159.223.177.58
+cd /var/www/usscos && bash deploy/deploy.sh
 ```
 
-That means `public/index.php` differs between local and server — don't overwrite the
-server copy with a local one.
+That pulls `main`, installs Composer dependencies, fixes permissions, and reloads
+PHP-FPM. It refuses to run if someone edited files directly on the server, and warns you
+when a deploy contains **new migrations** — those stay manual so a schema change is
+always deliberate and always follows a backup.
+
+Paths are resolved from the file location (`BASE_PATH = dirname(__DIR__)`), so the same
+code runs unchanged locally and in production. `PUBLIC_SITE_PATH` in `.env` points at the
+public website root.
 
 ## Website deployment
 
-The public site lives in `website/` in this repo and deploys to
-`public_html/usscos.com/`. Forms go in `usscos.com/forms/`.
+The public site lives in `website/` in this repo and is copied to `/var/www/usscos.com/`.
+Forms go in `usscos.com/forms/`.
+
+> This is temporary. The public website is being rebuilt as part of the application
+> itself — see [ROADMAP.md](ROADMAP.md#website--publishing).
 
 `website/config.php` points at the USSCOS webhook:
 
@@ -96,7 +84,7 @@ define('BUSINESSOS_WEBHOOK', 'https://os.usscos.com/webhook/lead');
 ### Importing the product master
 
 ```bash
-cd ~/public_html/businessos
+cd /var/www/usscos
 
 # 1. Dry run — writes nothing, prints the full plan
 php database/import_products.php
@@ -126,31 +114,57 @@ simply doesn't cover. Everything runs in one transaction.
 
 ### Backups
 
-Before any bulk change: phpMyAdmin → database → select tables → **Export** → Go.
+DigitalOcean droplet backups run automatically. Before any bulk data change, take a
+database dump as well:
+
+```bash
+mysqldump usscos > ~/usscos-$(date +%F).sql
+```
 
 ### Running migrations
 
-phpMyAdmin SQL tab, or from Terminal:
-
 ```bash
-cd ~/public_html/businessos && php database/migrate.php
+cd /var/www/usscos && php database/migrate.php
 ```
+
+Back up first. `deploy.sh` warns when a deploy includes new migrations but never runs
+them for you.
 
 ### Checking logs
 
-Application logs write to `storage/`. PHP errors surface in cPanel → **Errors**.
+```bash
+tail -f /var/log/nginx/os.usscos.com.error.log   # nginx + PHP errors
+tail -f /var/www/usscos/storage/logs/*.log       # application log
+journalctl -u php8.3-fpm -f                      # PHP-FPM
+```
+
+### Rolling back
+
+```bash
+cd /var/www/usscos
+git log --oneline           # find the last good commit
+git reset --hard <commit>
+sudo systemctl reload php8.3-fpm
+```
+
+Note that a rollback does **not** undo a migration. If the bad deploy included a schema
+change, restore the database dump too.
 
 ## Known risks
 
-**Manual deployment with no version control.** The project is not in Git. There is no
-change history, no diff, no rollback, and no known-good state to return to if an upload
-lands half-finished or overwrites the wrong file. This is the largest operational risk
-in the project and is worth fixing ahead of any further feature work — a repository plus
-a small deploy script would remove most of it.
+**No automated tests.** Schema and type mismatches are found by clicking through the UI
+or by a script failing mid-run. As the surface area grows this gets more expensive.
 
-**No automated tests.** Schema and type mismatches are currently found by clicking
-through the UI or by a script failing mid-run.
+**Uploads have no access control.** `product_documents.is_public` only controls whether
+the UI *shows* a file — the file itself is fetchable by anyone with the URL, logged in or
+not. `/var/www/usscos-storage/uploads` exists outside the web root ready for the fix, but
+the code still writes to `public/uploads`. **This must be resolved before any customer
+portal accounts exist.**
 
 **Security hardening still pending.** USSCOS is reachable from anywhere with only a
 password. Two-factor authentication, login lockout, and an audit log are planned but not
 built. An IP allowlist was ruled out because staff log in remotely.
+
+**Single server.** Application and database share one droplet with no staging
+environment. Fine at current scale; worth revisiting before the site carries real
+e-commerce traffic.
