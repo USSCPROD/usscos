@@ -42,8 +42,12 @@ say "Installing dependencies"
 composer install --no-dev --optimize-autoloader --no-interaction --quiet
 
 say "Fixing permissions"
+# Directories get setgid so new files inherit the group; files stay non-executable.
+# A blanket `chmod -R 2775` would set the executable bit on tracked files, which git
+# records as a modification — making the next deploy fail its own dirty-tree check.
 chown -R deploy:www-data storage public/uploads 2>/dev/null || true
-chmod -R 2775 storage public/uploads 2>/dev/null || true
+find storage public/uploads -type d -exec chmod 2775 {} + 2>/dev/null || true
+find storage public/uploads -type f -exec chmod 0664 {} + 2>/dev/null || true
 
 say "Reloading PHP-FPM"
 sudo systemctl reload php8.3-fpm
