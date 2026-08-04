@@ -81,7 +81,8 @@
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add product categories; correct docs after the DigitalOcean move *)",
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh')",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'gitignore: exclude runtime session and log files *)",
-      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && git fetch -q origin main && git reset -q --hard origin/main && composer install --no-dev --optimize-autoloader --no-interaction --quiet && sudo systemctl reload php8.3-fpm && echo \"deployed at $\\(git rev-parse --short HEAD\\)\"')"
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && git fetch -q origin main && git reset -q --hard origin/main && composer install --no-dev --optimize-autoloader --no-interaction --quiet && sudo systemctl reload php8.3-fpm && echo \"deployed at $\\(git rev-parse --short HEAD\\)\"')",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'provision: give deploy user passwordless sudo for the FPM reload only *)"
     ]
   }
 }

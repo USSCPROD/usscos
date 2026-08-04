@@ -62,6 +62,14 @@ mkdir -p /var/www/usscos-storage/uploads
 chown -R "$DEPLOY_USER":www-data "$APP_DIR" "$SITE_DIR" /var/www/usscos-storage
 chmod -R 2775 /var/www/usscos-storage
 
+# deploy.sh reloads PHP-FPM at the end of every deploy. Grant exactly that
+# one command passwordless — nothing more.
+cat > /etc/sudoers.d/deploy-usscos <<'SUDO'
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.3-fpm
+SUDO
+chmod 440 /etc/sudoers.d/deploy-usscos
+visudo -c -f /etc/sudoers.d/deploy-usscos >/dev/null
+
 # Let the deploy user reach the server over SSH with root's authorised keys
 if [[ -f /root/.ssh/authorized_keys ]]; then
     mkdir -p "/home/$DEPLOY_USER/.ssh"
