@@ -43,8 +43,9 @@ weren't in the original plan.
 > layer (Customer Intelligence, Marketing, expanded Rep Portal). That document's
 > sequencing is folded in below rather than tracked separately, so there's one list.
 
-1. **Version control and a deploy script** — highest risk reduction available; see
-   [DEPLOYMENT.md](DEPLOYMENT.md#known-risks)
+1. ~~**Version control and a deploy script**~~ — done 2026-08-03. Repo at
+   `github.com/USSCPROD/usscos`; deploys via `deploy/deploy.sh`. The platform also moved
+   to a DigitalOcean droplet with HTTPS — see [DIGITALOCEAN.md](DIGITALOCEAN.md).
 2. **Customer Intelligence** — 360° profile (lifetime revenue, order count, avg order
    size, purchase frequency, top products, outstanding balance) on the existing customer
    page; a unified activity timeline merging notes, orders, invoices, payments, and
@@ -70,11 +71,91 @@ weren't in the original plan.
    > anywhere tracks targets today.
 5. **Customer portal** — order history, invoices, quotes, and a **Reorder** button that
    creates a new sales order from a past one. Accounts created internally via an invite
-   sent from the customer record. Lives on the public site, not inside USSCOS.
+   sent from the customer record.
+   > Now the authenticated half of the public site rather than a separate build — see
+   > [Website & Publishing](#website--publishing). Best done alongside that work, since
+   > both need the same public-facing layout and login.
 6. **Digital Job Binder** — expand the sales order into a full job record: artwork with
    revision history, production notes, QA checklist, shop-floor photos, shipping
    documents. Everything about a job in one place, retrievable years later.
 7. **Security hardening** — 2FA, login lockout, audit log.
+
+## Website & Publishing
+
+Decided 2026-08-03, after usscproducts.com (WordPress) was compromised. **The public
+website becomes part of USSCOS rather than a separate CMS.**
+
+The reasoning is as much practical as security: the catalog already lives here. 891
+products with descriptions, images, documents and pricing, plus columns built for exactly
+this — `publish_to_website`, `website_description`, `website_price`, `website_image_url`,
+and `is_public` on every document. A separate CMS means maintaining the catalog twice or
+building a sync layer. One system means "publish" is a flag the public routes respect, so
+a published product is live the moment it's saved. Nothing to export, rebuild, or push.
+
+It also removes the attack surface that caused the incident: no plugins, no third-party
+code executing, one auth system.
+
+Target structure — one application, three audiences separated by authentication:
+
+```
+usscproducts.com            Public site — catalog, product pages with SDS/TDS
+                            downloads, content pages, lead forms
+usscproducts.com/account    Customer portal (authenticated)
+os.usscproducts.com         USSCOS internal
+```
+
+### Build order
+
+**1. Categories** — foundational, and already required by EPIM Chapter 3.
+`products.category` is a flat string today. Needs a real `categories` table (nested
+parent/child, slug, description, image, sort order) plus a `product_categories` join so a
+product can belong to several. Drives site navigation, category landing pages, filtering,
+and fixes the variant/brand confusion that produced the junk brands.
+
+**2. Product publishing + public catalog** — the highest-value step, and it lands early.
+- Publish toggle on the product page; **bulk publish** from the product list; publish an
+  entire category in one action
+- A **Website** tab per product: web title, marketing copy, hero image, gallery,
+  which documents are public, SEO title and meta description
+- Public catalog and product detail pages reading straight from the same database
+
+Once this ships, 891 products are live with real categories and downloadable SDS sheets —
+before the page builder is even started. Marketing pages can stay simple HTML meanwhile.
+
+**3. Rotating banners** — `banners` table: image, headline, subhead, button text, link,
+sort order, active flag, optional start/end dates so promos expire on their own. Admin
+screen to reorder and preview. Small, self-contained, very visible.
+
+**4. Page builder — section-based** (confirmed 2026-08-03, not drag-and-drop).
+
+A page is an ordered list of typed sections; you pick a type, fill its fields, drag to
+reorder. Roughly a fifth the effort of a visual builder and it produces better pages,
+because every section is designed rather than freely positioned — the same model Shopify
+and Squarespace use underneath.
+
+| Section type | Fields |
+|---|---|
+| Hero | Image, headline, subhead, button |
+| Banner carousel | Pulls from the banners table |
+| Text | Rich text |
+| Text + image | Copy, image, side |
+| Product grid | By category or hand-picked products |
+| Feature columns | 2–4 icon/title/text blocks |
+| Document list | SDS, TDS, catalogs |
+| Contact form | Which form to embed |
+| Video / Gallery / CTA | — |
+
+Tables: `pages` and `page_sections` (type, sort order, JSON payload of that type's fields).
+
+**5. Media library, navigation menus, per-page SEO.**
+
+### Notes
+
+- Absorbs the "Website Publish" workflow from the EPIM outline.
+- Reshapes the **customer portal** below: it stops being a bolt-on and becomes the
+  authenticated half of a site being built anyway.
+- Needs a small content editor for marketing pages so copy changes don't require a
+  developer — that was WordPress's only real advantage here.
 
 ## Planned
 
@@ -116,9 +197,12 @@ website, Amazon, EDI, media, documents). What EPIM adds beyond what exists:
 - **Category → Brand → Product → Variant hierarchy.** Today there are brands and a flat
   `category` string. No category table, and no variant concept — colors and sizes are
   separate SKUs, which is why `DURASTRIPE WHITE` ended up misfiled as a brand.
+  *(The category half is now step 1 of [Website & Publishing](#website--publishing);
+  variants remain open.)*
 - **Product relationships** — related, replacement, accessory, cross-sell.
 - **Approval and publish workflows** — separate publish states for website, distributor,
-  and Amazon, with revision control and document approval.
+  and Amazon, with revision control and document approval. *(The website half is now
+  scheduled under [Website & Publishing](#website--publishing).)*
 - **Bulk edit and a media manager** across the catalog rather than per product.
 - **Versioning** — product history, not just `updated_at`.
 - **AI panel** — auto-generate SEO copy and Amazon listings, detect missing SDS, suggest

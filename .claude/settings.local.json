@@ -72,7 +72,10 @@
       "Bash(ssh root@159.223.177.58 'grep -n \"WEBHOOK\" /var/www/usscos.com/config.php')",
       "Bash(ssh root@159.223.177.58 \"sed -i \\\\\"s|http://os.usscos.com/webhook/lead|https://os.usscos.com/webhook/lead|\\\\\" /var/www/usscos.com/config.php && grep -n WEBHOOK /var/www/usscos.com/config.php\")",
       "Bash(ssh root@159.223.177.58 'php -r \" *)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Switch lead webhook to HTTPS *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Switch lead webhook to HTTPS *)",
+      "Bash(ssh root@159.223.177.58 'for k in MAILGUN_API_KEY MAILGUN_DOMAIN MAILGUN_FROM; do v=$\\(grep -E \"^${k}=\" /var/www/usscos/.env | cut -d= -f2- | tr -d \"\\\\r\\\\\"\" \\); if [ -n \"$v\" ]; then echo \"  $k = [set, ${#v} chars]\"; else echo \"  $k = EMPTY\"; fi; done; echo; ls -l /var/www/usscos/.env | awk \"{print \\\\\"  perms: \\\\\"\\\\$1\\\\\" \\\\\"\\\\$3\\\\\":\\\\\"\\\\$4}\"')",
+      "Bash(ssh root@159.223.177.58 'cd /var/www/usscos && sudo -u deploy php -r \" *)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Roadmap: add Website & Publishing module *)"
     ]
   }
 }
