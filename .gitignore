@@ -13,9 +13,11 @@
 # ---------------------------------------------------------------
 # Runtime state
 # ---------------------------------------------------------------
-/storage/logs/*.log
+/storage/logs/*
 /storage/cache/*
 /storage/uploads/*
+/storage/sessions/*
+!/storage/*/.gitkeep
 
 # ---------------------------------------------------------------
 # User-uploaded content — lives on the server, not in the repo
