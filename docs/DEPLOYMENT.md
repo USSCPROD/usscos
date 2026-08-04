@@ -80,14 +80,16 @@ server copy with a local one.
 The public site lives in `website/` in this repo and deploys to
 `public_html/usscos.com/`. Forms go in `usscos.com/forms/`.
 
-`website/config.php` must point at the USSCOS webhook over **plain HTTP**:
+`website/config.php` points at the USSCOS webhook:
 
 ```php
-define('BUSINESSOS_WEBHOOK', 'http://os.usscos.com/webhook/lead');
+define('BUSINESSOS_WEBHOOK', 'https://os.usscos.com/webhook/lead');
 ```
 
-cPanel blocks HTTPS loopback cURL between folders on the same server. Using `https://`
-here produces a silent cURL error 0 and leads never arrive.
+> On the old cPanel host this had to be `http://` — cPanel blocked HTTPS loopback cURL
+> between folders on the same server, producing a silent cURL error 0 with leads never
+> arriving. That restriction does not exist on the droplet; HTTPS loopback is verified
+> working there.
 
 ## Operations runbook
 
