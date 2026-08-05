@@ -94,7 +94,13 @@
       "Bash(sed -i '' 's|^Full taxonomy Chip supplied is at.*|Source: supplied by Chip 2026-08-05, cross-checked against a scrape of the live site.|' docs/WEBSITE_TAXONOMY.md)",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Docs: accounting spec review, confirmed website structure, taxonomy *)",
       "Bash(php -l database/rename_skus.php)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add SKU rename tool *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add SKU rename tool *)",
+      "Bash(ssh root@159.223.177.58 'mkdir -p /var/www/usscos/database/spreadsheets && chown deploy:www-data /var/www/usscos/database/spreadsheets')",
+      "Bash(scp -q '/Users/artdeptmac/Library/CloudStorage/OneDrive-USSpecialtyCoatingsInc/USSC _ Shane Mooney'\\\\''s files - 1-USSC/1-EDI DATA/USSC EDI-ERP DATA.xlsx' 'root@159.223.177.58:/var/www/usscos/database/spreadsheets/USSC EDI-ERP DATA.xlsx')",
+      "Bash(ssh root@159.223.177.58 'chown deploy:www-data \"/var/www/usscos/database/spreadsheets/USSC EDI-ERP DATA.xlsx\" && ls -lh /var/www/usscos/database/spreadsheets/')",
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && php database/rename_skus.php 2>&1')",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'rename_skus: block two products claiming the same new SKU *)",
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh >/dev/null 2>&1 && php database/rename_skus.php 2>&1')"
     ]
   }
 }

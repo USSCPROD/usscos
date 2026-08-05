@@ -236,9 +236,10 @@ if ($mapFile !== null) {
 }
 
 // ---------------------------------------------------------------------------
-// Safety checks — never rename onto an existing SKU
+// Safety checks
 // ---------------------------------------------------------------------------
 
+// 1. Never rename onto a SKU that already exists on a different product.
 $blocked = [];
 foreach ($renames as $i => $r) {
     $st = $pdo->prepare("SELECT id, sku FROM products WHERE UPPER(sku) = ? LIMIT 1");
@@ -250,6 +251,34 @@ foreach ($renames as $i => $r) {
 }
 $renames = array_values($renames);
 
+// 2. Never let two products claim the SAME new SKU. This happens when the database
+//    holds duplicate rows for one product (e.g. "ROBOCON BLK-2.5" alongside
+//    "ROBOCON-BLK-2.5") — both match the same workbook row on name + colour.
+//    `products.sku` is not uniquely indexed, so applying these would silently create
+//    duplicates rather than erroring. Report instead, with reference counts so the
+//    caller can see which row carries the history.
+$byTarget = [];
+foreach ($renames as $r) {
+    $byTarget[strtoupper($r['new'])][] = $r;
+}
+
+$contested = [];
+$renames   = [];
+foreach ($byTarget as $target => $group) {
+    if (count($group) === 1) {
+        $renames[] = $group[0];
+        continue;
+    }
+    $contested[] = [
+        'new'        => $group[0]['new'],
+        'contenders' => array_map(fn($g) => [
+            'old'  => $g['old'],
+            'id'   => $g['id'] ?? null,
+            'refs' => isset($g['id']) ? refCounts($pdo, (int)$g['id'], $REFS) : [],
+        ], $group),
+    ];
+}
+
 // ---------------------------------------------------------------------------
 // Plan
 // ---------------------------------------------------------------------------
@@ -258,6 +287,9 @@ rule();
 say('  PLAN');
 rule();
 say(sprintf('  → RENAME (safe, history preserved) : %d', count($renames)));
+if ($contested) {
+    say(sprintf('  → CONTESTED — duplicate DB rows    : %d targets', count($contested)));
+}
 say(sprintf('  → Ambiguous, needs a decision      : %d', count($ambiguous)));
 say(sprintf('  → No workbook match (discontinued?): %d', count($noMatch)));
 say(sprintf('  → New SKUs the importer will add   : %d', count($newSkus)));
@@ -277,6 +309,26 @@ if ($renames) {
     }
     say();
     say('    Bracketed counts are existing references that this rename preserves.');
+    say();
+}
+
+if ($contested) {
+    say('  CONTESTED — two or more DATABASE rows describe the same product, so they both');
+    say('  match one workbook SKU. These are pre-existing duplicates in the catalog, not a');
+    say('  spreadsheet problem. Nothing is renamed for them.');
+    say();
+    say('  Resolve by keeping the row that carries the history and deactivating the other,');
+    say('  then re-run. Where neither has references, either is fine — keep the lower id.');
+    say();
+    foreach ($contested as $c) {
+        say(sprintf('    target %s', $c['new']));
+        foreach ($c['contenders'] as $k) {
+            $refs = $k['refs']
+                ? implode(', ', array_map(fn($t, $n) => "$t:$n", array_keys($k['refs']), $k['refs']))
+                : 'no references';
+            say(sprintf('      #%-6s %-24s %s', $k['id'] ?? '?', $k['old'], $refs));
+        }
+    }
     say();
 }
 
