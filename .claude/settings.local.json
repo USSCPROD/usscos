@@ -92,7 +92,9 @@
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && git checkout -- . && echo \"modes restored:\" && stat -c \"  %a %n\" storage/logs/.gitkeep public/uploads/.htaccess')",
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && \\(git status --porcelain || true\\) && echo \"  ^ empty = clean\" && stat -c \"  %a %n\" storage/logs/.gitkeep public/uploads/.htaccess storage/logs')",
       "Bash(sed -i '' 's|^Full taxonomy Chip supplied is at.*|Source: supplied by Chip 2026-08-05, cross-checked against a scrape of the live site.|' docs/WEBSITE_TAXONOMY.md)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Docs: accounting spec review, confirmed website structure, taxonomy *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Docs: accounting spec review, confirmed website structure, taxonomy *)",
+      "Bash(php -l database/rename_skus.php)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add SKU rename tool *)"
     ]
   }
 }
