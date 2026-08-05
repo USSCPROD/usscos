@@ -86,7 +86,13 @@
       "Bash(perl -0pi -e 's/&q=<\\\\?= urlencode\\\\\\(\\\\$search\\\\\\) \\\\?>&filter=<\\\\?= e\\\\\\(\\\\$filter\\\\\\) \\\\?>&brand=<\\\\?= urlencode\\\\\\(\\\\$brand\\\\\\) \\\\?>/<?= \\\\$pageQs ?>/g' app/Views/products/index.php)",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Category assignment on products, and bulk categorise *)",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'deploy: stop chmod marking tracked files executable *)",
-      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && git checkout -- . && bash deploy/deploy.sh')"
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && git checkout -- . && bash deploy/deploy.sh')",
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && \\(git status --porcelain | head -5\\) && echo \"  \\(nothing above = clean\\)\"')",
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && git diff -- storage/logs/.gitkeep | head -8; echo \"--- raw modes ---\"; git ls-files -s storage/logs/.gitkeep public/uploads/.htaccess; echo \"--- on disk ---\"; stat -c \"%a %n\" storage/logs/.gitkeep public/uploads/.htaccess; echo \"--- core.fileMode ---\"; git config core.fileMode || echo \"\\(unset, defaults true\\)\"')",
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && git checkout -- . && echo \"modes restored:\" && stat -c \"  %a %n\" storage/logs/.gitkeep public/uploads/.htaccess')",
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && \\(git status --porcelain || true\\) && echo \"  ^ empty = clean\" && stat -c \"  %a %n\" storage/logs/.gitkeep public/uploads/.htaccess storage/logs')",
+      "Bash(sed -i '' 's|^Full taxonomy Chip supplied is at.*|Source: supplied by Chip 2026-08-05, cross-checked against a scrape of the live site.|' docs/WEBSITE_TAXONOMY.md)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Docs: accounting spec review, confirmed website structure, taxonomy *)"
     ]
   }
 }

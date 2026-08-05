@@ -104,6 +104,45 @@ usscproducts.com/account    Customer portal (authenticated)
 os.usscproducts.com         USSCOS internal
 ```
 
+### Structure — confirmed August 2026
+
+The live site is the model: *"usscproducts.com is what we want to copy. Get as close to
+that as possible. Mobile matters a lot."* Its category structure governs — see
+**[WEBSITE_TAXONOMY.md](WEBSITE_TAXONOMY.md)** for the full tree.
+
+```
+Category (L1)     Field Marking Paints
+  Category (L2)   Aerosol Field Marking Paints        ← leaf
+    Group         DuraStripe Fat Cans                 ← one page, one URL
+      SKU         DSWFC / DSRFC / DSYFC …             ← colour × pack picker
+```
+
+Categories run **2–3 levels** (three under Striping Machines), with **product groups**
+below them and SKUs as variants. Roughly 8 top-level and 85 subcategories — no pruning;
+Specialty Coatings keeps all 26 children.
+
+**Variants are display-only grouping, not a schema refactor.** A group is
+`(brand, product_line)`; options come from `color` and `pack_level`. The site renders one
+page with pickers and add-to-cart resolves to the real SKU. Products stay flat internally,
+which is correct — each variant is genuinely made, stocked and shipped as its own item with
+its own barcode and weight. The data already supports it: 42 product lines over 627
+products, 726 carrying a colour (Fat Can = 7 SKUs/7 colours; T-Tip = 84/41, second axis
+being pack).
+
+**The spreadsheet is the source of truth for which products exist.** The hand-written
+taxonomy contains discontinued lines, so validate every group against the current workbook
+(now in OneDrive, not on the Desktop) before building category pages.
+
+**Correction to migration 044:** `Resale` was flagged `show_on_website = 0`. That's wrong —
+striping machines, robots, janitorial and field maintenance are all resold and are a major
+part of the online catalog. Fix before publishing.
+
+What the current site uses, for reference: Porto theme, Elementor Pro (page builder),
+RevSlider (banners), WooCommerce, **woo-discount-rules-pro** (volume pricing today),
+flexible-shipping, and google-listings-and-ads — so the product model must keep supporting
+a Google Shopping feed. Brand colour is **#730b12**, not the admin navy; fonts are
+Montserrat, Oswald, Roboto and Roboto Slab.
+
 ### Build order
 
 **1. Categories** — foundational, and already required by EPIM Chapter 3.
@@ -220,19 +259,80 @@ get harder to retrofit the longer the catalog grows.
 - **Internal messaging** — employee DMs with notification badge
 - **Website port** — usscos.com → usscproducts.com, same structure
 
-## Deferred on purpose
+## Accounting
 
-**Full general ledger.** The blueprint's Phase 2 called for double-entry bookkeeping and
-financial statements. QuickBooks remains the ledger, with USSCOS owning invoicing and
-AR. This is the highest-risk, lowest-differentiation part of the plan — nothing that makes
-this system valuable (job binder, portals, production, AI) depends on it. The scaffolding
-tables (`chart_of_accounts`, `journal_entries`, `journal_entry_lines`) exist but are unused.
+A full technical spec now exists:
+**[USSCos_Accounting_Module_Spec.md](USSCos_Accounting_Module_Spec.md)** (August 2026).
+Accrual basis, C-corp equity, three-stage manufacturing inventory, multi-state sales tax.
+Contains a paint-manufacturer chart of accounts, entity definitions, journal entry logic
+per workflow, a reconciliation schedule, and an anti-patterns list.
 
-What's worth building before a GL:
-- AR aging
-- Clean invoice export to QuickBooks
-- **Job costing** — materials + labor + shipping against what was charged. This is what
-  actually feeds the job profitability reporting, and it needs no ledger.
+The accounting judgement is sound — immutable ledger with reversing entries, undeposited
+funds for checks, gross revenue with processor fees posted separately, one Sales Tax
+Payable account plus a jurisdiction sub-ledger, and a recommendation to use Avalara or
+TaxJar rather than building nexus logic in-house.
+
+**Sequenced behind [Website & Publishing](#website--publishing)**, which has a hard driver
+(usscproducts.com is a compromised WordPress install) where accounting has none —
+QuickBooks works today. Building the website also advances this work, since the cart
+produces the `online_orders` data the spec's §4.2 depends on.
+
+### Before writing code from the spec
+
+It was written without access to the codebase, so it reads greenfield when most of it
+already exists.
+
+**Already built** — `sales_orders`, `invoices`, `payments`, `payment_applications`,
+`vendors`, `purchase_orders`, `bills`, `bill_line_items`, `inventory_transactions`.
+Sections 3.2–3.4 are a mapping exercise, not new construction.
+
+| Spec name | Actual table |
+|---|---|
+| `accounts` | `chart_of_accounts` |
+| `inventory_items` | `products` (`item_type` already includes `raw_material`) |
+| `bill_of_materials` | `product_components` |
+| line item `quantity` | `qty_ordered` (SO lines) / `qty` (invoice lines) |
+
+**Genuinely new** — `online_orders`, `production_runs`, `production_run_consumption`,
+`tax_jurisdictions`, `sales_tax_collected`, the five posting services, and seeding the
+chart of accounts.
+
+### The decision this rests on
+
+`chart_of_accounts`, `journal_entries` and `journal_entry_lines` have existed since
+migrations 015–017 and are **empty** — but they were built to *mirror* QuickBooks. They
+carry `quickbooks_id` and `last_synced_at`, and use QuickBooks' 15-value account-type enum
+rather than the spec's six-way split.
+
+The spec assumes USSCOS **replaces** QuickBooks. That fork drives everything downstream —
+opening balances, who runs month-end, what the CPA touches. **Settle it before
+implementation starts.**
+
+### Gaps in the spec
+
+- **Opening balances.** Not covered in §9. Becoming the ledger of record requires a cutover
+  trial balance: every account's opening figure, open AR by invoice, open AP by bill,
+  inventory on hand at cost. Usually the hardest part of an accounting migration, and it
+  needs the CPA involved.
+- **Period close / locking.** Entries are immutable, but nothing prevents posting into a
+  month already reconciled and filed. A `closed_through_date` hard block is cheap insurance.
+- **§4.8 side effect.** Capitalising overhead by crediting 6700/6950 leaves those expense
+  accounts with odd — occasionally negative — balances between quarterly true-ups. Inherent
+  to the simplified v1 and the spec is honest about it, but the bookkeeper should expect it.
+
+### Dependencies
+
+COGS recognition (§4.1) needs `production_runs` and per-unit cost — the **production
+module**, not built. `online_orders` (§4.2) is the **e-commerce cart**, part of the website
+module. Accounting cannot complete before both exist.
+
+### Worth pulling forward regardless
+
+Neither needs a general ledger, and both would be used weekly:
+
+- **AR aging** — who owes what, how overdue
+- **Job costing** — materials + labour + shipping against what was charged; this is what
+  actually feeds job profitability reporting
 
 ## Corrections to `features.docx`
 
