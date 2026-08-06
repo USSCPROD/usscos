@@ -103,6 +103,17 @@ There is **no** global `fileSize()` or `fileIcon()` — define your own, guarded
   has already run on the server; add a new one.
 - **Run the SQL before uploading PHP that depends on it.** Otherwise the new code
   queries tables that don't exist yet.
+- `php database/migrate.php --dry-run` parses every pending file and reports the
+  statements without executing anything. Add `--all` to re-parse applied ones too,
+  which is the way to check a change to the parser itself.
+- `migrate.php` tracks quote state, so semicolons and `--` inside comments and string
+  literals are safe. (It used to `explode(';', …)`, which made a semicolon in a comment
+  break the file. Several old migrations still contain that pattern and only ran because
+  they were applied through the `mysql` client at the time.)
+- **Verifying that a migration ran means checking its effect, not that its table exists.**
+  An `ALTER` that adds a column or extends an enum leaves the table in place either way.
+  Migration 034 was recorded as applied while `users.role` still lacked `shipping`, which
+  silently broke saving a user.
 - Named PDO parameters may appear only **once** per query. Repeat the value under a
   second name instead (`:total`, `:total2`).
 - `products.qty_on_hand`, `is_active`, `is_taxable` and friends are `NOT NULL DEFAULT`.
