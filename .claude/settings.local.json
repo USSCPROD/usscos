@@ -116,7 +116,11 @@
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Roadmap: correct the rep prerequisite *)",
       "Bash(scp -q database/migrations/046_seed_chart_of_accounts.sql root@159.223.177.58:/tmp/046.sql)",
       "Bash(ssh root@159.223.177.58 'mysql usscos < /tmp/046.sql && rm /tmp/046.sql && echo \"seeded\" && mysql -N -e \" *)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Accounting section: chart of accounts and A/R aging *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Accounting section: chart of accounts and A/R aging *)",
+      "Bash(scp -q database/migrations/047_quickbooks_export_queue.sql root@159.223.177.58:/tmp/047.sql)",
+      "Bash(ssh root@159.223.177.58 'mysql usscos < /tmp/047.sql && rm /tmp/047.sql && echo applied && mysql -N -e \" *)",
+      "Bash(ssh root@159.223.177.58 'KEY=$\\(openssl rand -hex 32\\); if grep -q \"^API_KEY=\" /var/www/usscos/.env; then sed -i \"s|^API_KEY=.*|API_KEY=$KEY|\" /var/www/usscos/.env; else echo \"API_KEY=$KEY\" >> /var/www/usscos/.env; fi; chown deploy:www-data /var/www/usscos/.env; chmod 640 /var/www/usscos/.env; echo \"API_KEY generated \\(64 hex chars\\) — retrieve it with:\"; echo \"  ssh root@159.223.177.58 grep API_KEY /var/www/usscos/.env\"')",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'QuickBooks sync API for the QODBC bridge *)"
     ]
   }
 }

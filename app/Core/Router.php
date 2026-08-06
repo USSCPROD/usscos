@@ -171,6 +171,7 @@ class Router
             'guest'    => \App\Middleware\GuestMiddleware::class,
             'csrf'     => \App\Middleware\CsrfMiddleware::class,
             'throttle' => \App\Middleware\ThrottleMiddleware::class,
+            'apikey'   => \App\Middleware\ApiKeyMiddleware::class,
         ];
 
         $class = $map[$name] ?? $name;

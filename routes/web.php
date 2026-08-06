@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Core\Router;
 use App\Controllers\AdminController;
 use App\Controllers\AccountingController;
+use App\Controllers\QbSyncController;
 use App\Controllers\CategoryController;
 use App\Controllers\TaskController;
 use App\Controllers\DocumentController;
@@ -262,3 +263,14 @@ Router::group(['middleware' => 'auth'], function () {
 
 // Public webhook — website lead intake (no CSRF, no auth)
 Router::post('/webhook/lead', [WebhookController::class, 'lead'])->name('webhook.lead');
+
+// ---------------------------------------------------------------------------
+// QuickBooks bridge API — outside the session auth group because it is called
+// unattended by the Windows machine running QuickBooks. Guarded by an API key
+// (X-API-Key header, set as API_KEY in .env). See docs/QUICKBOOKS_SYNC.md.
+// ---------------------------------------------------------------------------
+Router::group(['middleware' => ['apikey']], function () {
+    Router::get('/api/qb/status',   [QbSyncController::class, 'status'])->name('api.qb.status');
+    Router::get('/api/qb/pending',  [QbSyncController::class, 'pending'])->name('api.qb.pending');
+    Router::post('/api/qb/ack',     [QbSyncController::class, 'ack'])->name('api.qb.ack');
+});
