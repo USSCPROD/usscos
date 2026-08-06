@@ -62,7 +62,7 @@ class QbExportRepository
     {
         return Database::select("
             SELECT COALESCE(p.quickbooks_item, ili.quickbooks_item) AS ItemRefFullName,
-                   ili.description  AS Desc,
+                   ili.description  AS `Desc`,
                    ili.qty          AS Quantity,
                    ili.unit_price   AS Rate,
                    ili.line_total   AS Amount,
@@ -104,7 +104,7 @@ class QbExportRepository
         foreach ($orders as &$o) {
             $o['lines'] = Database::select("
                 SELECT COALESCE(p.quickbooks_item, li.quickbooks_item) AS ItemRefFullName,
-                       li.description   AS Desc,
+                       li.description   AS `Desc`,
                        li.qty_ordered   AS Quantity,
                        li.unit_price    AS Rate,
                        li.line_total    AS Amount,

@@ -120,7 +120,20 @@
       "Bash(scp -q database/migrations/047_quickbooks_export_queue.sql root@159.223.177.58:/tmp/047.sql)",
       "Bash(ssh root@159.223.177.58 'mysql usscos < /tmp/047.sql && rm /tmp/047.sql && echo applied && mysql -N -e \" *)",
       "Bash(ssh root@159.223.177.58 'KEY=$\\(openssl rand -hex 32\\); if grep -q \"^API_KEY=\" /var/www/usscos/.env; then sed -i \"s|^API_KEY=.*|API_KEY=$KEY|\" /var/www/usscos/.env; else echo \"API_KEY=$KEY\" >> /var/www/usscos/.env; fi; chown deploy:www-data /var/www/usscos/.env; chmod 640 /var/www/usscos/.env; echo \"API_KEY generated \\(64 hex chars\\) — retrieve it with:\"; echo \"  ssh root@159.223.177.58 grep API_KEY /var/www/usscos/.env\"')",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'QuickBooks sync API for the QODBC bridge *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'QuickBooks sync API for the QODBC bridge *)",
+      "Bash(ssh root@159.223.177.58 'grep \"^API_KEY=\" /var/www/usscos/.env | cut -d= -f2')",
+      "Bash(curl -s -o /dev/null -w \"  → %{http_code}\\\\n\" https://os.usscos.com/api/qb/status)",
+      "Bash(curl -s -o /dev/null -w \"  → %{http_code}\\\\n\" -H \"X-API-Key: wrong\" https://os.usscos.com/api/qb/status)",
+      "Bash(curl -s -H 'X-API-Key: __CMDSUB_OUTPUT__' https://os.usscos.com/api/qb/status)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -w '\\\\n[http %{http_code}]\\\\n' -H 'X-API-Key: __CMDSUB_OUTPUT__' 'https://os.usscos.com/api/qb/pending?type=invoices&limit=1')",
+      "Bash(ssh root@159.223.177.58 'tail -6 /var/log/nginx/os.usscos.com.error.log | grep -viE \"\\\\.env|\\\\.git|forbidden\"')",
+      "Bash(ssh root@159.223.177.58 'tail -30 /var/www/usscos/storage/logs/*.log 2>/dev/null | grep -iE \"exception|error|fatal\" | tail -6')",
+      "Bash(sed -i '' 's/AS Desc,/AS `Desc`,/g' app/Repositories/QbExportRepository.php)",
+      "Bash(grep -n 'AS `Desc`' app/Repositories/QbExportRepository.php)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'qb export: quote the Desc column alias *)",
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh >/dev/null 2>&1 && echo deployed')",
+      "Bash(curl -s -H 'X-API-Key: __TRACKED_VAR__' 'https://os.usscos.com/api/qb/pending?type=invoices&limit=1')"
     ]
   }
 }
