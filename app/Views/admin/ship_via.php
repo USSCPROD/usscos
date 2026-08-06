@@ -40,7 +40,16 @@
                                 <?php endif; ?>
                             </td>
                             <td class="text-right">
-                                <a href="/admin/ship-via/<?= (int)$item['id'] ?>/edit" class="btn btn--sm btn--secondary">Edit</a>
+                                <?php
+                                $actEntity    = 'ship-via';
+                                $actId        = (int)$item['id'];
+                                $actActive    = (bool)$item['is_active'];
+                                $actEditUrl   = '/admin/ship-via/' . (int)$item['id'] . '/edit';
+                                $actLabel     = 'shipping method';
+                                $actDeletable = true;
+                                $actRefs      = $refCounts[(int)$item['id']] ?? 0;
+                                include BASE_PATH . '/app/Views/admin/_actions.php';
+                                ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

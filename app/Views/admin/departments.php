@@ -40,7 +40,16 @@
                                 </span>
                             </td>
                             <td class="text-right">
-                                <a href="/admin/departments/<?= (int)$item['id'] ?>/edit" class="btn btn--sm btn--secondary">Edit</a>
+                                <?php
+                                $actEntity    = 'departments';
+                                $actId        = (int)$item['id'];
+                                $actActive    = (bool)$item['is_active'];
+                                $actEditUrl   = '/admin/departments/' . (int)$item['id'] . '/edit';
+                                $actLabel     = 'department';
+                                $actDeletable = true;
+                                $actRefs      = $refCounts[(int)$item['id']] ?? 0;
+                                include BASE_PATH . '/app/Views/admin/_actions.php';
+                                ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

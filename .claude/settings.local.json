@@ -177,7 +177,10 @@
       "Bash(git commit -q -m 'Document migrate.php --dry-run and the ALTER-verification trap *)",
       "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/processed_by.csv root@159.223.177.58:/tmp/processed_by.csv)",
       "Bash(git commit -q -m 'Add Processed By importer *)",
-      "Bash(scp -q \"/Users/artdeptmac/Desktop/2026 Invoices with Processed By.xlsx\" root@159.223.177.58:/tmp/)"
+      "Bash(scp -q \"/Users/artdeptmac/Desktop/2026 Invoices with Processed By.xlsx\" root@159.223.177.58:/tmp/)",
+      "Bash(grep -n ''\\\\''Num'\\\\''\\\\|Type\\\\|columns\\\\|header\\\\|=> *$row' database/import_sales_history.php)",
+      "Bash(git commit -q -m 'Add invoice line item product relink *)",
+      "Bash(git commit -q -m 'Show Processed By on the invoice page *)"
     ]
   }
 }

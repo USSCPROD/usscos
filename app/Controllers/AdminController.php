@@ -30,6 +30,91 @@ class AdminController extends Controller
     }
 
     // -------------------------------------------------------------------------
+    // Deactivate / delete, shared by every admin lookup list
+    // -------------------------------------------------------------------------
+
+    /**
+     * Flip is_active on an admin lookup row.
+     *
+     * This is the safe operation and the one to reach for: the row stops appearing in
+     * pickers for new documents while every historical reference to it stays intact.
+     */
+    public function toggleActive(Request $request, Response $response, string $entity = '', string $id = '0'): Response
+    {
+        $cfg = $this->repo->entityConfig($entity);
+
+        if ($cfg === null) {
+            Session::flash('error', 'Unknown admin section.');
+            return $response->redirect('/admin');
+        }
+
+        $row = $this->repo->findEntity($entity, (int)$id);
+
+        if ($row === null) {
+            Session::flash('error', $cfg['label'] . ' not found.');
+            return $response->redirect($cfg['redirect']);
+        }
+
+        $activate = !(bool)$row['is_active'];
+        $this->repo->setEntityActive($entity, (int)$id, $activate);
+
+        Session::flash('success', sprintf(
+            '%s "%s" %s.',
+            $cfg['label'],
+            $row['display_name'],
+            $activate ? 'reactivated' : 'deactivated — hidden from new documents, history untouched'
+        ));
+
+        return $response->redirect($cfg['redirect']);
+    }
+
+    /**
+     * Hard-delete an admin lookup row, refused if anything still references it.
+     *
+     * Intended for the "typed it wrong a minute ago" case. Anything with history should
+     * be deactivated, because several of these foreign keys are SET NULL — the delete
+     * would succeed and silently blank the field on past records.
+     */
+    public function destroy(Request $request, Response $response, string $entity = '', string $id = '0'): Response
+    {
+        $cfg = $this->repo->entityConfig($entity);
+
+        if ($cfg === null) {
+            Session::flash('error', 'Unknown admin section.');
+            return $response->redirect('/admin');
+        }
+
+        $row = $this->repo->findEntity($entity, (int)$id);
+
+        if ($row === null) {
+            Session::flash('error', $cfg['label'] . ' not found.');
+            return $response->redirect($cfg['redirect']);
+        }
+
+        try {
+            $this->repo->deleteEntity($entity, (int)$id);
+            Session::flash('success', sprintf('%s "%s" deleted.', $cfg['label'], $row['display_name']));
+        } catch (\PDOException $e) {
+            // A reference we don't have listed in the entity map — report it rather than
+            // showing a raw SQL error.
+            Session::flash('error', sprintf(
+                'Could not delete %s "%s" — it is still referenced elsewhere. Deactivate it instead.',
+                strtolower($cfg['label']),
+                $row['display_name']
+            ));
+        } catch (\RuntimeException $e) {
+            Session::flash('error', sprintf(
+                'Could not delete %s "%s". %s',
+                strtolower($cfg['label']),
+                $row['display_name'],
+                $e->getMessage()
+            ));
+        }
+
+        return $response->redirect($cfg['redirect']);
+    }
+
+    // -------------------------------------------------------------------------
     // Ship Via
     // -------------------------------------------------------------------------
 
@@ -46,6 +131,7 @@ class AdminController extends Controller
             'items'       => $this->repo->allSalesReps(!$showAll),
             'showAll'     => $showAll,
             'hiddenCount' => $showAll ? 0 : $this->repo->countNonRepSalesReps(),
+            'refCounts'   => $this->repo->entityReferenceCounts('sales-reps'),
         ]);
     }
 
@@ -100,6 +186,7 @@ class AdminController extends Controller
         return $this->view('admin.ship_via', [
             'title' => 'Ship Via — Admin',
             'items' => $this->repo->allShipVia(),
+            'refCounts' => $this->repo->entityReferenceCounts('ship-via'),
         ]);
     }
 
@@ -138,6 +225,7 @@ class AdminController extends Controller
         return $this->view('admin.payment_terms', [
             'title' => 'Payment Terms — Admin',
             'items' => $this->repo->allPaymentTerms(),
+            'refCounts' => $this->repo->entityReferenceCounts('payment-terms'),
         ]);
     }
 
@@ -176,6 +264,7 @@ class AdminController extends Controller
         return $this->view('admin.tax_rates', [
             'title' => 'Tax Rates — Admin',
             'items' => $this->repo->allTaxRates(),
+            'refCounts' => $this->repo->entityReferenceCounts('tax-rates'),
         ]);
     }
 
@@ -214,6 +303,7 @@ class AdminController extends Controller
         return $this->view('admin.customer_messages', [
             'title' => 'Customer Messages — Admin',
             'items' => $this->repo->allCustomerMessages(),
+            'refCounts' => $this->repo->entityReferenceCounts('customer-messages'),
         ]);
     }
 
@@ -252,6 +342,7 @@ class AdminController extends Controller
         return $this->view('admin.users', [
             'title' => 'Users — Admin',
             'items' => $this->repo->allUsers(),
+            'refCounts' => $this->repo->entityReferenceCounts('users'),
         ]);
     }
 
@@ -311,6 +402,7 @@ class AdminController extends Controller
         return $this->view('admin.customer_types', [
             'title' => 'Customer Types — Admin',
             'items' => $this->repo->allCustomerTypes(),
+            'refCounts' => $this->repo->entityReferenceCounts('customer-types'),
         ]);
     }
 
@@ -349,6 +441,7 @@ class AdminController extends Controller
         return $this->view('admin.departments', [
             'title' => 'Departments — Admin',
             'items' => $this->repo->allDepartments(),
+            'refCounts' => $this->repo->entityReferenceCounts('departments'),
         ]);
     }
 

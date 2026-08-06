@@ -93,7 +93,16 @@ $roleBadge = [
                                 </span>
                             </td>
                             <td class="text-right">
-                                <a href="/admin/users/<?= (int)$u['id'] ?>/edit" class="btn btn--secondary" style="padding:.3rem .75rem;font-size:.8rem">Edit</a>
+                                <?php
+                                $actEntity    = 'users';
+                                $actId        = (int)$u['id'];
+                                $actActive    = (bool)$u['is_active'];
+                                $actEditUrl   = '/admin/users/' . (int)$u['id'] . '/edit';
+                                $actLabel     = 'user';
+                                $actDeletable = false;
+                                $actRefs      = $refCounts[(int)$u['id']] ?? 0;
+                                include BASE_PATH . '/app/Views/admin/_actions.php';
+                                ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -138,6 +147,13 @@ $roleBadge = [
         </tbody>
     </table>
 </div>
+
+<p style="font-size:.78rem;color:#9ca3af;margin:1rem 0 2rem">
+    Users are <strong>deactivated, never deleted</strong>. A person's name is attached to
+    invoices, quotes, sales orders, leads, payments and tasks, and deleting the account
+    would strip them from that history — tasks and sales goals would be removed outright.
+    Deactivating blocks the login immediately and leaves every record intact.
+</p>
 
 <?php
 $content = ob_get_clean();

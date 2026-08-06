@@ -118,8 +118,17 @@ $typeBadge = [
                                 <?= $r['is_active'] ? 'Active' : 'Inactive' ?>
                             </span>
                         </td>
-                        <td class="text-right">
-                            <a href="/admin/sales-reps/<?= (int)$r['id'] ?>/edit" class="btn btn--xs btn--secondary">Edit</a>
+                        <td class="text-right" style="white-space:nowrap">
+                            <?php
+                            $actEntity    = 'sales-reps';
+                            $actId        = (int)$r['id'];
+                            $actActive    = (bool)$r['is_active'];
+                            $actEditUrl   = '/admin/sales-reps/' . (int)$r['id'] . '/edit';
+                            $actLabel     = 'sales rep';
+                            $actDeletable = true;
+                            $actRefs      = $refCounts[(int)$r['id']] ?? 0;
+                            include BASE_PATH . '/app/Views/admin/_actions.php';
+                            ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>

@@ -40,7 +40,16 @@
                                 </span>
                             </td>
                             <td class="text-right">
-                                <a href="/admin/payment-terms/<?= (int)$item['id'] ?>/edit" class="btn btn--sm btn--secondary">Edit</a>
+                                <?php
+                                $actEntity    = 'payment-terms';
+                                $actId        = (int)$item['id'];
+                                $actActive    = (bool)$item['is_active'];
+                                $actEditUrl   = '/admin/payment-terms/' . (int)$item['id'] . '/edit';
+                                $actLabel     = 'payment term';
+                                $actDeletable = true;
+                                $actRefs      = $refCounts[(int)$item['id']] ?? 0;
+                                include BASE_PATH . '/app/Views/admin/_actions.php';
+                                ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

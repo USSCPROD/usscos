@@ -261,6 +261,12 @@ Router::group(['middleware' => 'auth'], function () {
     Router::post('/admin/lead-routing',                      [AdminController::class, 'leadRoutingUpdate'])->name('admin.lead_routing.update');
     Router::get('/admin/lead-routing/reset-paint',           [AdminController::class, 'leadRoutingResetPaint'])->name('admin.lead_routing.reset_paint');
 
+    // Shared deactivate/delete for every admin lookup list. {entity} is a slug validated
+    // against AdminRepository::ENTITIES — it never reaches a query. Declared after the
+    // specific /admin/* routes above so those win.
+    Router::post('/admin/{entity}/{id}/toggle-active',        [AdminController::class, 'toggleActive'])->name('admin.toggle_active');
+    Router::post('/admin/{entity}/{id}/delete',               [AdminController::class, 'destroy'])->name('admin.destroy');
+
     Router::get('/admin/company',                            [AdminController::class, 'company'])->name('admin.company');
     Router::post('/admin/company',                           [AdminController::class, 'companyUpdate'])->name('admin.company.update');
 

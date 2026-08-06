@@ -8,6 +8,276 @@ use App\Core\Database;
 
 class AdminRepository
 {
+    /**
+     * The admin lookup tables, and what refers to them.
+     *
+     * Deactivating is always safe. Deleting is only safe when nothing points at the row,
+     * because the foreign keys do very different things:
+     *
+     *   SET NULL   the delete SUCCEEDS and quietly blanks the column on historical
+     *              records — how a deleted sales rep would vanish from past invoices
+     *   NO ACTION  the database blocks the delete outright
+     *   CASCADE    dependent rows are deleted too (users -> tasks, sales_goals)
+     *
+     * So `refs` is checked in the application before deleting rather than relying on the
+     * database to object, since for the SET NULL cases it won't.
+     *
+     * `deletable => false` means never offer a hard delete at all. Users are the case:
+     * their history spans twenty-odd tables, and the CASCADE on tasks and sales_goals
+     * would destroy records. They are deactivated instead.
+     *
+     * Keys are URL slugs. A slug is only ever used to look up this map, never
+     * interpolated into SQL — the table and column names below are the only ones that
+     * reach a query.
+     */
+    private const ENTITIES = [
+        'sales-reps' => [
+            'table'     => 'sales_reps',
+            'label'     => 'Sales rep',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/sales-reps',
+            'deletable' => true,
+            'refs'      => [
+                ['invoices',  'sales_rep_id',        'invoices'],
+                ['invoices',  'processed_by_rep_id', 'invoices (processed by)'],
+                ['customers', 'sales_rep_id',        'customers'],
+            ],
+        ],
+        'ship-via' => [
+            'table'     => 'ship_via',
+            'label'     => 'Shipping method',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/ship-via',
+            'deletable' => true,
+            'refs'      => [
+                ['quotes',       'ship_via_id', 'quotes'],
+                ['sales_orders', 'ship_via_id', 'sales orders'],
+            ],
+        ],
+        'payment-terms' => [
+            'table'     => 'payment_terms',
+            'label'     => 'Payment term',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/payment-terms',
+            'deletable' => true,
+            'refs'      => [
+                ['invoices',  'payment_term_id', 'invoices'],
+                ['customers', 'payment_term_id', 'customers'],
+                ['quotes',    'payment_term_id', 'quotes'],
+                ['bills',     'payment_term_id', 'bills'],
+                ['vendors',   'payment_term_id', 'vendors'],
+            ],
+        ],
+        'tax-rates' => [
+            'table'     => 'tax_rates',
+            'label'     => 'Tax rate',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/tax-rates',
+            'deletable' => true,
+            'refs'      => [
+                ['customers',    'tax_rate_id', 'customers'],
+                ['quotes',       'tax_rate_id', 'quotes'],
+                ['sales_orders', 'tax_rate_id', 'sales orders'],
+            ],
+        ],
+        'customer-messages' => [
+            'table'     => 'customer_messages',
+            'label'     => 'Customer message',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/customer-messages',
+            'deletable' => true,
+            'refs'      => [
+                ['sales_orders', 'customer_message_id', 'sales orders'],
+            ],
+        ],
+        'departments' => [
+            'table'     => 'departments',
+            'label'     => 'Department',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/departments',
+            'deletable' => true,
+            'refs'      => [
+                ['users', 'department_id', 'users'],
+            ],
+        ],
+        'customer-types' => [
+            'table'     => 'customer_types',
+            'label'     => 'Customer type',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/customer-types',
+            'deletable' => true,
+            // customers.customer_type holds the type NAME, not an id, so this reference
+            // is matched by name rather than by key.
+            'refs'      => [
+                ['customers', 'customer_type', 'customers', 'name'],
+            ],
+        ],
+        'users' => [
+            'table'     => 'users',
+            'label'     => 'User',
+            'name_col'  => "CONCAT(first_name, ' ', last_name)",
+            'redirect'  => '/admin/users',
+            'deletable' => false,
+            'refs'      => [],
+        ],
+    ];
+
+    /** Config for an admin entity slug, or null if the slug isn't one we manage. */
+    public function entityConfig(string $slug): ?array
+    {
+        return self::ENTITIES[$slug] ?? null;
+    }
+
+    /** One row from an admin lookup table, with its display name. */
+    public function findEntity(string $slug, int $id): ?array
+    {
+        $cfg = $this->entityConfig($slug);
+        if ($cfg === null) {
+            return null;
+        }
+
+        return Database::selectOne(
+            "SELECT id, is_active, {$cfg['name_col']} AS display_name FROM {$cfg['table']} WHERE id = ?",
+            [$id]
+        );
+    }
+
+    public function setEntityActive(string $slug, int $id, bool $active): void
+    {
+        $cfg = $this->entityConfig($slug);
+        if ($cfg === null) {
+            throw new \InvalidArgumentException("Unknown admin entity: {$slug}");
+        }
+
+        Database::statement(
+            "UPDATE {$cfg['table']} SET is_active = ? WHERE id = ?",
+            [$active ? 1 : 0, $id]
+        );
+    }
+
+    /**
+     * What still points at this row, as [human label => count], omitting zeros.
+     *
+     * An empty result means a hard delete cannot damage anything.
+     */
+    public function entityReferences(string $slug, int $id): array
+    {
+        $cfg = $this->entityConfig($slug);
+        if ($cfg === null) {
+            return [];
+        }
+
+        $row = $this->findEntity($slug, $id);
+        if ($row === null) {
+            return [];
+        }
+
+        $counts = [];
+
+        foreach ($cfg['refs'] as $ref) {
+            [$table, $column, $label] = $ref;
+            $matchBy = $ref[3] ?? 'id';
+            $value   = $matchBy === 'name' ? $row['display_name'] : $id;
+
+            $result = Database::selectOne(
+                "SELECT COUNT(*) AS n FROM {$table} WHERE {$column} = ?",
+                [$value]
+            );
+
+            $n = (int)($result['n'] ?? 0);
+            if ($n > 0) {
+                $counts[$label] = $n;
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Total references per row for a whole list, as [id => count].
+     *
+     * One grouped query per referencing table rather than one per row, so a list of 30
+     * rows costs three queries instead of ninety. Used to decide whether to offer Delete
+     * at all — the controller re-checks before acting.
+     */
+    public function entityReferenceCounts(string $slug): array
+    {
+        $cfg = $this->entityConfig($slug);
+        if ($cfg === null || $cfg['refs'] === []) {
+            return [];
+        }
+
+        $totals = [];
+
+        foreach ($cfg['refs'] as $ref) {
+            [$table, $column] = $ref;
+            $matchBy = $ref[3] ?? 'id';
+
+            if ($matchBy === 'name') {
+                // The referencing column holds the display name, so join back on it.
+                $sql = "SELECT t.id AS id, COUNT(r.{$column}) AS n
+                        FROM {$cfg['table']} t
+                        JOIN {$table} r ON r.{$column} = t.{$cfg['name_col']}
+                        GROUP BY t.id";
+            } else {
+                $sql = "SELECT {$column} AS id, COUNT(*) AS n
+                        FROM {$table}
+                        WHERE {$column} IS NOT NULL
+                        GROUP BY {$column}";
+            }
+
+            foreach (Database::select($sql) as $r) {
+                $id = (int)$r['id'];
+                $totals[$id] = ($totals[$id] ?? 0) + (int)$r['n'];
+            }
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Delete an admin lookup row, but only when nothing references it.
+     *
+     * The reference check is repeated inside the transaction so a record that gains a
+     * reference between the page render and the click cannot slip through.
+     *
+     * @throws \RuntimeException if the entity is never deletable, or is still in use.
+     */
+    public function deleteEntity(string $slug, int $id): void
+    {
+        $cfg = $this->entityConfig($slug);
+        if ($cfg === null) {
+            throw new \InvalidArgumentException("Unknown admin entity: {$slug}");
+        }
+        if (!$cfg['deletable']) {
+            throw new \RuntimeException("{$cfg['label']}s cannot be deleted — deactivate instead.");
+        }
+
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+
+        try {
+            $refs = $this->entityReferences($slug, $id);
+
+            if ($refs !== []) {
+                $parts = [];
+                foreach ($refs as $label => $n) {
+                    $parts[] = $n . ' ' . $label;
+                }
+                throw new \RuntimeException(
+                    "Still used by " . implode(', ', $parts) . ". Deactivate it instead — deleting would remove it from those records."
+                );
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM {$cfg['table']} WHERE id = ?");
+            $stmt->execute([$id]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Ship Via
     // -------------------------------------------------------------------------
