@@ -161,7 +161,11 @@
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Surface sales reps in the UI *)",
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && rm -f database/import_reps.php && bash deploy/deploy.sh')",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Unified customer activity timeline *)",
-      "Bash(curl -s -o /dev/null -w '  /customers/__TRACKED_VAR__ → %{http_code}\\\\n' -L --max-time 30 https://os.usscos.com/customers/__TRACKED_VAR__)"
+      "Bash(curl -s -o /dev/null -w '  /customers/__TRACKED_VAR__ → %{http_code}\\\\n' -L --max-time 30 https://os.usscos.com/customers/__TRACKED_VAR__)",
+      "Bash(xargs -n1 basename)",
+      "Bash(scp -q /tmp/reconcile.sql root@159.223.177.58:/tmp/)",
+      "Bash(scp -q database/migrations/026_create_distributors_and_customer_links.sql root@159.223.177.58:/var/www/usscos/database/migrations/)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Fix migration 026 and reconcile the migration tracking table *)"
     ]
   }
 }
