@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Core\Router;
 use App\Controllers\AdminController;
+use App\Controllers\AccountingController;
 use App\Controllers\CategoryController;
 use App\Controllers\TaskController;
 use App\Controllers\DocumentController;
@@ -106,6 +107,11 @@ Router::group(['middleware' => 'auth'], function () {
     Router::post('/customers/{id}/note',     [CustomerController::class, 'storeNote'])->name('customers.note');
 
     // Products
+    // Accounting
+    Router::get('/accounting',                [AccountingController::class, 'index'])->name('accounting');
+    Router::get('/accounting/accounts',       [AccountingController::class, 'accounts'])->name('accounting.accounts');
+    Router::get('/accounting/ar-aging',       [AccountingController::class, 'arAging'])->name('accounting.ar_aging');
+
     // Categories — literal routes must precede /categories/{id}
     Router::get('/categories',                [CategoryController::class, 'index'])->name('categories');
     Router::get('/categories/create',         [CategoryController::class, 'create'])->name('categories.create');
