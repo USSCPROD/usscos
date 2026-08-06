@@ -82,9 +82,10 @@ $repRoles = ['rep', 'distributor'];
         <div style="margin-bottom:.9rem">
             <label class="label">Role <span style="color:var(--color-danger)">*</span></label>
             <select name="role" id="roleSelect" class="input" style="width:100%" onchange="toggleRepFields()">
-                <?php foreach ($roles as $val => $label): ?>
-                    <option value="<?= $val ?>" <?= ($item['role'] ?? $old['role'] ?? 'employee') === $val ? 'selected' : '' ?>>
-                        <?= e($label) ?>
+                <?php // NB: do not name the loop variable $val — it would clobber the $val() closure above.
+                foreach ($roles as $roleKey => $roleLabel): ?>
+                    <option value="<?= $roleKey ?>" <?= ($item['role'] ?? $old['role'] ?? 'employee') === $roleKey ? 'selected' : '' ?>>
+                        <?= e($roleLabel) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
