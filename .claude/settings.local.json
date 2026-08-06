@@ -143,7 +143,16 @@
       "Bash(ssh root@159.223.177.58 \"mysql -e 'UPDATE usscos.invoices SET qb_txn_id=NULL WHERE qb_txn_id=\\\\\"TEST-TXN-8A2F\\\\\"; DELETE FROM usscos.qb_export_log;'\")",
       "Bash(curl -s -H 'X-API-Key: __TRACKED_VAR__' https://os.usscos.com/api/qb/status)",
       "Bash(ssh root@159.223.177.58 'mysql -N -e \"SHOW COLUMNS FROM usscos.payments;\" | awk \"{print \\\\\"  \\\\\"\\\\$1\\\\\"  \\\\\"\\\\$2}\"')",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add accountant questions doc *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add accountant questions doc *)",
+      "Bash(scp -q /tmp/report_nums.txt root@159.223.177.58:/tmp/)",
+      "Bash(ssh root@159.223.177.58 'mysql -e \" *)",
+      "Bash(scp -q /tmp/report_nums.txt root@159.223.177.58:/tmp/report_nums.txt)",
+      "Bash(ssh root@159.223.177.58 *)",
+      "Bash(scp -q database/migrations/048_sales_reps.sql root@159.223.177.58:/tmp/048.sql)",
+      "Bash(find ~/Desktop ~/Downloads ~/Documents ~/Projects \"$HOME/Library/CloudStorage\" -maxdepth 4 -name \"Report_from_US_SPECIALTY_COATINGS.xlsx\" 2>/dev/null | head -5 || echo \"not found in the usual places\")",
+      "Bash(scp -q database/import_reps.php root@159.223.177.58:/var/www/usscos/database/import_reps.php)",
+      "Bash(scp -q /tmp/rep_map.csv root@159.223.177.58:/tmp/rep_map.csv)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Sales reps as their own entity, backfilled from QuickBooks *)"
     ]
   }
 }
