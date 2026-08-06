@@ -316,6 +316,12 @@ function invReadBox(): string {
                         <a href="/sales-orders/<?= (int)$inv['sales_order_id'] ?>" style="color:#0A3D91">SO #<?= e($inv['so_number'] ?? $inv['sales_order_id']) ?></a>
                     <?php else: ?>—<?php endif; ?>
                 </div>
+
+                <?php // Who keyed the order in. Not the rep — that's the Rep field, which is who earns it. ?>
+                <div style="<?= invLbl() ?>;margin-top:.6rem">Processed By</div>
+                <div style="<?= invReadBox() ?>" title="Who entered this order, from QuickBooks. Not the same as the rep credited with the sale.">
+                    <?= ($inv['processed_by'] ?? '') !== '' ? e($inv['processed_by']) : '—' ?>
+                </div>
             </td>
         </tr>
     </table>
