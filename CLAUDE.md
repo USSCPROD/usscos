@@ -57,6 +57,16 @@ Two views defining the same function name in one request is a fatal error. This 
 bitten this project before — the page renders halfway and then dies, which looks
 exactly like a broken layout. When a page mysteriously truncates, check for this first.
 
+**Never reuse a helper closure's variable name as a `foreach` key.** Several views open
+with an accessor closure like `$val = fn($k) => e($item[$k] ?? '')`. A later
+`foreach ($roles as $val => $label)` overwrites it with the loop's last key, and because
+PHP treats `$val('x')` on a string as a variable-function call, the next use becomes a
+call to a function named after that key. This broke Add/Edit User: the key was
+`readonly`, a reserved word since PHP 8.1 and so never a definable function, giving
+"Call to undefined function readonly()". The symptom is the same half-rendered page as
+above — `ob_start()` discards the buffer — so it reads as "the form won't save". Name
+loop variables `$roleKey`/`$roleLabel`, not `$val`.
+
 ## Layout: use tables, not flex/grid
 
 Page layout uses HTML `<table>` elements with inline `style=""`, not `display:flex`
