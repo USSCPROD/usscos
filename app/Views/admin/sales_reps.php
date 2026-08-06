@@ -36,11 +36,16 @@ $typeBadge = [
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
             Admin
         </a>
-        <h1 class="page-title">Sales Reps</h1>
+        <h1 class="page-title">Sales Reps<?= $showAll ? ' — All Types' : '' ?></h1>
         <p class="page-subtitle" style="margin:.25rem 0 0">
-            Imported from the QuickBooks Rep list. Only those marked <strong>Sales Rep</strong>
-            appear in rep reporting and commission — the owner, employees and placeholders are
-            excluded.
+            <?php if ($showAll): ?>
+                Every row in the QuickBooks Rep list, including the attribution buckets.
+                Only <strong>Sales Rep</strong> rows count toward rep reporting and commission.
+            <?php else: ?>
+                Imported from the QuickBooks Rep list. Employees, the owner, house accounts,
+                website and placeholder rows are attribution buckets rather than reps, so
+                they're hidden here.
+            <?php endif; ?>
         </p>
     </div>
     <div class="page-header__right">
@@ -67,12 +72,15 @@ $typeBadge = [
             </thead>
             <tbody>
             <?php if (empty($items)): ?>
-                <tr><td colspan="9" class="table__empty">No sales reps yet.</td></tr>
+                <tr><td colspan="9" class="table__empty">
+                    <?= $showAll ? 'No sales reps yet.' : 'No sales reps yet — nobody is marked as type Sales Rep.' ?>
+                </td></tr>
             <?php else: ?>
                 <?php
                 $lastType = null;
                 foreach ($items as $r):
-                    if ($r['rep_type'] !== $lastType):
+                    // Only one type is listed unless showing all, so the group header would be noise.
+                    if ($showAll && $r['rep_type'] !== $lastType):
                         $lastType = $r['rep_type']; ?>
                         <tr style="background:#f8f9fb">
                             <td colspan="9" style="padding:.45rem .9rem;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
@@ -122,10 +130,17 @@ $typeBadge = [
 </div>
 
 <p style="font-size:.78rem;color:#9ca3af;margin:1rem 0 2rem">
-    Reps aren't system users — most are outside or former reps with no login. Use
-    <strong>Linked Login</strong> where a rep does have an account, which is what a future
-    rep portal will match on. Marking someone <strong>Inactive</strong> keeps them out of
-    pickers and current reporting without touching their historical invoices.
+    <?php if ($showAll): ?>
+        Showing every type. <a href="/admin/sales-reps" style="color:#0A3D91">Show sales reps only</a>.
+        The non-rep rows exist so invoice revenue has somewhere to be attributed — they're
+        listed here only so their records stay editable.
+    <?php elseif ($hiddenCount > 0): ?>
+        <?= $hiddenCount ?> non-rep <?= $hiddenCount === 1 ? 'row is' : 'rows are' ?> hidden
+        (employees, owner, house accounts, website, placeholders).
+        <a href="/admin/sales-reps?all=1" style="color:#0A3D91">Show all types</a> to edit them.
+    <?php endif; ?>
+    Marking someone <strong>Inactive</strong> keeps them out of pickers and current reporting
+    without touching their historical invoices.
 </p>
 
 <?php

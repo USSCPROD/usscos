@@ -18,7 +18,17 @@ class AdminRepository
      * Reps with their attributed volume, so the admin screen shows the consequence of
      * deactivating or reclassifying one.
      */
-    public function allSalesReps(): array
+    /**
+     * Sales reps for the admin list.
+     *
+     * Defaults to actual reps only — employees, the owner, house accounts, website and
+     * placeholder rows are attribution buckets, not people to manage here. They stay
+     * reachable with $repsOnly = false so their records remain editable, since they
+     * still carry invoice history.
+     *
+     * Inactive reps are always included: this is the page you reactivate them from.
+     */
+    public function allSalesReps(bool $repsOnly = true): array
     {
         return Database::select("
             SELECT sr.*,
@@ -27,10 +37,19 @@ class AdminRepository
                    (SELECT COUNT(*) FROM invoices  i WHERE i.sales_rep_id = sr.id) AS invoice_count
             FROM sales_reps sr
             LEFT JOIN users u ON u.id = sr.user_id
+            " . ($repsOnly ? "WHERE sr.rep_type = 'person'" : "") . "
             ORDER BY FIELD(sr.rep_type,'person','employee','owner','partner','house','website','none'),
                      sr.is_active DESC,
                      sr.name
         ");
+    }
+
+    /** Count of rows hidden by the default reps-only filter, for the "show all" link. */
+    public function countNonRepSalesReps(): int
+    {
+        $row = Database::selectOne("SELECT COUNT(*) AS n FROM sales_reps WHERE rep_type <> 'person'");
+
+        return (int)($row['n'] ?? 0);
     }
 
     public function findSalesRep(int $id): array|false

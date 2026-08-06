@@ -39,9 +39,13 @@ class AdminController extends Controller
 
     public function salesReps(Request $request, Response $response): Response
     {
+        $showAll = $request->get('all') === '1';
+
         return $this->view('admin.sales_reps', [
-            'title' => 'Sales Reps — Admin',
-            'items' => $this->repo->allSalesReps(),
+            'title'       => 'Sales Reps — Admin',
+            'items'       => $this->repo->allSalesReps(!$showAll),
+            'showAll'     => $showAll,
+            'hiddenCount' => $showAll ? 0 : $this->repo->countNonRepSalesReps(),
         ]);
     }
 
