@@ -107,7 +107,13 @@
       "Bash(ssh root@159.223.177.58 'mysql usscos < /tmp/045.sql 2>&1 | head -5; rm -f /tmp/045.sql; echo \"--- result ---\"; mysql -N -e \" *)",
       "Bash(ssh root@159.223.177.58 'mysql -N -e \"SHOW COLUMNS FROM usscos.customers;\" | grep -i rep')",
       "Bash(ssh root@159.223.177.58 'mysql --force usscos < /tmp/045.sql 2>&1 | grep -v \"Duplicate key name\" | head -5; rm -f /tmp/045.sql; echo \"--- result ---\"; mysql -N -e \" *)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Customer Intelligence: buying pattern, top products, revenue trend *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Customer Intelligence: buying pattern, top products, revenue trend *)",
+      "Bash(ssh root@159.223.177.58 'mysql -N -e \"SELECT i.customer_id FROM usscos.invoice_line_items ili JOIN usscos.invoices i ON i.id=ili.invoice_id WHERE ili.product_id IS NOT NULL GROUP BY i.customer_id ORDER BY COUNT\\(*\\) DESC LIMIT 1;\"')",
+      "Bash(curl -s -o /dev/null -w '  /customers/__CMDSUB_OUTPUT__ → %{http_code}\\\\n' -L --max-time 25 https://os.usscos.com/customers/__CMDSUB_OUTPUT__)",
+      "Bash(ssh root@159.223.177.58 'tail -4 /var/log/nginx/os.usscos.com.error.log | grep -viE \"\\\\.env|\\\\.git|forbidden\" || echo \"  none\"')",
+      "Bash(ssh root@159.223.177.58 'mysql -N -e \"SHOW COLUMNS FROM usscos.invoices;\" | awk \"{print \\\\$1}\" | grep -iE \"rep|sales|memo|class\" ')",
+      "Bash(ssh root@159.223.177.58 'mysql -N -e \"SHOW COLUMNS FROM usscos.users;\" | grep -iE \"rep_code|role\"; echo \"--- users ---\"; mysql -N -e \"SELECT CONCAT\\(id, \\\\\"  \\\\\", first_name, \\\\\" \\\\\", last_name, \\\\\"  role=\\\\\", role, \\\\\"  rep_code=\\\\\", COALESCE\\(rep_code,\\\\\"\\(none\\)\\\\\"\\)\\) FROM usscos.users;\"')",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Roadmap: correct the rep prerequisite *)"
     ]
   }
 }

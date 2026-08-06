@@ -64,11 +64,19 @@ weren't in the original plan.
    Pipeline & Leads polish — disqualify-reason tracking, overdue notifications), and
    commission tracking (rate per rep or product category, calculated on invoice paid
    vs. sent, monthly statement, adjustments for returns/credits). Depends on #2 and #3.
-   > **Prerequisite:** `customers` has **no rep column**. Reps are recorded on leads,
-   > quotes, orders, and invoices but never on the customer itself, so "my customers"
-   > has nothing to query. Add `customers.rep_id` (plus a backfill from each customer's
-   > most recent order) before starting this. Also needed: a goals/quota table — nothing
-   > anywhere tracks targets today.
+   > **Prerequisite — there is no rep DATA anywhere.** (An earlier note here claimed
+   > `customers.rep_id` didn't exist; it does, from migration 026. The column was never
+   > the problem.) What's missing is values: **0 of 34,729 invoices** carry a rep, 1 of
+   > 41,233 customers, and **no user has `role='rep'`**. The field is in QuickBooks on the
+   > invoice, but was never included in the exports that were imported.
+   >
+   > A **Sales by Rep Detail** export has been requested from the bookkeeper. Once it
+   > lands: set `users.rep_code` to each person's QuickBooks initials, populate
+   > `invoices.rep_id` by invoice number, then derive `customers.rep_id` — that last SQL
+   > is already written in migration 045 and is re-runnable.
+   >
+   > `sales_goals` exists (migration 045) but is empty, so MTD/YTD vs. goal needs targets
+   > entering.
 5. **Customer portal** — order history, invoices, quotes, and a **Reorder** button that
    creates a new sales order from a past one. Accounts created internally via an invite
    sent from the customer record.
@@ -346,7 +354,7 @@ against the schema and views in July 2026 — these are the ones it got wrong:
 | Close date per deal "unclear" | **Exists** — `opportunities.expected_close`, shown on the detail page |
 | Drag to move between pipeline stages "Built" | **Not built** — no drag handlers; stage changes go through a dropdown |
 | Disqualify-with-reason "unclear" | **Split** — `opportunities.lost_reason` is captured; `leads` has no reason field, only `dead` status |
-| Assigned rep on customer profile "partially built" | **Not built** — `customers` has no rep column at all (see the Rep Portal prerequisite above) |
+| Assigned rep on customer profile "partially built" | **Column exists, data doesn't** — `customers.rep_id` came in with migration 026 but is populated on 1 of 41,233 rows; rep was never exported from QuickBooks (see the Rep Portal prerequisite above) |
 | Call/email/meeting task types "unclear" | **Not built** — no `type` column on `tasks` |
 | Stages "New → Qualified → Quoted → Negotiating → Closed" | Actual: `prospecting`, `proposal`, `negotiation`, `closed_won`, `closed_lost` — three open stages, no separate "Quoted" |
 
