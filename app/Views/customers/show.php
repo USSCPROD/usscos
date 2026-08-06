@@ -89,6 +89,145 @@ $isAtRisk = isset($stats['days_since']) && $stats['days_since'] !== null && $sta
     <?php endif; ?>
 </div>
 
+<?php
+/* ---------------- Customer Intelligence ---------------- */
+$prof      = $profile          ?? [];
+$topProds  = $top_products     ?? [];
+$revMonths = $revenue_by_month ?? [];
+$ciAlerts  = $alerts           ?? [];
+
+$ciCard = 'background:#fff;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:1.25rem';
+$ciHead = 'padding:.7rem 1rem;border-bottom:1px solid #e5e7eb;font-size:.72rem;font-weight:700;'
+        . 'text-transform:uppercase;letter-spacing:.06em;color:#6b7280';
+$ciLbl  = 'padding:.45rem .9rem;font-size:.82rem;color:#6b7280;white-space:nowrap';
+$ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right';
+?>
+
+<?php if (!empty($ciAlerts)): ?>
+<div style="margin-bottom:1.25rem">
+    <?php foreach ($ciAlerts as $a):
+        $bg = ['danger' => '#fef2f2', 'warning' => '#fffbeb', 'neutral' => '#f8f9fb'][$a['level']] ?? '#f8f9fb';
+        $bd = ['danger' => '#dc2626', 'warning' => '#d97706', 'neutral' => '#9ca3af'][$a['level']] ?? '#9ca3af';
+    ?>
+        <div style="background:<?= $bg ?>;border-left:4px solid <?= $bd ?>;padding:.6rem .9rem;margin-bottom:.4rem;border-radius:4px;font-size:.87rem">
+            <?= e($a['text']) ?>
+        </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<table style="width:100%;border-collapse:separate;border-spacing:1.25rem 0;margin:0 -1.25rem">
+    <tr>
+
+    <!-- Purchase rhythm -->
+    <td style="vertical-align:top;padding:0;width:34%">
+        <div style="<?= $ciCard ?>">
+            <div style="<?= $ciHead ?>">Buying Pattern</div>
+            <table style="width:100%;border-collapse:collapse">
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="<?= $ciLbl ?>">Orders per year</td>
+                    <td style="<?= $ciVal ?>">
+                        <?= $prof['orders_per_year'] !== null ? number_format((float)$prof['orders_per_year'], 1) : '<span class="text-muted">—</span>' ?>
+                    </td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="<?= $ciLbl ?>">Typically orders every</td>
+                    <td style="<?= $ciVal ?>">
+                        <?= $prof['order_frequency_days'] !== null ? (int)$prof['order_frequency_days'] . ' days' : '<span class="text-muted">—</span>' ?>
+                    </td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="<?= $ciLbl ?>">Last order</td>
+                    <td style="<?= $ciVal ?>">
+                        <?php if (!empty($prof['last_order_date'])):
+                            $d = (int)$prof['days_since_order'];
+                            $col = $d >= 180 ? '#dc2626' : ($d >= 90 ? '#d97706' : '#111'); ?>
+                            <span style="color:<?= $col ?>"><?= $d ?> days ago</span>
+                        <?php else: ?><span class="text-muted">Never</span><?php endif; ?>
+                    </td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="<?= $ciLbl ?>">Customer since</td>
+                    <td style="<?= $ciVal ?>">
+                        <?= !empty($prof['first_order_date']) ? date('M Y', strtotime($prof['first_order_date'])) : '<span class="text-muted">—</span>' ?>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="<?= $ciLbl ?>">Overdue</td>
+                    <td style="<?= $ciVal ?>">
+                        <?php $od = (float)($prof['overdue_balance'] ?? 0); ?>
+                        <span style="color:<?= $od > 0 ? '#dc2626' : '#16a34a' ?>"><?= money($od) ?></span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </td>
+
+    <!-- Top products -->
+    <td style="vertical-align:top;padding:0;width:38%">
+        <div style="<?= $ciCard ?>">
+            <div style="<?= $ciHead ?>">Buys Most</div>
+            <?php if (empty($topProds)): ?>
+                <div style="padding:1.4rem 1rem;text-align:center;color:#9ca3af;font-size:.85rem">
+                    No product-level history yet.
+                </div>
+            <?php else: ?>
+            <table style="width:100%;border-collapse:collapse">
+                <?php foreach ($topProds as $tp): ?>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="padding:.45rem .9rem">
+                        <a href="/products/<?= (int)$tp['id'] ?>" style="color:#222b59;font-weight:500;font-size:.85rem;text-decoration:none">
+                            <?= e($tp['name']) ?>
+                        </a>
+                        <div style="font-size:.72rem;color:#9ca3af;font-family:monospace"><?= e($tp['sku']) ?></div>
+                    </td>
+                    <td style="padding:.45rem .9rem;text-align:right;white-space:nowrap">
+                        <div style="font-size:.85rem;font-weight:600"><?= money((float)$tp['total_revenue']) ?></div>
+                        <div style="font-size:.72rem;color:#9ca3af"><?= (int)$tp['times_ordered'] ?>× ordered</div>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            <?php endif; ?>
+        </div>
+    </td>
+
+    <!-- Revenue trend -->
+    <td style="vertical-align:top;padding:0;width:28%">
+        <div style="<?= $ciCard ?>">
+            <div style="<?= $ciHead ?>">Last 12 Months</div>
+            <?php if (empty($revMonths)): ?>
+                <div style="padding:1.4rem 1rem;text-align:center;color:#9ca3af;font-size:.85rem">
+                    No orders in the last year.
+                </div>
+            <?php else:
+                $peak = max(array_map(fn($m) => (float)$m['revenue'], $revMonths)) ?: 1; ?>
+            <table style="width:100%;border-collapse:collapse">
+                <?php foreach ($revMonths as $m):
+                    $pct = max(2, (int)round(((float)$m['revenue'] / $peak) * 100)); ?>
+                <tr>
+                    <td style="padding:.2rem .5rem .2rem .9rem;font-size:.72rem;color:#6b7280;white-space:nowrap;width:1%">
+                        <?= date('M y', strtotime($m['period'] . '-01')) ?>
+                    </td>
+                    <td style="padding:.2rem .9rem .2rem 0">
+                        <table style="width:100%;border-collapse:collapse"><tr>
+                            <td style="width:<?= $pct ?>%;background:#222b59;height:12px;border-radius:2px"></td>
+                            <td style="width:<?= 100 - $pct ?>%"></td>
+                        </tr></table>
+                    </td>
+                    <td style="padding:.2rem .9rem .2rem 0;font-size:.72rem;color:#374151;text-align:right;white-space:nowrap">
+                        <?= money((float)$m['revenue']) ?>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </table>
+            <?php endif; ?>
+        </div>
+    </td>
+
+    </tr>
+</table>
+
 <div class="detail-layout">
 
     <!-- Left: Tabbed Customer Info -->

@@ -93,6 +93,160 @@ class CustomerRepository extends Repository
         ", [$id]);
     }
 
+    /**
+     * Purchase rhythm and receivable figures for the Customer Intelligence block.
+     *
+     * Voided invoices are excluded throughout — they are not sales. Credit memos are
+     * counted, since a negative invoice legitimately reduces lifetime revenue.
+     *
+     * NOTE: this overlaps getStats() below, which predates it and feeds the KPI row.
+     * The genuinely new fields here are order_frequency_days, orders_per_year,
+     * outstanding_balance and overdue_balance. Worth consolidating the two into one
+     * method once nothing else depends on getStats()'s exact keys.
+     */
+    public function getProfileStats(int $customerId): array
+    {
+        $row = Database::selectOne("
+            SELECT
+                COUNT(*)                              AS order_count,
+                COALESCE(SUM(i.total_amount), 0)      AS lifetime_revenue,
+                COALESCE(AVG(i.total_amount), 0)      AS avg_order_value,
+                MIN(i.invoice_date)                   AS first_order_date,
+                MAX(i.invoice_date)                   AS last_order_date,
+                COALESCE(SUM(i.balance_due), 0)       AS outstanding_balance,
+                SUM(CASE WHEN i.balance_due > 0 AND i.due_date < CURDATE()
+                         THEN i.balance_due ELSE 0 END) AS overdue_balance
+            FROM invoices i
+            WHERE i.customer_id = ?
+              AND i.status != 'void'
+        ", [$customerId]) ?: [];
+
+        $stats = [
+            'order_count'         => (int)($row['order_count'] ?? 0),
+            'lifetime_revenue'    => (float)($row['lifetime_revenue'] ?? 0),
+            'avg_order_value'     => (float)($row['avg_order_value'] ?? 0),
+            'first_order_date'    => $row['first_order_date'] ?? null,
+            'last_order_date'     => $row['last_order_date'] ?? null,
+            'outstanding_balance' => (float)($row['outstanding_balance'] ?? 0),
+            'overdue_balance'     => (float)($row['overdue_balance'] ?? 0),
+            'days_since_order'    => null,
+            'order_frequency_days'=> null,
+            'orders_per_year'     => null,
+        ];
+
+        if (!empty($stats['last_order_date'])) {
+            $stats['days_since_order'] =
+                (int)floor((time() - strtotime($stats['last_order_date'])) / 86400);
+        }
+
+        // Average gap between orders — only meaningful with at least two.
+        if ($stats['order_count'] > 1 && $stats['first_order_date'] && $stats['last_order_date']) {
+            $span = strtotime($stats['last_order_date']) - strtotime($stats['first_order_date']);
+            $days = max(1, (int)floor($span / 86400));
+            $stats['order_frequency_days'] = (int)round($days / ($stats['order_count'] - 1));
+            $stats['orders_per_year']      = round($stats['order_count'] / max(1, $days / 365), 1);
+        }
+
+        return $stats;
+    }
+
+    /** What this customer buys most, by revenue. */
+    public function getTopProducts(int $customerId, int $limit = 5): array
+    {
+        return Database::select("
+            SELECT p.id, p.sku, p.name, p.color,
+                   SUM(ili.qty)        AS total_qty,
+                   SUM(ili.line_total) AS total_revenue,
+                   COUNT(DISTINCT i.id) AS times_ordered,
+                   MAX(i.invoice_date)  AS last_ordered
+            FROM invoice_line_items ili
+            JOIN invoices i ON i.id = ili.invoice_id
+            JOIN products p ON p.id = ili.product_id
+            WHERE i.customer_id = ?
+              AND i.status != 'void'
+              AND ili.product_id IS NOT NULL
+            GROUP BY p.id, p.sku, p.name, p.color
+            ORDER BY total_revenue DESC
+            LIMIT " . max(1, min(50, $limit)) . "
+        ", [$customerId]);
+    }
+
+    /** Revenue by month for the last N months, for a sparkline / trend read. */
+    public function getRevenueByMonth(int $customerId, int $months = 12): array
+    {
+        $months = max(1, min(60, $months));
+        return Database::select("
+            SELECT DATE_FORMAT(i.invoice_date, '%Y-%m') AS period,
+                   SUM(i.total_amount)                  AS revenue,
+                   COUNT(*)                             AS orders
+            FROM invoices i
+            WHERE i.customer_id = ?
+              AND i.status != 'void'
+              AND i.invoice_date >= DATE_SUB(CURDATE(), INTERVAL {$months} MONTH)
+            GROUP BY period
+            ORDER BY period ASC
+        ", [$customerId]);
+    }
+
+    /**
+     * Inactivity and receivable alerts. Thresholds are deliberately simple and
+     * derived from this customer's own ordering rhythm where one exists — a customer
+     * who orders monthly going quiet for 90 days matters more than one who orders yearly.
+     */
+    public function getAlerts(int $customerId, array $stats): array
+    {
+        $alerts = [];
+
+        $days = $stats['days_since_order'];
+        if ($days !== null && $stats['order_count'] > 0) {
+            $freq = $stats['order_frequency_days'];
+
+            if ($days >= 180) {
+                $alerts[] = ['level' => 'danger',
+                    'text' => "No order in {$days} days"];
+            } elseif ($days >= 90) {
+                $alerts[] = ['level' => 'warning',
+                    'text' => "No order in {$days} days"];
+            } elseif ($freq !== null && $freq > 0 && $days > $freq * 2 && $days >= 45) {
+                $alerts[] = ['level' => 'warning',
+                    'text' => "Ordering has slowed — usually every ~{$freq} days, last was {$days} days ago"];
+            }
+        }
+
+        if ($stats['overdue_balance'] > 0) {
+            $alerts[] = ['level' => 'danger',
+                'text' => 'Overdue balance of ' . money($stats['overdue_balance'])];
+        }
+
+        // Quotes that will lapse in the next fortnight
+        $expiring = Database::select("
+            SELECT quote_number, expiry_date
+            FROM quotes
+            WHERE customer_id = ?
+              AND status IN ('draft','sent')
+              AND expiry_date IS NOT NULL
+              AND expiry_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 14 DAY)
+            ORDER BY expiry_date ASC
+        ", [$customerId]);
+        foreach ($expiring as $q) {
+            $alerts[] = ['level' => 'warning',
+                'text' => 'Quote ' . $q['quote_number'] . ' expires ' . date('M j', strtotime($q['expiry_date']))];
+        }
+
+        // Quotes already lapsed but never closed out
+        $lapsed = (int)(Database::selectOne("
+            SELECT COUNT(*) c FROM quotes
+            WHERE customer_id = ? AND status IN ('draft','sent')
+              AND expiry_date IS NOT NULL AND expiry_date < CURDATE()
+        ", [$customerId])['c'] ?? 0);
+        if ($lapsed > 0) {
+            $alerts[] = ['level' => 'neutral',
+                'text' => $lapsed . ' quote' . ($lapsed === 1 ? '' : 's') . ' expired without a decision'];
+        }
+
+        return $alerts;
+    }
+
     public function getInvoices(int $customerId, int $limit = 50): array
     {
         return Database::select("

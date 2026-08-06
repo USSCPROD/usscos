@@ -101,7 +101,13 @@
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && php database/rename_skus.php 2>&1')",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'rename_skus: block two products claiming the same new SKU *)",
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh >/dev/null 2>&1 && php database/rename_skus.php 2>&1')",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'import_products: quickbooks_item must equal the SKU, not BRAND:SKU *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'import_products: quickbooks_item must equal the SKU, not BRAND:SKU *)",
+      "Bash(ssh root@159.223.177.58 'mysql -N -e \"SHOW COLUMNS FROM usscos.customers;\" | awk \"{print \\\\\"  \\\\\"\\\\$1\\\\\"  \\\\\"\\\\$2}\"')",
+      "Bash(scp -q database/migrations/045_customer_intelligence.sql root@159.223.177.58:/tmp/045.sql)",
+      "Bash(ssh root@159.223.177.58 'mysql usscos < /tmp/045.sql 2>&1 | head -5; rm -f /tmp/045.sql; echo \"--- result ---\"; mysql -N -e \" *)",
+      "Bash(ssh root@159.223.177.58 'mysql -N -e \"SHOW COLUMNS FROM usscos.customers;\" | grep -i rep')",
+      "Bash(ssh root@159.223.177.58 'mysql --force usscos < /tmp/045.sql 2>&1 | grep -v \"Duplicate key name\" | head -5; rm -f /tmp/045.sql; echo \"--- result ---\"; mysql -N -e \" *)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Customer Intelligence: buying pattern, top products, revenue trend *)"
     ]
   }
 }

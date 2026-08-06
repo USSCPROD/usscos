@@ -109,6 +109,13 @@ class CustomerService extends Service
         $salesOrders  = $this->customers->getSalesOrders($id);
         $subCustomers = $this->customers->getSubCustomers($id);
         $payments     = $this->customers->getPayments($id);
+
+        // Customer Intelligence — aggregates over data already in the system.
+        // Named `profile` because a `stats` key already exists below.
+        $profile        = $this->customers->getProfileStats((int)$id);
+        $topProducts    = $this->customers->getTopProducts((int)$id);
+        $revenueByMonth = $this->customers->getRevenueByMonth((int)$id);
+        $alerts         = $this->customers->getAlerts((int)$id, $profile);
         $quotes       = \App\Core\Database::select(
             'SELECT q.id, q.quote_number, q.quote_date, q.expiry_date, q.status,
                     q.po_number, q.total_amount,
@@ -130,6 +137,10 @@ class CustomerService extends Service
             'quotes'       => $quotes,
             'tasks'        => $tasks,
             'sub_customers'=> $subCustomers,
+            'profile'         => $profile,
+            'top_products'    => $topProducts,
+            'revenue_by_month'=> $revenueByMonth,
+            'alerts'          => $alerts,
             'stats'        => $this->customers->getStats((int)$id),
             'notes'        => $this->customers->getNotes((int)$id),
             'open_balance' => array_sum(array_column(
