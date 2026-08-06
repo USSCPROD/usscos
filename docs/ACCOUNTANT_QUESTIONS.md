@@ -162,7 +162,36 @@ recognised at checkout.
 
 ---
 
-## 11. Data quality issues we've found
+## 11. How far back should the real import go?
+
+Everything currently in USSCOS is **partial test data**. The plan is to delete all
+invoices, sales orders and related sales records once testing is finished, then import
+properly from QuickBooks.
+
+**The accountant decides the scope.** Options:
+
+- **From the beginning of QuickBooks** — full history. Best for long-term trend analysis,
+  reorder prediction and per-product margin over time. Largest import, and any historical
+  data quality problems come with it.
+- **Current fiscal year only** — clean and fast. Loses multi-year comparison and weakens
+  the AI features that learn from buying cycles.
+- **A middle option** — e.g. three years, enough for year-over-year without the full tail.
+
+Worth knowing before deciding:
+
+- Rep attribution only exists for **2026** so far (9,339 invoices). 2024–25 is $24.6M
+  across 25,386 invoices with no rep. If history is imported, a matching **Sales by Rep
+  Detail** export is needed for those years or the older data has no attribution.
+- Product-level invoice lines are what drive Customer Intelligence, reorder prediction and
+  margin reporting. More history means better predictions.
+- Whatever the range, it should be **one authoritative export**, not the current mix of
+  partial reports.
+
+**Answer:**
+
+---
+
+## 12. Data quality issues we've found
 
 Worth raising, since they may know the cause:
 
@@ -180,7 +209,7 @@ Worth raising, since they may know the cause:
 
 ---
 
-## 12. Cutover — only if USSCOS becomes the ledger
+## 13. Cutover — only if USSCOS becomes the ledger
 
 Ignore this section if QuickBooks stays.
 

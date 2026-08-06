@@ -156,7 +156,8 @@
       "Bash(awk '-F ~ ' 'BEGIN{printf \"%-22s %-22s %-9s %6s %6s %14s\\\\n\",\"NAME\",\"QUICKBOOKS NAME\",\"TYPE\",\"INV\",\"CUST\",\"REVENUE\"; *)",
       "Bash(scp -q database/migrations/049_correct_sales_reps.sql root@159.223.177.58:/tmp/049.sql)",
       "Bash(scp -q database/migrations/050_reclassify_employee_reps.sql root@159.223.177.58:/tmp/050.sql)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Correct the sales rep list from Chip'\\\\''s verification *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Correct the sales rep list from Chip'\\\\''s verification *)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Accountant questions: how far back the real import should go *)"
     ]
   }
 }
