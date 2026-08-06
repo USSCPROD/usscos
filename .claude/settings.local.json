@@ -165,7 +165,19 @@
       "Bash(xargs -n1 basename)",
       "Bash(scp -q /tmp/reconcile.sql root@159.223.177.58:/tmp/)",
       "Bash(scp -q database/migrations/026_create_distributors_and_customer_links.sql root@159.223.177.58:/var/www/usscos/database/migrations/)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Fix migration 026 and reconcile the migration tracking table *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Fix migration 026 and reconcile the migration tracking table *)",
+      "Bash(grep -n 'as \\\\$val\\\\|\\\\$val =\\\\|\\\\$val\\(' app/Views/admin/users_form.php)",
+      "Bash(grep -n '\\\\$val *= *fn\\\\|\\\\$val *= *function\\\\|as \\\\$val\\\\|\\\\$val\\(' app/Views/leads/form.php)",
+      "Bash(git commit -q -m 'Document the $val closure shadowing gotcha *)",
+      "Bash(sed -n \"/function reps\\(/,/^    }/p\" app/Controllers/AccountingController.php)",
+      "Bash(sed -n \"/function repPerformance/,/^    }/p\" app/Repositories/AccountingRepository.php)",
+      "Bash(sed -n \"/function unattributedRevenue/,/^    }/p\" app/Repositories/AccountingRepository.php)",
+      "Bash(grep -n 'invoiceYears\\\\|$year' app/Controllers/AccountingController.php)",
+      "Bash(grep -n '\\\\$years\\\\|\\\\$year\\\\b' app/Views/accounting/reps.php)",
+      "Bash(git commit -q -m 'Document migrate.php --dry-run and the ALTER-verification trap *)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/processed_by.csv root@159.223.177.58:/tmp/processed_by.csv)",
+      "Bash(git commit -q -m 'Add Processed By importer *)",
+      "Bash(scp -q \"/Users/artdeptmac/Desktop/2026 Invoices with Processed By.xlsx\" root@159.223.177.58:/tmp/)"
     ]
   }
 }

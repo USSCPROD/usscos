@@ -113,6 +113,7 @@ Router::group(['middleware' => 'auth'], function () {
     Router::get('/accounting/accounts',       [AccountingController::class, 'accounts'])->name('accounting.accounts');
     Router::get('/accounting/ar-aging',       [AccountingController::class, 'arAging'])->name('accounting.ar_aging');
     Router::get('/accounting/reps',           [AccountingController::class, 'reps'])->name('accounting.reps');
+    Router::get('/accounting/employees',      [AccountingController::class, 'employees'])->name('accounting.employees');
 
     // Categories — literal routes must precede /categories/{id}
     Router::get('/categories',                [CategoryController::class, 'index'])->name('categories');

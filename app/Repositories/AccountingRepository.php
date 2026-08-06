@@ -251,6 +251,54 @@ class AccountingRepository
         );
     }
 
+    /**
+     * Sales grouped by who keyed the order in — invoices.processed_by.
+     *
+     * This measures workload, not commission. `distinct_reps` is the telling column: an
+     * order-taker entering work for many reps is doing it on their behalf, which is the
+     * norm until reps can enter their own orders.
+     *
+     * Grouped on the raw string because these are QuickBooks logins rather than rep or
+     * user records. The join to `users` is by first name and therefore best-effort — it
+     * only decorates the row with a linked account where one obviously matches.
+     */
+    public function salesByOrderTaker(?string $from = null, ?string $to = null): array
+    {
+        $params = [];
+        $where  = '';
+
+        if ($from !== null) {
+            $where   .= ' AND i.invoice_date >= ?';
+            $params[] = $from;
+        }
+        if ($to !== null) {
+            $where   .= ' AND i.invoice_date <= ?';
+            $params[] = $to;
+        }
+
+        return Database::select("
+            SELECT i.processed_by                        AS name,
+                   COUNT(*)                              AS invoice_count,
+                   COALESCE(SUM(i.total_amount), 0)      AS revenue,
+                   COUNT(DISTINCT i.customer_id)         AS customers,
+                   COUNT(DISTINCT i.sales_rep_id)        AS distinct_reps,
+                   MAX(i.invoice_date)                   AS last_entry,
+                   MAX(u.id)                             AS user_id,
+                   MAX(u.is_active)                      AS user_active,
+                   MAX(TRIM(CONCAT(u.first_name, ' ', u.last_name))) AS user_name
+            FROM invoices i
+            LEFT JOIN users u
+                   ON u.first_name = i.processed_by
+                  AND u.deleted_at IS NULL
+            WHERE i.processed_by IS NOT NULL
+              AND i.processed_by <> ''
+              AND i.status != 'void'
+              {$where}
+            GROUP BY i.processed_by
+            ORDER BY revenue DESC
+        ", $params);
+    }
+
     /** All reps, for filter dropdowns. */
     public function repOptions(): array
     {

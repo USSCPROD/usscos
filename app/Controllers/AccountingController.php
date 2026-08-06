@@ -44,25 +44,49 @@ class AccountingController extends Controller
     /**
      * Revenue per sales rep over a date range, defaulting to year to date.
      *
-     * Reps only. Revenue not credited to a rep is deliberately not shown here — in-house
-     * orders belong to the employee who took them, which the QuickBooks "Processed by"
-     * field will supply.
+     * Reps only. Revenue not credited to a rep is deliberately not shown here — see
+     * employees() for who keyed the orders, which is a separate question from who earns
+     * the sale.
      */
     public function reps(Request $request, Response $response): Response
     {
-        // Defaults to year to date when no period is given.
-        $period = ReportPeriod::resolve(
-            $request->query('period'),
-            $request->query('from'),
-            $request->query('to'),
-        );
+        $period = $this->period($request);
 
         return $this->view('accounting.reps', [
-            'title'        => 'Sales by Rep',
+            'title'   => 'Sales by Rep',
             'reps'    => $this->repo->repPerformance($period->from, $period->to),
             'period'  => $period,
             'options' => ReportPeriod::options($this->repo->invoiceYears()),
         ]);
+    }
+
+    /**
+     * Sales grouped by the employee who keyed each order in.
+     *
+     * Deliberately kept apart from Sales by Rep: this is workload and who handled the
+     * order, not commission. The same revenue appears on both reports under different
+     * headings, which is correct — one asks who earned it, the other who typed it.
+     */
+    public function employees(Request $request, Response $response): Response
+    {
+        $period = $this->period($request);
+
+        return $this->view('accounting.employees', [
+            'title'     => 'Sales by Employee',
+            'employees' => $this->repo->salesByOrderTaker($period->from, $period->to),
+            'period'    => $period,
+            'options'   => ReportPeriod::options($this->repo->invoiceYears()),
+        ]);
+    }
+
+    /** The reporting period from the query string, defaulting to year to date. */
+    private function period(Request $request): ReportPeriod
+    {
+        return ReportPeriod::resolve(
+            $request->query('period'),
+            $request->query('from'),
+            $request->query('to'),
+        );
     }
 
     /** AR aging by customer, bucketed from the due date. */
