@@ -42,6 +42,13 @@
             <?php adminCard('Lead Routing', 'Control who gets notified and assigned for each website form type.', '/admin/lead-routing'); ?>
         </td>
     </tr>
+    <tr style="vertical-align:top">
+        <td style="padding:.5rem">
+            <?php adminCard('Sales Reps', 'The QuickBooks rep list — who gets credit for a sale, and commission rates.', '/admin/sales-reps'); ?>
+        </td>
+        <td style="padding:.5rem"></td>
+        <td style="padding:.5rem"></td>
+    </tr>
 </table>
 
 <?php

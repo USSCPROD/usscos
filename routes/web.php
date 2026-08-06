@@ -208,6 +208,12 @@ Router::group(['middleware' => 'auth'], function () {
 
     // Admin
     Router::get('/admin',                                    [AdminController::class, 'index'])->name('admin');
+    Router::get('/admin/sales-reps',                         [AdminController::class, 'salesReps'])->name('admin.sales_reps');
+    Router::get('/admin/sales-reps/create',                  [AdminController::class, 'salesRepsCreate'])->name('admin.sales_reps.create');
+    Router::post('/admin/sales-reps',                        [AdminController::class, 'salesRepsStore'])->name('admin.sales_reps.store');
+    Router::get('/admin/sales-reps/{id}/edit',               [AdminController::class, 'salesRepsEdit'])->name('admin.sales_reps.edit');
+    Router::post('/admin/sales-reps/{id}/edit',              [AdminController::class, 'salesRepsUpdate'])->name('admin.sales_reps.update');
+
     Router::get('/admin/ship-via',                           [AdminController::class, 'shipVia'])->name('admin.ship_via');
     Router::get('/admin/ship-via/create',                    [AdminController::class, 'shipViaCreate'])->name('admin.ship_via.create');
     Router::post('/admin/ship-via',                          [AdminController::class, 'shipViaStore'])->name('admin.ship_via.store');

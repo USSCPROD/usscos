@@ -33,6 +33,64 @@ class AdminController extends Controller
     // Ship Via
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
+    // Sales Reps
+    // -------------------------------------------------------------------------
+
+    public function salesReps(Request $request, Response $response): Response
+    {
+        return $this->view('admin.sales_reps', [
+            'title' => 'Sales Reps — Admin',
+            'items' => $this->repo->allSalesReps(),
+        ]);
+    }
+
+    public function salesRepsCreate(Request $request, Response $response): Response
+    {
+        return $this->view('admin.sales_reps_form', [
+            'title' => 'Add Sales Rep',
+            'item'  => null,
+            'users' => $this->repo->allUsers(),
+        ]);
+    }
+
+    public function salesRepsStore(Request $request, Response $response): Response
+    {
+        if (trim($_POST['name'] ?? '') === '') {
+            Session::flash('error', 'A rep needs a name.');
+            return $response->redirect('/admin/sales-reps/create');
+        }
+        $this->repo->insertSalesRep($_POST);
+        Session::flash('success', 'Sales rep added.');
+        return $response->redirect('/admin/sales-reps');
+    }
+
+    public function salesRepsEdit(Request $request, Response $response, string $id = '0'): Response
+    {
+        $item = $this->repo->findSalesRep((int)$id);
+        if (!$item) return $this->view('errors.404', ['title' => 'Not Found'], 404);
+
+        return $this->view('admin.sales_reps_form', [
+            'title' => 'Edit ' . $item['name'],
+            'item'  => $item,
+            'users' => $this->repo->allUsers(),
+        ]);
+    }
+
+    public function salesRepsUpdate(Request $request, Response $response, string $id = '0'): Response
+    {
+        $item = $this->repo->findSalesRep((int)$id);
+        if (!$item) return $this->view('errors.404', ['title' => 'Not Found'], 404);
+
+        if (trim($_POST['name'] ?? '') === '') {
+            Session::flash('error', 'A rep needs a name.');
+            return $response->redirect('/admin/sales-reps/' . (int)$id . '/edit');
+        }
+        $this->repo->updateSalesRep((int)$id, $_POST);
+        Session::flash('success', 'Sales rep updated.');
+        return $response->redirect('/admin/sales-reps');
+    }
+
     public function shipVia(Request $request, Response $response): Response
     {
         return $this->view('admin.ship_via', [

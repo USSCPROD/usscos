@@ -21,7 +21,8 @@ $grand      = $repTotal + $unattTotal;
         </p>
     </div>
     <div class="page-header__right">
-        <form method="GET" action="/accounting/reps">
+        <a href="/admin/sales-reps" class="btn btn--secondary" style="margin-right:.5rem">Manage Reps</a>
+        <form method="GET" action="/accounting/reps" style="display:inline">
             <select name="year" onchange="this.form.submit()" class="input"
                     style="height:2.2rem;padding:.3rem .6rem;font-size:.85rem">
                 <option value="all" <?= $year === null ? 'selected' : '' ?>>All years</option>

@@ -12,6 +12,77 @@ class AdminRepository
     // Ship Via
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------- Sales reps
+
+    /**
+     * Reps with their attributed volume, so the admin screen shows the consequence of
+     * deactivating or reclassifying one.
+     */
+    public function allSalesReps(): array
+    {
+        return Database::select("
+            SELECT sr.*,
+                   TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS user_name,
+                   (SELECT COUNT(*) FROM customers c WHERE c.sales_rep_id = sr.id) AS customer_count,
+                   (SELECT COUNT(*) FROM invoices  i WHERE i.sales_rep_id = sr.id) AS invoice_count
+            FROM sales_reps sr
+            LEFT JOIN users u ON u.id = sr.user_id
+            ORDER BY FIELD(sr.rep_type,'person','employee','owner','partner','house','website','none'),
+                     sr.is_active DESC,
+                     sr.name
+        ");
+    }
+
+    public function findSalesRep(int $id): array|false
+    {
+        return Database::selectOne('SELECT * FROM sales_reps WHERE id = ?', [$id]);
+    }
+
+    public function insertSalesRep(array $d): int
+    {
+        $pdo = Database::connection();
+        $pdo->prepare("
+            INSERT INTO sales_reps (name, quickbooks_name, rep_type, user_id, commission_rate, is_active, notes)
+            VALUES (:name, :qb, :type, :user, :rate, :active, :notes)
+        ")->execute($this->salesRepParams($d));
+        return (int)$pdo->lastInsertId();
+    }
+
+    public function updateSalesRep(int $id, array $d): void
+    {
+        $params = $this->salesRepParams($d);
+        $params[':id'] = $id;
+        Database::connection()->prepare("
+            UPDATE sales_reps SET
+                name            = :name,
+                quickbooks_name = :qb,
+                rep_type        = :type,
+                user_id         = :user,
+                commission_rate = :rate,
+                is_active       = :active,
+                notes           = :notes
+            WHERE id = :id
+        ")->execute($params);
+    }
+
+    private function salesRepParams(array $d): array
+    {
+        $types = ['person','employee','owner','house','website','partner','none'];
+        $type  = in_array($d['rep_type'] ?? '', $types, true) ? $d['rep_type'] : 'person';
+
+        return [
+            ':name'   => trim((string)($d['name'] ?? '')),
+            // The QuickBooks name is the join key for imports — must never be blank,
+            // so it falls back to the display name.
+            ':qb'     => trim((string)($d['quickbooks_name'] ?? '')) ?: trim((string)($d['name'] ?? '')),
+            ':type'   => $type,
+            ':user'   => ($d['user_id'] ?? '') !== '' ? (int)$d['user_id'] : null,
+            ':rate'   => ($d['commission_rate'] ?? '') !== '' ? (float)$d['commission_rate'] : null,
+            ':active' => (int)(bool)($d['is_active'] ?? 1),
+            ':notes'  => trim((string)($d['notes'] ?? '')) ?: null,
+        ];
+    }
+
     public function allShipVia(): array
     {
         return Database::select('SELECT * FROM ship_via ORDER BY sort_order, name');
