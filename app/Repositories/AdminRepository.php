@@ -136,10 +136,14 @@ class AdminRepository
             return null;
         }
 
-        return Database::selectOne(
+        // Database::selectOne returns false, not null, for a missing row — normalise it so
+        // callers can rely on the ?array contract.
+        $row = Database::selectOne(
             "SELECT id, is_active, {$cfg['name_col']} AS display_name FROM {$cfg['table']} WHERE id = ?",
             [$id]
         );
+
+        return $row === false ? null : $row;
     }
 
     public function setEntityActive(string $slug, int $id, bool $active): void
@@ -184,7 +188,7 @@ class AdminRepository
                 [$value]
             );
 
-            $n = (int)($result['n'] ?? 0);
+            $n = $result === false ? 0 : (int)($result['n'] ?? 0);
             if ($n > 0) {
                 $counts[$label] = $n;
             }

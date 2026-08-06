@@ -180,7 +180,8 @@
       "Bash(scp -q \"/Users/artdeptmac/Desktop/2026 Invoices with Processed By.xlsx\" root@159.223.177.58:/tmp/)",
       "Bash(grep -n ''\\\\''Num'\\\\''\\\\|Type\\\\|columns\\\\|header\\\\|=> *$row' database/import_sales_history.php)",
       "Bash(git commit -q -m 'Add invoice line item product relink *)",
-      "Bash(git commit -q -m 'Show Processed By on the invoice page *)"
+      "Bash(git commit -q -m 'Show Processed By on the invoice page *)",
+      "Bash(git commit -q -m 'Fix findEntity returning false for a missing row *)"
     ]
   }
 }
