@@ -237,35 +237,6 @@ class AccountingRepository
     }
 
     /** Revenue that isn't credited to a real rep, so the picture stays honest. */
-    /** Revenue not credited to a rep, over the same inclusive date range. */
-    public function unattributedRevenue(?string $from = null, ?string $to = null): array
-    {
-        $params    = [];
-        $yearWhere = '';
-
-        if ($from !== null) {
-            $yearWhere .= ' AND i.invoice_date >= ?';
-            $params[]   = $from;
-        }
-        if ($to !== null) {
-            $yearWhere .= ' AND i.invoice_date <= ?';
-            $params[]   = $to;
-        }
-
-        return Database::select("
-            SELECT COALESCE(sr.name, 'Not attributed') AS label,
-                   COALESCE(sr.rep_type, 'unset')      AS rep_type,
-                   COUNT(*)                            AS invoice_count,
-                   COALESCE(SUM(i.total_amount), 0)    AS revenue
-            FROM invoices i
-            LEFT JOIN sales_reps sr ON sr.id = i.sales_rep_id
-            WHERE i.status != 'void'
-              AND (sr.id IS NULL OR sr.rep_type != 'person')
-              {$yearWhere}
-            GROUP BY label, rep_type
-            ORDER BY revenue DESC
-        ", $params);
-    }
 
     /** Years that actually have invoices, for the year selector. */
     public function invoiceYears(): array

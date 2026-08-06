@@ -5,8 +5,8 @@ $th = 'padding:.5rem .8rem;font-size:.7rem;font-weight:700;text-transform:upperc
 $td = 'padding:.55rem .8rem;font-size:.87rem';
 
 $repTotal   = array_sum(array_map(fn($r) => (float)$r['revenue'], $reps));
-$unattTotal = array_sum(array_map(fn($r) => (float)$r['revenue'], $unattributed));
-$grand      = $repTotal + $unattTotal;
+$repInvoices = array_sum(array_map(fn($r) => (int)$r['invoice_count'], $reps));
+$selling    = count(array_filter($reps, fn($r) => (int)$r['invoice_count'] > 0));
 ?>
 
 <div class="page-header">
@@ -22,37 +22,35 @@ $grand      = $repTotal + $unattTotal;
     </div>
     <div class="page-header__right">
         <a href="/admin/sales-reps" class="btn btn--secondary" style="margin-right:.5rem">Manage Reps</a>
-        <form method="GET" action="/accounting/reps" style="display:inline" id="periodForm">
-            <select name="period" class="input" id="periodSelect"
-                    onchange="onPeriodChange()"
-                    style="height:2.2rem;padding:.3rem .6rem;font-size:.85rem">
+        <form method="GET" action="/accounting/reps" style="display:inline-block;vertical-align:middle" id="periodForm">
+            <?php $ctl = 'height:2.2rem;padding:.3rem .5rem;font-size:.85rem;width:auto;vertical-align:middle'; ?>
+            <select name="period" class="input" id="periodSelect" onchange="onPresetChange()"
+                    style="<?= $ctl ?>">
                 <?php foreach ($options as $key => $label): ?>
                     <option value="<?= e($key) ?>" <?= $period->preset === $key ? 'selected' : '' ?>>
                         <?= e($label) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
-            <span id="customRange" style="<?= $period->preset === 'custom' ? '' : 'display:none' ?>">
-                <input type="date" name="from" value="<?= e($period->from ?? '') ?>" class="input"
-                       style="height:2.2rem;padding:.3rem .5rem;font-size:.85rem;width:auto">
-                <span style="color:#9ca3af;font-size:.85rem">to</span>
-                <input type="date" name="to" value="<?= e($period->to ?? '') ?>" class="input"
-                       style="height:2.2rem;padding:.3rem .5rem;font-size:.85rem;width:auto">
-                <button type="submit" class="btn btn--sm btn--primary">Apply</button>
-            </span>
+            <input type="date" name="from" id="fromDate" value="<?= e($period->from ?? '') ?>"
+                   class="input" onchange="onDateEdit()" title="From date" style="<?= $ctl ?>">
+            <span style="color:#9ca3af;font-size:.85rem">to</span>
+            <input type="date" name="to" id="toDate" value="<?= e($period->to ?? '') ?>"
+                   class="input" onchange="onDateEdit()" title="To date" style="<?= $ctl ?>">
+            <button type="submit" class="btn btn--sm btn--primary" style="vertical-align:middle">Apply</button>
         </form>
     </div>
 </div>
 
-<!-- Attribution split -->
+<!-- Rep totals for the period -->
 <table style="width:100%;border-collapse:separate;border-spacing:1rem 0;margin:0 -1rem 1.25rem">
     <tr>
         <?php
-        $pctRep = $grand > 0 ? round(($repTotal / $grand) * 100) : 0;
         $cards = [
-            ['Credited to a rep',  money($repTotal),   $pctRep . '% of revenue',        '#16a34a'],
-            ['Not rep-credited',   money($unattTotal), (100 - $pctRep) . '% of revenue', '#d97706'],
-            ['Total',              money($grand),      null,                             '#222b59'],
+            ['Rep revenue', money($repTotal), $period->label, '#16a34a'],
+            ['Invoices',    number_format($repInvoices), null, '#222b59'],
+            ['Avg invoice', $repInvoices > 0 ? money($repTotal / $repInvoices) : '—',
+                $selling . ' of ' . count($reps) . ' reps with sales', '#222b59'],
         ];
         foreach ($cards as [$label, $val, $sub, $col]): ?>
             <td style="width:33.3%;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:.9rem 1rem;text-align:center">
@@ -119,74 +117,28 @@ $grand      = $repTotal + $unattTotal;
     </table>
 </div>
 
-<!-- Everything not credited to a rep -->
-<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
-    <div style="padding:.7rem 1rem;border-bottom:1px solid #e5e7eb;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
-        Not Credited to a Rep — <?= e($period->label) ?>
-    </div>
-    <table style="width:100%;border-collapse:collapse">
-        <thead>
-            <tr>
-                <th style="<?= $th ?>;text-align:left">Category</th>
-                <th style="<?= $th ?>;text-align:right">Revenue</th>
-                <th style="<?= $th ?>;text-align:right">Invoices</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($unattributed as $u):
-            $labels = [
-                'none'     => 'no rep set in QuickBooks',
-                'house'    => 'house account',
-                'website'  => 'online order',
-                'partner'  => 'partner / distributor',
-                'employee' => 'employee, not a rep',
-                'owner'    => 'owner',
-                'unset'    => 'never imported — outside the rep export range',
-            ]; ?>
-            <tr style="border-bottom:1px solid #f3f4f6">
-                <td style="<?= $td ?>">
-                    <?= e($u['label']) ?>
-                    <span style="font-size:.75rem;color:#9ca3af">— <?= $labels[$u['rep_type']] ?? e($u['rep_type']) ?></span>
-                </td>
-                <td style="<?= $td ?>;text-align:right;font-weight:500"><?= money((float)$u['revenue']) ?></td>
-                <td style="<?= $td ?>;text-align:right;color:#6b7280"><?= number_format((int)$u['invoice_count']) ?></td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-</div>
-
 <p style="font-size:.78rem;color:#9ca3af;margin:1rem 0 2rem">
-    Figures cover invoices dated in the selected period, excluding voided ones, and default
-    to year to date. Rep attribution came from a QuickBooks Sales&nbsp;by&nbsp;Rep export
-    covering <strong>2026 only</strong>, so periods before that show as "never imported".
-    Employees, the owner, and placeholder entries are deliberately excluded from the rep
-    table — Larry Fitzpatrick alone accounts for 1,945 invoices and would otherwise
-    dominate it.
+    Figures cover invoices dated in the selected period, excluding voided ones. Pick a preset
+    or set the two dates directly; the period defaults to year to date. Rep attribution came
+    from a QuickBooks Sales&nbsp;by&nbsp;Rep export covering <strong>2026 only</strong>, so
+    earlier periods read as zero until the fuller history is imported. Only actual sales reps
+    are listed — orders taken in-house will be credited to the employee via the QuickBooks
+    <strong>Processed by</strong> field once that export is available.
 </p>
 
 <script>
 // "Custom range…" reveals the two date inputs instead of reloading; every other preset
 // is self-contained, so it submits immediately. The date inputs are disabled for
 // non-custom presets so they stay out of the query string.
-function syncPeriodFields() {
-    var isCustom = document.getElementById('periodSelect').value === 'custom';
-    var custom   = document.getElementById('customRange');
-
-    custom.style.display = isCustom ? '' : 'none';
-    custom.querySelectorAll('input').forEach(function (i) { i.disabled = !isCustom; });
-
-    return isCustom;
+// Presets apply straight away. Editing either date instead switches the dropdown to
+// "Custom range…" and waits for Apply, so a half-entered range is never submitted.
+function onPresetChange() {
+    document.getElementById('periodForm').submit();
 }
 
-function onPeriodChange() {
-    // Only submit on an actual change — never on load, which would reload forever.
-    if (!syncPeriodFields()) {
-        document.getElementById('periodForm').submit();
-    }
+function onDateEdit() {
+    document.getElementById('periodSelect').value = 'custom';
 }
-
-syncPeriodFields();
 </script>
 
 <?php

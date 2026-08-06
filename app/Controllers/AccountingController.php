@@ -41,7 +41,13 @@ class AccountingController extends Controller
         ]);
     }
 
-    /** Revenue per sales rep, with the unattributed portion shown alongside. */
+    /**
+     * Revenue per sales rep over a date range, defaulting to year to date.
+     *
+     * Reps only. Revenue not credited to a rep is deliberately not shown here — in-house
+     * orders belong to the employee who took them, which the QuickBooks "Processed by"
+     * field will supply.
+     */
     public function reps(Request $request, Response $response): Response
     {
         // Defaults to year to date when no period is given.
@@ -53,10 +59,9 @@ class AccountingController extends Controller
 
         return $this->view('accounting.reps', [
             'title'        => 'Sales by Rep',
-            'reps'         => $this->repo->repPerformance($period->from, $period->to),
-            'unattributed' => $this->repo->unattributedRevenue($period->from, $period->to),
-            'period'       => $period,
-            'options'      => ReportPeriod::options($this->repo->invoiceYears()),
+            'reps'    => $this->repo->repPerformance($period->from, $period->to),
+            'period'  => $period,
+            'options' => ReportPeriod::options($this->repo->invoiceYears()),
         ]);
     }
 
