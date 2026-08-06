@@ -119,6 +119,8 @@ class CustomerService extends Service
         $topProducts    = $this->customers->getTopProducts((int)$id);
         $revenueByMonth = $this->customers->getRevenueByMonth((int)$id);
         $alerts         = $this->customers->getAlerts((int)$id, $profile);
+        $timeline       = $this->customers->getActivityTimeline((int)$id);
+        $timelineTotal  = $this->customers->countActivity((int)$id);
         $quotes       = \App\Core\Database::select(
             'SELECT q.id, q.quote_number, q.quote_date, q.expiry_date, q.status,
                     q.po_number, q.total_amount,
@@ -144,6 +146,8 @@ class CustomerService extends Service
             'top_products'    => $topProducts,
             'revenue_by_month'=> $revenueByMonth,
             'alerts'          => $alerts,
+            'timeline'        => $timeline,
+            'timeline_total'  => $timelineTotal,
             'stats'        => $this->customers->getStats((int)$id),
             'notes'        => $this->customers->getNotes((int)$id),
             'open_balance' => array_sum(array_column(

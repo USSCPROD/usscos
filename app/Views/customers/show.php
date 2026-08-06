@@ -402,86 +402,82 @@ $ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right
             <!-- All Activity tab -->
             <div id="panel-all" style="display:none">
                 <?php
-                $activity = [];
-                foreach ($invoices as $inv) {
-                    $activity[] = [
-                        'sort_date' => $inv['invoice_date'],
-                        'type'      => 'Invoice',
-                        'number'    => $inv['invoice_number'],
-                        'url'       => '/invoices/' . (int)$inv['id'],
-                        'date'      => date('M j, Y', strtotime($inv['invoice_date'])),
-                        'ref'       => $inv['po_number'] ?? '',
-                        'amount'    => (float)$inv['total_amount'],
-                        'status'    => ucfirst($inv['status']),
-                        'status_class' => match($inv['status']) {
-                            'paid'    => 'badge--success',
-                            'overdue' => 'badge--danger',
-                            'partial' => 'badge--warning',
-                            'void'    => 'badge--neutral',
-                            default   => 'badge--info',
-                        },
-                    ];
-                }
-                foreach ($sales_orders as $so) {
-                    $soLabel = ['draft'=>'Draft','confirmed'=>'Confirmed','processing'=>'Processing','partially_shipped'=>'Partial','shipped'=>'Shipped','invoiced'=>'Invoiced','cancelled'=>'Cancelled'];
-                    $soBadge = ['draft'=>'badge--neutral','confirmed'=>'badge--info','processing'=>'badge--info','partially_shipped'=>'badge--warning','shipped'=>'badge--success','invoiced'=>'badge--success','cancelled'=>'badge--neutral'];
-                    $activity[] = [
-                        'sort_date'    => $so['order_date'],
-                        'type'         => 'Sales Order',
-                        'number'       => $so['so_number'],
-                        'url'          => '/sales-orders/' . (int)$so['id'],
-                        'date'         => date('M j, Y', strtotime($so['order_date'])),
-                        'ref'          => $so['po_number'] ?? '',
-                        'amount'       => (float)$so['total_amount'],
-                        'status'       => $soLabel[$so['status']] ?? ucfirst($so['status']),
-                        'status_class' => $soBadge[$so['status']] ?? 'badge--neutral',
-                    ];
-                }
-                foreach ($payments as $pmt) {
-                    $activity[] = [
-                        'sort_date'    => $pmt['payment_date'],
-                        'type'         => 'Payment',
-                        'number'       => $pmt['reference_number'] ?? '',
-                        'url'          => '/payments/' . (int)$pmt['id'] . '/edit',
-                        'date'         => date('M j, Y', strtotime($pmt['payment_date'])),
-                        'ref'          => ucwords(str_replace('_', ' ', $pmt['payment_method'])),
-                        'amount'       => (float)$pmt['amount'],
-                        'status'       => '',
-                        'status_class' => '',
-                    ];
-                }
-                usort($activity, fn($a, $b) => strcmp($b['sort_date'], $a['sort_date']));
+                /* Unified feed from CustomerRepository::getActivityTimeline() — one query
+                   across notes, invoices, orders, payments, quotes and tasks, ordered
+                   properly across all of them rather than only the rows loaded per tab. */
+                $tl      = $timeline ?? [];
+                $tlTotal = $timeline_total ?? count($tl);
+
+                $evStyle = [
+                    'note'    => ['#6b7280', 'Note'],
+                    'invoice' => ['#0A3D91', 'Invoice'],
+                    'order'   => ['#7c3aed', 'Order'],
+                    'payment' => ['#16a34a', 'Payment'],
+                    'quote'   => ['#d97706', 'Quote'],
+                    'task'    => ['#0891b2', 'Task'],
+                ];
                 ?>
-                <div class="table-wrap">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Date</th><th>Type</th><th>Number / Ref</th>
-                                <th>PO / Method</th><th class="text-right">Amount</th><th class="text-center">Status</th>
+                <?php if (empty($tl)): ?>
+                    <div style="padding:2.5rem 1rem;text-align:center;color:#9ca3af;font-size:.9rem">
+                        Nothing on record for this customer yet.
+                    </div>
+                <?php else: ?>
+                    <div style="padding:.5rem 0">
+                    <?php
+                    $lastMonth = null;
+                    foreach ($tl as $ev):
+                        [$colour, $label] = $evStyle[$ev['event_type']] ?? ['#9ca3af', ucfirst($ev['event_type'])];
+                        $month = $ev['event_date'] ? date('F Y', strtotime($ev['event_date'])) : 'Undated';
+                        if ($month !== $lastMonth):
+                            $lastMonth = $month; ?>
+                            <div style="padding:.55rem 1.25rem;background:#f8f9fb;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+                                <?= $month ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <table style="width:100%;border-collapse:collapse;border-bottom:1px solid #f3f4f6">
+                            <tr style="vertical-align:top">
+                                <td style="width:78px;padding:.65rem .5rem .65rem 1.25rem;font-size:.78rem;color:#9ca3af;white-space:nowrap">
+                                    <?= $ev['event_date'] ? date('M j', strtotime($ev['event_date'])) : '—' ?>
+                                </td>
+                                <td style="width:4px;padding:.75rem 0">
+                                    <div style="width:4px;height:100%;min-height:16px;background:<?= $colour ?>;border-radius:2px"></div>
+                                </td>
+                                <td style="padding:.65rem .75rem">
+                                    <div style="font-size:.87rem;font-weight:500;color:#111">
+                                        <?php if (!empty($ev['link'])): ?>
+                                            <a href="<?= e($ev['link']) ?>" style="color:#111;text-decoration:none"><?= e($ev['title']) ?></a>
+                                        <?php else: ?>
+                                            <?= e($ev['title']) ?>
+                                        <?php endif; ?>
+                                        <span style="font-size:.7rem;font-weight:600;color:<?= $colour ?>;margin-left:.4rem"><?= strtoupper($label) ?></span>
+                                    </div>
+                                    <?php if (!empty($ev['detail'])): ?>
+                                        <div style="font-size:.8rem;color:#6b7280;margin-top:.15rem;line-height:1.5">
+                                            <?= nl2br(e(str_limit((string)$ev['detail'], 220))) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($ev['actor'])): ?>
+                                        <div style="font-size:.72rem;color:#9ca3af;margin-top:.15rem"><?= e($ev['actor']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="width:110px;padding:.65rem 1.25rem .65rem .5rem;text-align:right;white-space:nowrap">
+                                    <?php if ($ev['amount'] !== null && $ev['amount'] !== ''): ?>
+                                        <span style="font-size:.87rem;font-weight:600"><?= money((float)$ev['amount']) ?></span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($activity)): ?>
-                                <tr><td colspan="6" class="table__empty">No activity on record.</td></tr>
-                            <?php else: ?>
-                                <?php foreach ($activity as $row): ?>
-                                    <tr class="table__row--clickable" onclick="window.location='<?= e($row['url']) ?>'">
-                                        <td><?= $row['date'] ?></td>
-                                        <td class="text-sm text-muted"><?= $row['type'] ?></td>
-                                        <td class="font-mono text-sm"><?= e($row['number']) ?: '<span class="text-muted">—</span>' ?></td>
-                                        <td class="text-sm text-muted"><?= e($row['ref']) ?: '—' ?></td>
-                                        <td class="text-right font-mono">$<?= number_format($row['amount'], 2) ?></td>
-                                        <td class="text-center">
-                                            <?php if ($row['status']): ?>
-                                                <span class="badge <?= $row['status_class'] ?>"><?= $row['status'] ?></span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        </table>
+                    <?php endforeach; ?>
+                    </div>
+
+                    <?php if ($tlTotal > count($tl)): ?>
+                        <div style="padding:.7rem 1.25rem;background:#f8f9fb;border-top:1px solid #e5e7eb;font-size:.78rem;color:#6b7280;text-align:center">
+                            Showing the most recent <?= count($tl) ?> of <?= number_format($tlTotal) ?> events.
+                            Use the tabs above for the full list by type.
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
 
             <!-- Invoices tab -->

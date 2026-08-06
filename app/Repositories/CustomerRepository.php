@@ -262,6 +262,131 @@ class CustomerRepository extends Repository
         return $alerts;
     }
 
+    /**
+     * One chronological feed of everything that happened with a customer.
+     *
+     * Built as a UNION rather than six separate queries the view interleaves, so it can be
+     * paged and reused — the Rep Portal and Marketing both need the same feed.
+     *
+     * Each branch produces the same shape: when it happened, what kind of event, a title,
+     * a detail line, an optional amount, and where to click through to. `sort_at` carries
+     * a datetime for ordering even where the source only stores a date.
+     */
+    public function getActivityTimeline(int $customerId, int $limit = 60): array
+    {
+        $limit = max(1, min(300, $limit));
+
+        return Database::select("
+            (
+                SELECT 'note' AS event_type,
+                       n.created_at              AS sort_at,
+                       DATE(n.created_at)        AS event_date,
+                       COALESCE(NULLIF(n.note_type,''), 'Note') AS title,
+                       n.body                    AS detail,
+                       NULL                      AS amount,
+                       NULL                      AS ref,
+                       NULL                      AS link,
+                       TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS actor
+                FROM customer_notes n
+                LEFT JOIN users u ON u.id = n.user_id
+                WHERE n.customer_id = ?
+            )
+            UNION ALL
+            (
+                SELECT 'invoice',
+                       COALESCE(i.created_at, i.invoice_date),
+                       i.invoice_date,
+                       CASE WHEN i.status = 'paid'  THEN 'Invoice paid'
+                            WHEN i.status = 'void'  THEN 'Invoice voided'
+                            ELSE 'Invoice issued' END,
+                       CONCAT('Invoice ', i.invoice_number,
+                              CASE WHEN i.balance_due > 0
+                                   THEN CONCAT(' — ', FORMAT(i.balance_due, 2), ' outstanding')
+                                   ELSE '' END),
+                       i.total_amount,
+                       i.invoice_number,
+                       CONCAT('/invoices/', i.id),
+                       NULL
+                FROM invoices i
+                WHERE i.customer_id = ?
+            )
+            UNION ALL
+            (
+                SELECT 'order',
+                       COALESCE(so.created_at, so.order_date),
+                       so.order_date,
+                       CONCAT('Sales order ', REPLACE(so.status, '_', ' ')),
+                       CONCAT('SO ', so.so_number),
+                       so.total_amount,
+                       so.so_number,
+                       CONCAT('/sales-orders/', so.id),
+                       NULL
+                FROM sales_orders so
+                WHERE so.customer_id = ?
+            )
+            UNION ALL
+            (
+                SELECT 'payment',
+                       COALESCE(p.created_at, p.payment_date),
+                       p.payment_date,
+                       CONCAT('Payment received — ', REPLACE(p.payment_method, '_', ' ')),
+                       COALESCE(NULLIF(CONCAT('Ref ', p.reference_number), 'Ref '), 'Payment'),
+                       p.amount,
+                       p.reference_number,
+                       NULL,
+                       NULL
+                FROM payments p
+                WHERE p.customer_id = ?
+            )
+            UNION ALL
+            (
+                SELECT 'quote',
+                       COALESCE(q.created_at, q.quote_date),
+                       q.quote_date,
+                       CONCAT('Quote ', q.status),
+                       CONCAT('Quote ', q.quote_number),
+                       q.total_amount,
+                       q.quote_number,
+                       CONCAT('/quotes/', q.id),
+                       NULL
+                FROM quotes q
+                WHERE q.customer_id = ?
+            )
+            UNION ALL
+            (
+                SELECT 'task',
+                       COALESCE(t.completed_at, t.created_at),
+                       DATE(COALESCE(t.completed_at, t.created_at)),
+                       CASE WHEN t.status = 'completed' THEN 'Task completed' ELSE 'Task created' END,
+                       t.title,
+                       NULL,
+                       NULL,
+                       CONCAT('/tasks/', t.id, '/edit'),
+                       TRIM(CONCAT(COALESCE(u2.first_name,''), ' ', COALESCE(u2.last_name,'')))
+                FROM tasks t
+                LEFT JOIN users u2 ON u2.id = t.assigned_to
+                WHERE t.customer_id = ?
+            )
+            ORDER BY sort_at DESC, event_date DESC
+            LIMIT {$limit}
+        ", array_fill(0, 6, $customerId));
+    }
+
+    /** How many events exist in total, so the view can say what it's truncating. */
+    public function countActivity(int $customerId): int
+    {
+        $row = Database::selectOne("
+            SELECT
+              (SELECT COUNT(*) FROM customer_notes WHERE customer_id = ?) +
+              (SELECT COUNT(*) FROM invoices       WHERE customer_id = ?) +
+              (SELECT COUNT(*) FROM sales_orders   WHERE customer_id = ?) +
+              (SELECT COUNT(*) FROM payments       WHERE customer_id = ?) +
+              (SELECT COUNT(*) FROM quotes         WHERE customer_id = ?) +
+              (SELECT COUNT(*) FROM tasks          WHERE customer_id = ?) AS c
+        ", array_fill(0, 6, $customerId));
+        return (int)($row['c'] ?? 0);
+    }
+
     public function getInvoices(int $customerId, int $limit = 50): array
     {
         return Database::select("
