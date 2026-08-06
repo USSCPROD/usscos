@@ -8,6 +8,10 @@ $to       = $pag['to'] ?? 0;
 $total    = $pag['total'];
 $filter   = $filter ?? 'all';
 $search   = $search ?? '';
+$rep      = $rep ?? '';
+$repOpts  = $rep_options ?? [];
+
+$keep = ($search ? '&q=' . urlencode($search) : '') . ($rep !== '' ? '&rep=' . urlencode($rep) : '');
 ?>
 
 <div class="page-header">
@@ -31,14 +35,26 @@ $search   = $search ?? '';
             <input type="text" name="q" class="input search-wrap__input" placeholder="Search customers…" value="<?= e($search) ?>" autocomplete="off" style="padding:.65rem .85rem .65rem 2.5rem;font-size:1rem;height:auto">
         </div>
         <input type="hidden" name="filter" value="<?= e($filter) ?>">
+        <input type="hidden" name="rep"    value="<?= e($rep) ?>">
     </form>
     <div class="toolbar__filters">
         <?php foreach (['all' => 'All', 'balance' => 'Has Balance', 'inactive' => 'Inactive'] as $key => $label): ?>
-            <a href="/customers?filter=<?= $key ?><?= $search ? '&q=' . urlencode($search) : '' ?>"
+            <a href="/customers?filter=<?= $key ?><?= $keep ?>"
                class="filter-chip <?= $filter === $key ? 'filter-chip--active' : '' ?>">
                 <?= $label ?>
             </a>
         <?php endforeach; ?>
+
+        <select name="rep" onchange="window.location='/customers?filter=<?= e($filter) ?><?= $search ? '&q=' . urlencode($search) : '' ?>' + (this.value ? '&rep=' + encodeURIComponent(this.value) : '')"
+                class="input" style="height:2.2rem;padding:.3rem .6rem;font-size:.85rem;min-width:190px">
+            <option value="">All Reps</option>
+            <option value="none" <?= $rep === 'none' ? 'selected' : '' ?>>— No rep assigned —</option>
+            <?php foreach ($repOpts as $o): ?>
+                <option value="<?= (int)$o['id'] ?>" <?= $rep === (string)$o['id'] ? 'selected' : '' ?>>
+                    <?= e($o['name']) ?> (<?= (int)$o['customer_count'] ?>)
+                </option>
+            <?php endforeach; ?>
+        </select>
     </div>
 </div>
 
@@ -49,6 +65,7 @@ $search   = $search ?? '';
             <thead>
                 <tr>
                     <th>Customer</th>
+                    <th>Rep</th>
                     <th>Phone</th>
                     <th>Email</th>
                     <th class="text-right">Balance</th>
@@ -57,7 +74,7 @@ $search   = $search ?? '';
             </thead>
             <tbody>
                 <?php if (empty($pag['data'])): ?>
-                    <tr><td colspan="5" class="table__empty">No customers found.</td></tr>
+                    <tr><td colspan="6" class="table__empty">No customers found.</td></tr>
                 <?php else: ?>
                     <?php foreach ($pag['data'] as $c): ?>
                         <tr class="table__row--clickable" onclick="window.location='/customers/<?= (int)$c['id'] ?>'">
@@ -65,6 +82,13 @@ $search   = $search ?? '';
                                 <div class="customer-name"><?= e($c['company_name']) ?></div>
                                 <?php if ($c['quickbooks_name'] !== $c['company_name']): ?>
                                     <div class="text-xs text-muted"><?= e($c['quickbooks_name']) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-muted">
+                                <?php if (!empty($c['sales_rep_name'])): ?>
+                                    <?= e($c['sales_rep_name']) ?>
+                                <?php else: ?>
+                                    <span style="color:#d1d5db">—</span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-muted"><?= e($c['phone'] ?? '—') ?></td>

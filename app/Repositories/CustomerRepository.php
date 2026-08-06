@@ -27,40 +27,51 @@ class CustomerRepository extends Repository
         ", [$term, $term, $term, $term, $limit]);
     }
 
-    public function paginateWithBalance(int $page, int $perPage, string $search = '', string $filter = 'all'): array
+    public function paginateWithBalance(int $page, int $perPage, string $search = '', string $filter = 'all', string $rep = ''): array
     {
         $params     = [];
         $conditions = ['1=1'];
 
         if ($search !== '') {
-            $conditions[] = '(company_name LIKE ? OR quickbooks_name LIKE ? OR phone LIKE ? OR email LIKE ?)';
+            $conditions[] = '(c.company_name LIKE ? OR c.quickbooks_name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)';
             $s = '%' . $search . '%';
             array_push($params, $s, $s, $s, $s);
         }
 
+        if ($rep === 'none') {
+            $conditions[] = 'c.sales_rep_id IS NULL';
+        } elseif ($rep !== '') {
+            $conditions[] = 'c.sales_rep_id = ?';
+            $params[]     = (int)$rep;
+        }
+
         if ($filter === 'balance') {
-            $conditions[] = 'qb_balance > 0';
-            $conditions[] = 'parent_id IS NULL';
+            $conditions[] = 'c.qb_balance > 0';
+            $conditions[] = 'c.parent_id IS NULL';
         } elseif ($filter === 'inactive') {
-            $conditions[] = 'is_active = 0';
-            $conditions[] = 'parent_id IS NULL';
+            $conditions[] = 'c.is_active = 0';
+            $conditions[] = 'c.parent_id IS NULL';
         } else {
-            $conditions[] = 'is_active = 1';
-            $conditions[] = 'parent_id IS NULL';
+            $conditions[] = 'c.is_active = 1';
+            $conditions[] = 'c.parent_id IS NULL';
         }
 
         $where  = 'WHERE ' . implode(' AND ', $conditions);
         $offset = ($page - 1) * $perPage;
 
         $total = (int)(Database::selectOne(
-            "SELECT COUNT(*) as total FROM customers $where",
+            "SELECT COUNT(*) as total FROM customers c $where",
             $params
         )['total'] ?? 0);
 
         $rows = Database::select(
-            "SELECT id, company_name, quickbooks_name, phone, email, qb_balance, is_active, parent_id
-             FROM customers $where
-             ORDER BY company_name ASC
+            "SELECT c.id, c.company_name, c.quickbooks_name, c.phone, c.email,
+                    c.qb_balance, c.is_active, c.parent_id,
+                    sr.name AS sales_rep_name, sr.rep_type AS sales_rep_type
+             FROM customers c
+             LEFT JOIN sales_reps sr ON sr.id = c.sales_rep_id
+             $where
+             ORDER BY c.company_name ASC
              LIMIT $perPage OFFSET $offset",
             $params
         );
@@ -83,11 +94,15 @@ class CustomerRepository extends Repository
                    p.company_name AS parent_name,
                    pt.name        AS payment_term_name,
                    u.first_name   AS rep_first_name,
-                   u.last_name    AS rep_last_name
+                   u.last_name    AS rep_last_name,
+                   sr.id          AS sales_rep_id_val,
+                   sr.name        AS sales_rep_name,
+                   sr.rep_type    AS sales_rep_type
             FROM customers c
-            LEFT JOIN customers p    ON p.id = c.parent_id
+            LEFT JOIN customers p      ON p.id  = c.parent_id
             LEFT JOIN payment_terms pt ON pt.id = c.payment_term_id
-            LEFT JOIN users u        ON u.id = c.rep_id
+            LEFT JOIN users u          ON u.id  = c.rep_id
+            LEFT JOIN sales_reps sr    ON sr.id = c.sales_rep_id
             WHERE c.id = ?
             LIMIT 1
         ", [$id]);

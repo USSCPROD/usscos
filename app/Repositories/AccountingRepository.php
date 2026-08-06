@@ -181,7 +181,97 @@ class AccountingRepository
             'revenue_ytd'  => (float)($ytd['ytd']     ?? 0),
             'coa_count'    => (int)(Database::selectOne('SELECT COUNT(*) c FROM chart_of_accounts WHERE is_active = 1')['c'] ?? 0),
             'je_count'     => (int)(Database::selectOne('SELECT COUNT(*) c FROM journal_entries')['c'] ?? 0),
+            'rep_count'    => (int)(Database::selectOne("SELECT COUNT(*) c FROM sales_reps WHERE rep_type = 'person' AND is_active = 1")['c'] ?? 0),
         ];
+    }
+
+    /**
+     * Revenue and customer count per sales rep.
+     *
+     * Only `rep_type = 'person'` counts as a rep — the list also holds the owner,
+     * employees, and placeholders like "No sales rep" which carries the majority of
+     * invoices and would otherwise swamp every figure.
+     *
+     * Revenue is summed from invoices attributed to the rep, NOT from the lifetime
+     * revenue of their assigned customers — those differ substantially, because a
+     * customer's invoices may be credited to several reps or to none.
+     */
+    public function repPerformance(?int $year = null): array
+    {
+        $params = [];
+        $yearWhere = '';
+        if ($year !== null) {
+            $yearWhere = 'AND YEAR(i.invoice_date) = ?';
+            $params[]  = $year;
+        }
+
+        return Database::select("
+            SELECT sr.id, sr.name, sr.rep_type,
+                   COUNT(DISTINCT i.id)                    AS invoice_count,
+                   COALESCE(SUM(i.total_amount), 0)        AS revenue,
+                   COUNT(DISTINCT i.customer_id)           AS customers_invoiced,
+                   MAX(i.invoice_date)                     AS last_sale,
+                   (SELECT COUNT(*) FROM customers c WHERE c.sales_rep_id = sr.id) AS assigned_customers
+            FROM sales_reps sr
+            LEFT JOIN invoices i
+                   ON i.sales_rep_id = sr.id
+                  AND i.status != 'void'
+                  {$yearWhere}
+            WHERE sr.rep_type = 'person'
+            GROUP BY sr.id, sr.name, sr.rep_type
+            HAVING invoice_count > 0 OR assigned_customers > 0
+            ORDER BY revenue DESC, assigned_customers DESC
+        ", $params);
+    }
+
+    /** Revenue that isn't credited to a real rep, so the picture stays honest. */
+    public function unattributedRevenue(?int $year = null): array
+    {
+        $params = [];
+        $yearWhere = '';
+        if ($year !== null) {
+            $yearWhere = 'AND YEAR(i.invoice_date) = ?';
+            $params[]  = $year;
+        }
+
+        return Database::select("
+            SELECT COALESCE(sr.name, 'Not attributed') AS label,
+                   COALESCE(sr.rep_type, 'unset')      AS rep_type,
+                   COUNT(*)                            AS invoice_count,
+                   COALESCE(SUM(i.total_amount), 0)    AS revenue
+            FROM invoices i
+            LEFT JOIN sales_reps sr ON sr.id = i.sales_rep_id
+            WHERE i.status != 'void'
+              AND (sr.id IS NULL OR sr.rep_type != 'person')
+              {$yearWhere}
+            GROUP BY label, rep_type
+            ORDER BY revenue DESC
+        ", $params);
+    }
+
+    /** Years that actually have invoices, for the year selector. */
+    public function invoiceYears(): array
+    {
+        return array_map(
+            fn($r) => (int)$r['y'],
+            Database::select("
+                SELECT DISTINCT YEAR(invoice_date) AS y
+                FROM invoices WHERE status != 'void'
+                ORDER BY y DESC
+            ")
+        );
+    }
+
+    /** All reps, for filter dropdowns. */
+    public function repOptions(): array
+    {
+        return Database::select("
+            SELECT id, name, rep_type,
+                   (SELECT COUNT(*) FROM customers c WHERE c.sales_rep_id = sales_reps.id) AS customer_count
+            FROM sales_reps
+            WHERE rep_type = 'person' AND is_active = 1
+            ORDER BY name
+        ");
     }
 
     /** Revenue by month for the section dashboard. */

@@ -19,16 +19,19 @@ class CustomerService extends Service
         $this->admin     = new AdminRepository();
     }
 
-    public function list(int $page, int $perPage, string $search, string $filter): array
+    public function list(int $page, int $perPage, string $search, string $filter, string $rep = ''): array
     {
-        $paginated = $this->customers->paginateWithBalance($page, $perPage, $search, $filter);
+        $paginated = $this->customers->paginateWithBalance($page, $perPage, $search, $filter, $rep);
         $totalAR   = $this->customers->getTotalAR();
+        $repOptions = (new \App\Repositories\AccountingRepository())->repOptions();
 
         return [
-            'paginated' => $paginated,
-            'total_ar'  => $totalAR,
-            'search'    => $search,
-            'filter'    => $filter,
+            'paginated'   => $paginated,
+            'total_ar'    => $totalAR,
+            'search'      => $search,
+            'filter'      => $filter,
+            'rep'         => $rep,
+            'rep_options' => $repOptions,
         ];
     }
 

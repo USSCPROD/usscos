@@ -34,8 +34,14 @@ $isAtRisk = isset($stats['days_since']) && $stats['days_since'] !== null && $sta
             <?php if (!empty($c['parent_name'])): ?>
                 <span class="badge badge--neutral">Under: <a href="/customers/<?= (int)$c['parent_id'] ?>" style="color:inherit;font-weight:700"><?= e($c['parent_name']) ?></a></span>
             <?php endif; ?>
+            <?php if (!empty($c['sales_rep_name'])): ?>
+                <a href="/customers?rep=<?= (int)$c['sales_rep_id_val'] ?>" class="badge badge--info"
+                   style="text-decoration:none" title="Sales rep from QuickBooks — see their other accounts">
+                    Rep: <?= e($c['sales_rep_name']) ?>
+                </a>
+            <?php endif; ?>
             <?php if (!empty($c['rep_first_name'])): ?>
-                <span class="badge badge--neutral">Rep: <?= e($c['rep_first_name'] . ' ' . $c['rep_last_name']) ?></span>
+                <span class="badge badge--neutral">Assigned: <?= e($c['rep_first_name'] . ' ' . $c['rep_last_name']) ?></span>
             <?php endif; ?>
         </div>
         <?php if ($c['quickbooks_name'] !== $c['company_name']): ?>

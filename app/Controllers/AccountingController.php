@@ -40,6 +40,21 @@ class AccountingController extends Controller
         ]);
     }
 
+    /** Revenue per sales rep, with the unattributed portion shown alongside. */
+    public function reps(Request $request, Response $response): Response
+    {
+        $year = $request->query('year');
+        $year = ($year === null || $year === 'all') ? null : (int)$year;
+
+        return $this->view('accounting.reps', [
+            'title'        => 'Sales by Rep',
+            'reps'         => $this->repo->repPerformance($year),
+            'unattributed' => $this->repo->unattributedRevenue($year),
+            'year'         => $year,
+            'years'        => $this->repo->invoiceYears(),
+        ]);
+    }
+
     /** AR aging by customer, bucketed from the due date. */
     public function arAging(Request $request, Response $response): Response
     {

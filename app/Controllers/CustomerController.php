@@ -28,8 +28,9 @@ class CustomerController extends Controller
         $perPage = 50;
         $search  = trim($request->query('q') ?? '');
         $filter  = $request->query('filter') ?? 'all';
+        $rep     = trim((string)($request->query('rep') ?? ''));
 
-        $data = $this->service->list($page, $perPage, $search, $filter);
+        $data = $this->service->list($page, $perPage, $search, $filter, $rep);
 
         return $this->view('customers.index', [
             'title' => 'Customers',
