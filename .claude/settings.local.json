@@ -152,7 +152,11 @@
       "Bash(find ~/Desktop ~/Downloads ~/Documents ~/Projects \"$HOME/Library/CloudStorage\" -maxdepth 4 -name \"Report_from_US_SPECIALTY_COATINGS.xlsx\" 2>/dev/null | head -5 || echo \"not found in the usual places\")",
       "Bash(scp -q database/import_reps.php root@159.223.177.58:/var/www/usscos/database/import_reps.php)",
       "Bash(scp -q /tmp/rep_map.csv root@159.223.177.58:/tmp/rep_map.csv)",
-      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Sales reps as their own entity, backfilled from QuickBooks *)"
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Sales reps as their own entity, backfilled from QuickBooks *)",
+      "Bash(awk '-F ~ ' 'BEGIN{printf \"%-22s %-22s %-9s %6s %6s %14s\\\\n\",\"NAME\",\"QUICKBOOKS NAME\",\"TYPE\",\"INV\",\"CUST\",\"REVENUE\"; *)",
+      "Bash(scp -q database/migrations/049_correct_sales_reps.sql root@159.223.177.58:/tmp/049.sql)",
+      "Bash(scp -q database/migrations/050_reclassify_employee_reps.sql root@159.223.177.58:/tmp/050.sql)",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Correct the sales rep list from Chip'\\\\''s verification *)"
     ]
   }
 }
