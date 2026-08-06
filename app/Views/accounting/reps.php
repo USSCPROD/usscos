@@ -121,9 +121,11 @@ $selling    = count(array_filter($reps, fn($r) => (int)$r['invoice_count'] > 0))
     Figures cover invoices dated in the selected period, excluding voided ones. Pick a preset
     or set the two dates directly; the period defaults to year to date. Rep attribution came
     from a QuickBooks Sales&nbsp;by&nbsp;Rep export covering <strong>2026 only</strong>, so
-    earlier periods read as zero until the fuller history is imported. Only actual sales reps
-    are listed — orders taken in-house will be credited to the employee via the QuickBooks
-    <strong>Processed by</strong> field once that export is available.
+    earlier periods read as zero until the fuller history is imported. Sales credit always
+    goes to the <strong>sales rep</strong>, never to whoever keyed the order in: reps and
+    distributors can't enter their own orders yet, so a salesperson does it for them. The
+    QuickBooks <strong>Processed by</strong> field records who that was, for operational
+    history only — it earns no commission and does not move revenue between reps.
 </p>
 
 <script>

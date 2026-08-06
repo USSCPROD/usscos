@@ -12,7 +12,7 @@ $types = [
     'employee' => 'Employee — internal, excluded from rep reporting',
     'owner'    => 'Owner — excluded from rep reporting',
     'partner'  => 'Partner / distributor',
-    'house'    => 'House account',
+    'house'    => 'House account — a long-standing customer with no rep',
     'website'  => 'Website / online orders',
     'none'     => 'Placeholder (e.g. "No sales rep")',
 ];

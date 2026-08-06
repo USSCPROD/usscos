@@ -42,9 +42,9 @@ $typeBadge = [
                 Every row in the QuickBooks Rep list, including the attribution buckets.
                 Only <strong>Sales Rep</strong> rows count toward rep reporting and commission.
             <?php else: ?>
-                Imported from the QuickBooks Rep list. Employees, the owner, house accounts,
-                website and placeholder rows are attribution buckets rather than reps, so
-                they're hidden here.
+                Imported from the QuickBooks Rep list. Employees, the owner, house accounts
+                (long-standing customers with no rep), website and placeholder rows aren't
+                sales reps, so they're hidden here.
             <?php endif; ?>
         </p>
     </div>
@@ -132,8 +132,8 @@ $typeBadge = [
 <p style="font-size:.78rem;color:#9ca3af;margin:1rem 0 2rem">
     <?php if ($showAll): ?>
         Showing every type. <a href="/admin/sales-reps" style="color:#0A3D91">Show sales reps only</a>.
-        The non-rep rows exist so invoice revenue has somewhere to be attributed — they're
-        listed here only so their records stay editable.
+        The non-rep rows carry invoice history and are listed here only so their records
+        stay editable.
     <?php elseif ($hiddenCount > 0): ?>
         <?= $hiddenCount ?> non-rep <?= $hiddenCount === 1 ? 'row is' : 'rows are' ?> hidden
         (employees, owner, house accounts, website, placeholders).
