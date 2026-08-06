@@ -196,13 +196,25 @@ class AccountingRepository
      * revenue of their assigned customers — those differ substantially, because a
      * customer's invoices may be credited to several reps or to none.
      */
-    public function repPerformance(?int $year = null): array
+    /**
+     * Revenue per rep over an inclusive date range.
+     *
+     * The range is applied in the JOIN, not the WHERE, so a rep with assigned customers
+     * but no invoices in the period still appears (with zero revenue) rather than
+     * dropping off the report.
+     */
+    public function repPerformance(?string $from = null, ?string $to = null): array
     {
-        $params = [];
+        $params    = [];
         $yearWhere = '';
-        if ($year !== null) {
-            $yearWhere = 'AND YEAR(i.invoice_date) = ?';
-            $params[]  = $year;
+
+        if ($from !== null) {
+            $yearWhere .= ' AND i.invoice_date >= ?';
+            $params[]   = $from;
+        }
+        if ($to !== null) {
+            $yearWhere .= ' AND i.invoice_date <= ?';
+            $params[]   = $to;
         }
 
         return Database::select("
@@ -225,13 +237,19 @@ class AccountingRepository
     }
 
     /** Revenue that isn't credited to a real rep, so the picture stays honest. */
-    public function unattributedRevenue(?int $year = null): array
+    /** Revenue not credited to a rep, over the same inclusive date range. */
+    public function unattributedRevenue(?string $from = null, ?string $to = null): array
     {
-        $params = [];
+        $params    = [];
         $yearWhere = '';
-        if ($year !== null) {
-            $yearWhere = 'AND YEAR(i.invoice_date) = ?';
-            $params[]  = $year;
+
+        if ($from !== null) {
+            $yearWhere .= ' AND i.invoice_date >= ?';
+            $params[]   = $from;
+        }
+        if ($to !== null) {
+            $yearWhere .= ' AND i.invoice_date <= ?';
+            $params[]   = $to;
         }
 
         return Database::select("

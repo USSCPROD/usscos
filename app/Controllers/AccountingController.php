@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
 use App\Repositories\AccountingRepository;
+use App\Services\ReportPeriod;
 
 class AccountingController extends Controller
 {
@@ -43,15 +44,19 @@ class AccountingController extends Controller
     /** Revenue per sales rep, with the unattributed portion shown alongside. */
     public function reps(Request $request, Response $response): Response
     {
-        $year = $request->query('year');
-        $year = ($year === null || $year === 'all') ? null : (int)$year;
+        // Defaults to year to date when no period is given.
+        $period = ReportPeriod::resolve(
+            $request->query('period'),
+            $request->query('from'),
+            $request->query('to'),
+        );
 
         return $this->view('accounting.reps', [
             'title'        => 'Sales by Rep',
-            'reps'         => $this->repo->repPerformance($year),
-            'unattributed' => $this->repo->unattributedRevenue($year),
-            'year'         => $year,
-            'years'        => $this->repo->invoiceYears(),
+            'reps'         => $this->repo->repPerformance($period->from, $period->to),
+            'unattributed' => $this->repo->unattributedRevenue($period->from, $period->to),
+            'period'       => $period,
+            'options'      => ReportPeriod::options($this->repo->invoiceYears()),
         ]);
     }
 
