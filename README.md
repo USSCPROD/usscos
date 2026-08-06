@@ -32,6 +32,8 @@ Built in-house on PHP + MySQL. No framework, no licensing cost, no vendor lock-i
 | [docs/DATABASE.md](docs/DATABASE.md) | Schema, key relationships, and the constraints that bite |
 | [docs/MODULES.md](docs/MODULES.md) | What each module does and how the main flows run |
 | [docs/PRICING.md](docs/PRICING.md) | Tiers, volume schedules, and how a price is resolved |
+| [docs/ACCOUNTANT_QUESTIONS.md](docs/ACCOUNTANT_QUESTIONS.md) | **Open decisions** to settle with the accountant before the accounting phase |
+| [docs/QUICKBOOKS_SYNC.md](docs/QUICKBOOKS_SYNC.md) | The export API, and the Windows QODBC bridge |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Server layout, deploy process, operations runbook |
 | [docs/DIGITALOCEAN.md](docs/DIGITALOCEAN.md) | How the server was built, and how to rebuild it |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | What's built, what's next, what's deferred |

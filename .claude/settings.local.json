@@ -133,7 +133,17 @@
       "Bash(grep -n 'AS `Desc`' app/Repositories/QbExportRepository.php)",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'qb export: quote the Desc column alias *)",
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh >/dev/null 2>&1 && echo deployed')",
-      "Bash(curl -s -H 'X-API-Key: __TRACKED_VAR__' 'https://os.usscos.com/api/qb/pending?type=invoices&limit=1')"
+      "Bash(curl -s -H 'X-API-Key: __TRACKED_VAR__' 'https://os.usscos.com/api/qb/pending?type=invoices&limit=1')",
+      "Bash(ssh root@159.223.177.58 'mysql -e \"UPDATE usscos.invoices SET qb_exported_at=NOW\\(\\) WHERE id=37940;\"')",
+      "Bash(ssh root@159.223.177.58 'mysql -N -e \"SELECT i.id FROM usscos.invoices i JOIN usscos.invoice_line_items l ON l.invoice_id=i.id WHERE i.status!=\\\\\"void\\\\\" GROUP BY i.id HAVING COUNT\\(*\\)>1 ORDER BY i.invoice_date DESC LIMIT 1;\"')",
+      "Bash(ssh root@159.223.177.58 'mysql -e '\\\\''UPDATE usscos.invoices SET qb_exported_at=NULL, qb_txn_id=NULL WHERE id=__TRACKED_VAR__;'\\\\''')",
+      "Bash(curl -s -H 'X-API-Key: __CMDSUB_OUTPUT__' 'https://os.usscos.com/api/qb/pending?type=invoices&limit=1')",
+      "Bash(read BATCH IID)",
+      "Bash(curl -s -X POST -H 'X-API-Key: __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"batch_id\":\"__TRACKED_VAR__\",\"results\":[{\"type\":\"invoice\",\"id\":__TRACKED_VAR__,\"ok\":false,\"message\":\"Customer not found in QuickBooks\"}]}' https://os.usscos.com/api/qb/ack)",
+      "Bash(ssh root@159.223.177.58 \"mysql -e 'UPDATE usscos.invoices SET qb_txn_id=NULL WHERE qb_txn_id=\\\\\"TEST-TXN-8A2F\\\\\"; DELETE FROM usscos.qb_export_log;'\")",
+      "Bash(curl -s -H 'X-API-Key: __TRACKED_VAR__' https://os.usscos.com/api/qb/status)",
+      "Bash(ssh root@159.223.177.58 'mysql -N -e \"SHOW COLUMNS FROM usscos.payments;\" | awk \"{print \\\\\"  \\\\\"\\\\$1\\\\\"  \\\\\"\\\\$2}\"')",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'Add accountant questions doc *)"
     ]
   }
 }
