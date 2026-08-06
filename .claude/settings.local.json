@@ -100,7 +100,8 @@
       "Bash(ssh root@159.223.177.58 'chown deploy:www-data \"/var/www/usscos/database/spreadsheets/USSC EDI-ERP DATA.xlsx\" && ls -lh /var/www/usscos/database/spreadsheets/')",
       "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && php database/rename_skus.php 2>&1')",
       "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'rename_skus: block two products claiming the same new SKU *)",
-      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh >/dev/null 2>&1 && php database/rename_skus.php 2>&1')"
+      "Bash(ssh deploy@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh >/dev/null 2>&1 && php database/rename_skus.php 2>&1')",
+      "Bash(git -c 'user.name=Chip Curle' -c user.email=chip@usscproducts.com commit -q -m 'import_products: quickbooks_item must equal the SKU, not BRAND:SKU *)"
     ]
   }
 }

@@ -510,8 +510,15 @@ try {
             $st->execute($vals);
             $updated++;
         } else {
-            // quickbooks_item is NOT NULL UNIQUE — build BRAND:SKU like the QB export
-            $qbItem = ($brandName !== '' ? strtoupper($brandName) . ':' : '') . $sku;
+            // quickbooks_item is NOT NULL UNIQUE and is the field the sales-history
+            // importer joins on (see import_sales_history.php) — so it MUST match the
+            // item name QuickBooks actually uses, or invoice lines won't relink to
+            // their products.
+            //
+            // Migration 009's comment claims a BRAND:SKU format, but the live data
+            // disagrees: 657 of 891 products have quickbooks_item identical to sku, and
+            // every product carrying invoice history is in that group. Use the plain SKU.
+            $qbItem = $sku;
             $probe  = $pdo->prepare("SELECT id FROM products WHERE quickbooks_item = ? LIMIT 1");
             $probe->execute([$qbItem]);
             if ($probe->fetch()) $qbItem .= '-' . substr(md5($sku), 0, 6);
