@@ -38,6 +38,55 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function create(Request $request, Response $response): Response
+    {
+        return $this->view('customers.form', [
+            'title'      => 'Add Customer',
+            'old'        => [],
+            'duplicates' => [],
+            'reps'       => $this->service->repOptions(),
+        ]);
+    }
+
+    /**
+     * Create a customer, pausing on a likely duplicate.
+     *
+     * The first submit reports any matches and creates nothing. Submitting again with
+     * `confirm_duplicate` goes ahead — the point is to make re-adding an existing company
+     * a deliberate act, not to make it impossible.
+     */
+    public function store(Request $request, Response $response): Response
+    {
+        $input = $_POST;
+        $force = ($input['confirm_duplicate'] ?? '') === '1';
+
+        try {
+            $result = $this->service->create($input, $force);
+        } catch (\RuntimeException $e) {
+            \App\Core\Session::flash('error', $e->getMessage());
+
+            return $this->view('customers.form', [
+                'title'      => 'Add Customer',
+                'old'        => $input,
+                'duplicates' => [],
+                'reps'       => $this->service->repOptions(),
+            ]);
+        }
+
+        if ($result['id'] === null) {
+            return $this->view('customers.form', [
+                'title'      => 'Add Customer',
+                'old'        => $input,
+                'duplicates' => $result['duplicates'],
+                'reps'       => $this->service->repOptions(),
+            ]);
+        }
+
+        \App\Core\Session::flash('success', 'Customer created.');
+
+        return $response->redirect('/customers/' . $result['id']);
+    }
+
     public function show(Request $request, Response $response, string $id = '0'): Response
     {
 

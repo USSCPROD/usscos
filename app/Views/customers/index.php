@@ -20,7 +20,7 @@ $keep = ($search ? '&q=' . urlencode($search) : '') . ($rep !== '' ? '&rep=' . u
         <p class="page-subtitle"><?= number_format($total) ?> total &nbsp;·&nbsp; $<?= number_format($total_ar, 2) ?> outstanding AR</p>
     </div>
     <div class="page-header__right">
-        <a href="/customers/new" class="btn btn--primary">
+        <a href="/customers/create" class="btn btn--primary">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             Add Customer
         </a>

@@ -188,7 +188,10 @@
       "Bash(git commit -q -m 'Enter rep credentials directly on the sales rep form *)",
       "Bash(git commit -q -m 'Add My Profile with self-service password change *)",
       "Bash(git commit -q -m 'Match Processed By on email local-part as well as first name *)",
-      "Bash(php -l app/Views/partials/sidebar.php)"
+      "Bash(php -l app/Views/partials/sidebar.php)",
+      "Bash(php -l app/Services/CustomerService.php)",
+      "Bash(sed -i '' 's|href=\"/customers/new\"|href=\"/customers/create\"|' app/Views/customers/index.php)",
+      "Bash(sed -n \"/public function list\\(/,/^    }/p\" app/Services/CustomerService.php)"
     ]
   }
 }

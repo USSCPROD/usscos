@@ -101,6 +101,8 @@ Router::group(['middleware' => ['auth', 'internal']], function () {
     Router::post('/customers/{id}/payment', [PaymentController::class,  'store'])->name('customers.payment.store');
 
     Router::get('/customers',                [CustomerController::class, 'index'])->name('customers');
+    Router::get('/customers/create',         [CustomerController::class, 'create'])->name('customers.create');
+    Router::post('/customers',               [CustomerController::class, 'store'])->name('customers.store');
     Router::get('/customers/autocomplete',   [CustomerController::class, 'autocomplete'])->name('customers.autocomplete');
     Router::get('/customers/{id}/json',      [CustomerController::class, 'apiShow'])->name('customers.json');
     Router::get('/customers/{id}',           [CustomerController::class, 'show'])->name('customers.show');

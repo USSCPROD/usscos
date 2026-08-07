@@ -94,6 +94,113 @@ class CustomerRepository extends Repository
         ];
     }
 
+    /**
+     * Customers that look like the one being entered, for duplicate warnings.
+     *
+     * Deliberately NOT access-scoped. A rep must be stopped from re-adding a company
+     * that already belongs to someone else, and they cannot see that record — so the
+     * search runs across every customer and the caller decides how much to reveal.
+     * Scoping this would defeat the entire point of the check.
+     *
+     * Matching is intentionally loose: an exact-name check alone misses "ABC Paint Co"
+     * against "ABC Paint Company", which is exactly how duplicates get created.
+     *
+     * @param int|null $excludeId customer being edited, so it can't match itself
+     */
+    public function findPossibleDuplicates(string $companyName, string $email = '', string $phone = '', ?int $excludeId = null): array
+    {
+        $name = $this->normaliseName($companyName);
+
+        if ($name === '' && $email === '' && $phone === '') {
+            return [];
+        }
+
+        $clauses = [];
+        $params  = [];
+
+        if ($name !== '') {
+            // Compare on a normalised form so punctuation and common suffixes don't hide a match.
+            $clauses[] = "REPLACE(REPLACE(REPLACE(REPLACE(LOWER(c.company_name), '.', ''), ',', ''), '-', ''), ' ', '') LIKE ?";
+            $params[]  = '%' . str_replace(' ', '', $name) . '%';
+
+            $clauses[] = "REPLACE(REPLACE(REPLACE(REPLACE(LOWER(c.quickbooks_name), '.', ''), ',', ''), '-', ''), ' ', '') LIKE ?";
+            $params[]  = '%' . str_replace(' ', '', $name) . '%';
+        }
+
+        if (trim($email) !== '') {
+            $clauses[] = 'LOWER(c.email) = ?';
+            $params[]  = strtolower(trim($email));
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+        if (strlen($digits) >= 7) {
+            // Compare digits only — (555) 123-4567 and 555.123.4567 are the same number.
+            $clauses[] = "RIGHT(REGEXP_REPLACE(COALESCE(c.phone,''), '[^0-9]', ''), 10) = RIGHT(?, 10)";
+            $params[]  = $digits;
+        }
+
+        if ($clauses === []) {
+            return [];
+        }
+
+        $where = '(' . implode(' OR ', $clauses) . ')';
+
+        if ($excludeId !== null) {
+            $where   .= ' AND c.id <> ?';
+            $params[] = $excludeId;
+        }
+
+        return Database::select("
+            SELECT c.id, c.company_name, c.email, c.phone, c.is_active,
+                   c.sales_rep_id, sr.name AS sales_rep_name
+            FROM customers c
+            LEFT JOIN sales_reps sr ON sr.id = c.sales_rep_id
+            WHERE {$where}
+            ORDER BY c.is_active DESC, c.company_name
+            LIMIT 10
+        ", $params);
+    }
+
+    /** Lowercased, stripped of punctuation and the usual company suffixes. */
+    private function normaliseName(string $name): string
+    {
+        $n = strtolower(trim($name));
+        $n = str_replace(['.', ',', '-', '&'], ' ', $n);
+        $n = preg_replace('/\b(inc|llc|ltd|co|corp|company|the)\b/', ' ', $n) ?? $n;
+        $n = preg_replace('/\s+/', ' ', $n) ?? $n;
+
+        return trim($n);
+    }
+
+    /** Create a customer. quickbooks_name is NOT NULL, so it falls back to the display name. */
+    public function insertCustomer(array $d): int
+    {
+        $pdo = Database::connection();
+
+        $pdo->prepare("
+            INSERT INTO customers
+                (company_name, quickbooks_name, email, phone, customer_type,
+                 bill_address_1, bill_city, bill_state, bill_zip,
+                 sales_rep_id, is_active)
+            VALUES (:name, :qb, :email, :phone, :type,
+                    :addr, :city, :state, :zip,
+                    :rep, 1)
+        ")->execute([
+            ':name'  => $d['company_name'],
+            ':qb'    => $d['quickbooks_name'] !== '' ? $d['quickbooks_name'] : $d['company_name'],
+            ':email' => $d['email'] ?: null,
+            ':phone' => $d['phone'] ?: null,
+            ':type'  => $d['customer_type'] ?: null,
+            ':addr'  => $d['bill_address_1'] ?: null,
+            ':city'  => $d['bill_city'] ?: null,
+            ':state' => $d['bill_state'] ?: null,
+            ':zip'   => $d['bill_zip'] ?: null,
+            ':rep'   => $d['sales_rep_id'] ?: null,
+        ]);
+
+        return (int)$pdo->lastInsertId();
+    }
+
     public function findWithDetails(int $id): array|false
     {
         $row = Database::selectOne("
@@ -454,9 +561,29 @@ class CustomerRepository extends Repository
         ", [$parentId]);
     }
 
+    /**
+     * Outstanding receivable across the customers this user can see.
+     *
+     * Scoped, because it is displayed above the customer list — unscoped it would show a
+     * rep the company's total AR, which is exactly the financial visibility they aren't
+     * meant to have.
+     */
     public function getTotalAR(): float
     {
-        $row = Database::selectOne("SELECT SUM(qb_balance) as total FROM customers WHERE qb_balance > 0");
+        $params = [];
+        $where  = ['qb_balance > 0'];
+
+        [$scopeSql, $scopeParams] = \App\Services\AccessScope::customerCondition('customers');
+        if ($scopeSql !== '') {
+            $where[] = $scopeSql;
+            array_push($params, ...$scopeParams);
+        }
+
+        $row = Database::selectOne(
+            'SELECT SUM(qb_balance) as total FROM customers WHERE ' . implode(' AND ', $where),
+            $params
+        );
+
         return (float)($row['total'] ?? 0);
     }
 

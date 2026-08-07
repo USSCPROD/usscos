@@ -19,6 +19,90 @@ class CustomerService extends Service
         $this->admin     = new AdminRepository();
     }
 
+    /** Reps for the assignment dropdown. Empty for restricted users — theirs is forced. */
+    public function repOptions(): array
+    {
+        if (\App\Services\AccessScope::isRestricted()) {
+            return [];
+        }
+
+        return (new \App\Repositories\AccountingRepository())->repOptions();
+    }
+
+    /**
+     * Customers that look like the one being entered.
+     *
+     * The search itself is unscoped — a rep must be stopped from re-adding a company
+     * that already belongs to another rep, and they cannot see that record. What comes
+     * back is therefore redacted per match: a rep learns that the company exists and
+     * who to ask, but not its contact details, and gets no link to open it.
+     */
+    public function possibleDuplicates(string $companyName, string $email = '', string $phone = '', ?int $excludeId = null): array
+    {
+        $matches   = $this->customers->findPossibleDuplicates($companyName, $email, $phone, $excludeId);
+        $restricted = \App\Services\AccessScope::isRestricted();
+        $ownRepId   = \App\Services\AccessScope::repId();
+
+        return array_map(function (array $m) use ($restricted, $ownRepId) {
+            $visible = !$restricted || (int)$m['sales_rep_id'] === $ownRepId;
+
+            return [
+                'id'            => $visible ? (int)$m['id'] : null,
+                'company_name'  => $m['company_name'],
+                'email'         => $visible ? ($m['email'] ?? '') : '',
+                'phone'         => $visible ? ($m['phone'] ?? '') : '',
+                'is_active'     => (bool)$m['is_active'],
+                'sales_rep_name'=> $m['sales_rep_name'] ?? null,
+                'visible'       => $visible,
+            ];
+        }, $matches);
+    }
+
+    /**
+     * Create a customer, refusing a likely duplicate unless it is explicitly confirmed.
+     *
+     * @param bool $force the user has seen the matches and said create anyway
+     * @return array{id:?int, duplicates:array}  id is null when duplicates blocked the save
+     *
+     * @throws \RuntimeException on validation failure
+     */
+    public function create(array $input, bool $force = false): array
+    {
+        $data = [
+            'company_name'    => trim((string)($input['company_name'] ?? '')),
+            'quickbooks_name' => trim((string)($input['quickbooks_name'] ?? '')),
+            'email'           => trim((string)($input['email'] ?? '')),
+            'phone'           => trim((string)($input['phone'] ?? '')),
+            'customer_type'   => trim((string)($input['customer_type'] ?? '')),
+            'bill_address_1'  => trim((string)($input['bill_address_1'] ?? '')),
+            'bill_city'       => trim((string)($input['bill_city'] ?? '')),
+            'bill_state'      => trim((string)($input['bill_state'] ?? '')),
+            'bill_zip'        => trim((string)($input['bill_zip'] ?? '')),
+            'sales_rep_id'    => ($input['sales_rep_id'] ?? '') !== '' ? (int)$input['sales_rep_id'] : null,
+        ];
+
+        if ($data['company_name'] === '') {
+            throw new \RuntimeException('A customer needs a company name.');
+        }
+
+        if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('That email address doesn\'t look valid.');
+        }
+
+        // A rep's new customers are theirs, whatever the form said.
+        if (\App\Services\AccessScope::isRestricted()) {
+            $data['sales_rep_id'] = \App\Services\AccessScope::repId();
+        }
+
+        $duplicates = $this->possibleDuplicates($data['company_name'], $data['email'], $data['phone']);
+
+        if ($duplicates !== [] && !$force) {
+            return ['id' => null, 'duplicates' => $duplicates];
+        }
+
+        return ['id' => $this->customers->insertCustomer($data), 'duplicates' => []];
+    }
+
     public function list(int $page, int $perPage, string $search, string $filter, string $rep = ''): array
     {
         $paginated = $this->customers->paginateWithBalance($page, $perPage, $search, $filter, $rep);
