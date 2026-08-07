@@ -31,7 +31,7 @@ $types = [
 <form method="POST" action="<?= $isNew ? '/admin/sales-reps' : '/admin/sales-reps/' . (int)$r['id'] . '/edit' ?>">
 <?= csrf_field() ?>
 
-<div class="card" style="max-width:680px">
+<div class="card" style="max-width:680px;padding:1.5rem">
     <table style="width:100%;border-collapse:collapse">
         <tr>
             <td style="<?= $lbl ?>">Name</td>
@@ -93,7 +93,7 @@ $types = [
     </table>
 </div>
 
-<div class="card" style="max-width:680px;margin-top:1.25rem">
+<div class="card" style="max-width:680px;margin-top:1.25rem;padding:1.5rem">
     <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.9rem">
         Login
     </div>

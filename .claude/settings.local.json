@@ -191,7 +191,8 @@
       "Bash(php -l app/Views/partials/sidebar.php)",
       "Bash(php -l app/Services/CustomerService.php)",
       "Bash(sed -i '' 's|href=\"/customers/new\"|href=\"/customers/create\"|' app/Views/customers/index.php)",
-      "Bash(sed -n \"/public function list\\(/,/^    }/p\" app/Services/CustomerService.php)"
+      "Bash(sed -n \"/public function list\\(/,/^    }/p\" app/Services/CustomerService.php)",
+      "Bash(git commit -q -m 'Pad the new form cards, add Manage Users to Sales by Employee *)"
     ]
   }
 }

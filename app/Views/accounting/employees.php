@@ -21,6 +21,7 @@ $invoices = array_sum(array_map(fn($e) => (int)$e['invoice_count'], $employees))
         </p>
     </div>
     <div class="page-header__right">
+        <a href="/admin/users" class="btn btn--secondary" style="margin-right:.5rem">Manage Users</a>
         <a href="/accounting/reps" class="btn btn--secondary" style="margin-right:.5rem">Sales by Rep</a>
         <form method="GET" action="/accounting/employees" style="display:inline-block;vertical-align:middle" id="periodForm">
             <?php $ctl = 'height:2.2rem;padding:.3rem .5rem;font-size:.85rem;width:auto;vertical-align:middle'; ?>

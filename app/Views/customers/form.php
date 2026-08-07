@@ -59,7 +59,7 @@ $custVal = fn(string $k) => e($old[$k] ?? '');
     <input type="hidden" name="confirm_duplicate" value="1">
 <?php endif; ?>
 
-<div class="card" style="max-width:720px">
+<div class="card" style="max-width:720px;padding:1.5rem">
     <table style="width:100%;border-collapse:collapse">
         <tr>
             <td style="<?= $lbl ?>">Company name <span style="color:#dc2626">*</span></td>

@@ -28,7 +28,7 @@ $roleLabels = [
     </div>
 </div>
 
-<div class="card" style="max-width:620px">
+<div class="card" style="max-width:620px;padding:1.5rem">
     <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.9rem">
         Account
     </div>
@@ -54,7 +54,7 @@ $roleLabels = [
     </table>
 </div>
 
-<div class="card" style="max-width:620px;margin-top:1.25rem">
+<div class="card" style="max-width:620px;margin-top:1.25rem;padding:1.5rem">
     <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.9rem">
         Change Password
     </div>
