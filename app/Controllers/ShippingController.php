@@ -84,12 +84,34 @@ class ShippingController extends Controller
 
         $product = $match['product'];
 
-        // Find this product on the order.
+        // Find this product on the order. Match on product_id first, then fall back to
+        // the item text — imported lines often carry only `quickbooks_item`, and an
+        // unlinked line would otherwise be impossible to scan.
         $line = null;
         foreach ($lines as $l) {
-            if ((int)$l['product_id'] === (int)$product['id']) {
+            if ($l['product_id'] !== null && (int)$l['product_id'] === (int)$product['id']) {
                 $line = $l;
                 break;
+            }
+        }
+
+        if ($line === null) {
+            $sku = strtoupper(trim((string)$product['sku']));
+
+            foreach ($lines as $l) {
+                if ($l['product_id'] !== null || $sku === '') {
+                    continue;
+                }
+
+                $item = strtoupper(trim((string)($l['quickbooks_item'] ?? '')));
+
+                // QuickBooks writes PARENT:CHILD, so compare the trailing segment too.
+                $tail = str_contains($item, ':') ? substr($item, strrpos($item, ':') + 1) : $item;
+
+                if ($item === $sku || $tail === $sku) {
+                    $line = $l;
+                    break;
+                }
             }
         }
 
