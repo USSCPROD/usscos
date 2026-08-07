@@ -32,6 +32,35 @@ Follow-ups if QuickBooks stays:
 
 **Answer:**
 
+### 1a. Who owns inventory valuation?
+
+This is the question that actually forces the answer above, and it needs settling
+**before the inventory module is built** rather than after.
+
+Stock *quantity* is operational and clearly belongs in USSCOS — it's where orders ship
+from. Stock *value* is a balance-sheet figure that drives COGS, so whoever owns it is
+doing accounting. The moment USSCOS deducts stock on invoice it becomes the system of
+record for quantity, and value normally follows quantity.
+
+- **Who owns inventory valuation — USSCOS or QuickBooks?**
+- **On what method — FIFO, weighted average, or standard cost?** (See §8, which currently
+  assumes simplified standard costing.)
+- **Does inventory post to the GL from USSCOS, or does QuickBooks keep valuing stock from
+  its own counts?**
+
+If both systems value stock independently, they will diverge, and the divergence lands on
+the balance sheet. The workable answers are one of:
+
+| | Quantity | Valuation | Consequence |
+|---|---|---|---|
+| **A** | USSCOS | QuickBooks | USSCOS sends quantity movements, QB values them. Simplest. |
+| **B** | USSCOS | USSCOS | USSCOS posts COGS and inventory journals. Makes it an ERP. |
+| **C** | Both | QuickBooks | Two counts, guaranteed drift. Not viable — listed to rule out. |
+
+Current assumption is **A**, matching "QuickBooks stays the ledger".
+
+**Answer:**
+
 ---
 
 ## 2. QuickBooks setup
@@ -131,6 +160,8 @@ Multi-state, so this needs a real decision.
   and stay consistent.
 - Is a physical count done annually? The spec's reconciliation schedule assumes so.
 - How is WIP valued today, if at all?
+- **Ownership of valuation is asked in §1a** — settle that first, because it decides
+  whether any of the above is USSCOS's problem or QuickBooks'.
 
 **Answer:**
 

@@ -10,6 +10,50 @@ weren't in the original plan.
 
 ---
 
+## What USSCOS is, and is not
+
+A stated decision rather than an emergent one, because without it the inventory module
+will settle the question by accident.
+
+There are three things USSCOS could become:
+
+1. **The ERP itself** — it owns the general ledger
+2. **An operating layer above the ERP** — QuickBooks keeps the books
+3. **A business platform replacing portions of the ERP** — deliberate division of ownership
+
+**The intent is (3).** Today it is (2) in practice, and it should move to (3) on purpose,
+not drift into (1).
+
+The dividing line is not features, it is **which system owns which record**:
+
+| Record | Owner | Notes |
+|---|---|---|
+| Leads, opportunities, tasks | **USSCOS** | Never existed in QuickBooks |
+| Quotes | **USSCOS** | |
+| Sales orders, fulfilment, artwork | **USSCOS** | Including the Digital Job Binder |
+| Products, categories, media, specs | **USSCOS** | Spreadsheet is the source of truth for content |
+| Customers | **USSCOS** | Synced to QuickBooks for invoicing |
+| Invoices and payments | **USSCOS** originates | Exported to QuickBooks, which records them financially |
+| Inventory **quantity** | **USSCOS** | Once the inventory module lands |
+| Inventory **valuation** | **Undecided** | See `ACCOUNTANT_QUESTIONS.md` §1a — blocks the inventory module |
+| General ledger, trial balance, financial statements | **QuickBooks** | Unless the accountant says otherwise |
+| AP, payroll, tax filing | **QuickBooks** | Not planned for USSCOS |
+
+**Why not own the ledger.** It is the most regulated, least differentiated and highest-risk
+part to rebuild, and it wins nothing competitively. The differentiation is entirely in the
+operating layer — the job binder, distributor and customer portals, stencil artwork
+workflow, tiered pricing. No off-the-shelf ERP does those for a paint and stencil
+manufacturer, and that is the whole argument for building rather than buying. It does not
+require the general ledger.
+
+**The one open item is inventory valuation**, and it is genuinely load-bearing. Quantity is
+operational and clearly ours. Value is a balance-sheet figure that drives COGS, so whoever
+owns it is doing accounting. If both systems value stock independently they will diverge,
+and the divergence lands on the balance sheet. This is why `ACCOUNTANT_QUESTIONS.md` §1a
+must be answered **before** the inventory module is built, not after.
+
+---
+
 ## Built
 
 ### Sales & CRM
@@ -315,6 +359,10 @@ rather than the spec's six-way split.
 The spec assumes USSCOS **replaces** QuickBooks. That fork drives everything downstream —
 opening balances, who runs month-end, what the CPA touches. **Settle it before
 implementation starts.**
+
+The stated position is in [What USSCOS is, and is not](#what-usscos-is-and-is-not):
+QuickBooks keeps the ledger, USSCOS owns the operating layer. The live sub-question is
+inventory valuation — `ACCOUNTANT_QUESTIONS.md` §1a — which blocks the inventory module.
 
 ### Gaps in the spec
 
