@@ -1,7 +1,7 @@
 # Roadmap
 
-Status as of **July 2026**. Last reconciled with `BusinessOS_CRM_Vision.docx` on
-the same date — see the note at the top of [Next up](#next-up).
+Status as of **August 2026**. Last reconciled with `BusinessOS_CRM_Vision.docx` in
+July — see the note at the top of [Next up](#next-up).
 
 The original blueprint (`Custom_BMS_Blueprint_InHouse.docx`, June 2026) laid out seven
 phases over twelve months. Actual build order diverged — CRM and the sales document flow
@@ -81,6 +81,37 @@ must be answered **before** the inventory module is built, not after.
 - [x] Role-aware dashboard
 - [x] USSCOS moved to its own subdomain, separated from the public website
 
+### Reps, access and reporting — August 2026
+- [x] `sales_reps` as its own entity, imported and corrected against the QuickBooks Rep list
+- [x] Rep credentials entered directly on the rep form (no linked-login dropdown)
+- [x] Access scoping — reps and distributors see only their own customers' invoices and
+      sales orders, enforced in repositories so a guessed URL can't bypass it
+- [x] `invoices.processed_by` imported from QuickBooks, and **Sales by Employee** built on it
+- [x] Date-range periods on the sales reports, defaulting to year to date
+      (`App\Services\ReportPeriod`, reusable by the remaining accounting reports)
+- [x] Customer creation with duplicate flagging — unscoped search, redacted results, so a
+      rep is stopped from re-adding a company they cannot see
+- [x] Deactivate everywhere, and delete only where nothing references the row, across all
+      eight admin lists
+- [x] My Profile with self-service password change
+- [x] CSRF enforced
+
+## Waiting on someone else
+
+Not blocked on build effort — listed so they aren't mistaken for work in progress.
+
+| Item | Waiting on |
+|---|---|
+| Shipping & inventory | Accountant: who owns inventory valuation (`ACCOUNTANT_QUESTIONS.md` §1a) |
+| Teardown and clean reimport | QuickBooks SKU rename, then a dry-run match **before** anything is deleted |
+| Blank invoice fields (Terms, Ship Via, P.O.) | A QuickBooks export carrying those columns — never in the original 10-column import |
+| Sales by Distributor | The distributor list (Turf Tank, BSN, others) |
+
+Agreed 2026-08: only **two to three years** of history needs importing, since QuickBooks
+keeps the ledger. The current data is already ~25 months, so this is a confirmation of
+present practice rather than a change. Worth pruning customers at the same time — 41,164
+records exist but only 4,156 have ever ordered.
+
 ## Next up
 
 > Reconciled July 2026 with `BusinessOS_CRM_Vision.docx`, which proposed a fuller CRM
@@ -90,13 +121,11 @@ must be answered **before** the inventory module is built, not after.
 1. ~~**Version control and a deploy script**~~ — done 2026-08-03. Repo at
    `github.com/USSCPROD/usscos`; deploys via `deploy/deploy.sh`. The platform also moved
    to a DigitalOcean droplet with HTTPS — see [DIGITALOCEAN.md](DIGITALOCEAN.md).
-2. **Customer Intelligence** — 360° profile (lifetime revenue, order count, avg order
-   size, purchase frequency, top products, outstanding balance) on the existing customer
-   page; a unified activity timeline merging notes, orders, invoices, payments, and
-   quotes; smart alerts (60/90/180-day inactivity, order frequency drop, aging balance,
-   quote expiration). Foundational — the activity feed and alert logic get reused by
-   both Rep Portal and Marketing below. No new tables for the profile stats; likely one
-   new `activities` table and one `customer_alerts` table.
+2. ~~**Customer Intelligence**~~ — done 2026-08. 360° profile (lifetime revenue, order
+   count, avg order size, purchase frequency, top products, outstanding balance), a
+   unified activity timeline, and inactivity alerts judged against each customer's own
+   rhythm rather than a fixed threshold. Built as queries on existing tables — no
+   `activities` or `customer_alerts` table was needed after all.
 3. **Quoting: customer-specific pricing** — account-level price overrides per customer
    per product, layered under the existing retail/distributor/stocking-distributor
    tiers, plus volume discount rules. Self-contained, doesn't depend on anything else
@@ -108,19 +137,30 @@ must be answered **before** the inventory module is built, not after.
    Pipeline & Leads polish — disqualify-reason tracking, overdue notifications), and
    commission tracking (rate per rep or product category, calculated on invoice paid
    vs. sent, monthly statement, adjustments for returns/credits). Depends on #2 and #3.
-   > **Prerequisite — there is no rep DATA anywhere.** (An earlier note here claimed
-   > `customers.rep_id` didn't exist; it does, from migration 026. The column was never
-   > the problem.) What's missing is values: **0 of 34,729 invoices** carry a rep, 1 of
-   > 41,233 customers, and **no user has `role='rep'`**. The field is in QuickBooks on the
-   > invoice, but was never included in the exports that were imported.
+   > **Prerequisite — mostly cleared as of 2026-08.** The earlier note here said there was
+   > no rep data anywhere. That is no longer true, and the approach it described has been
+   > superseded.
    >
-   > A **Sales by Rep Detail** export has been requested from the bookkeeper. Once it
-   > lands: set `users.rep_code` to each person's QuickBooks initials, populate
-   > `invoices.rep_id` by invoice number, then derive `customers.rep_id` — that last SQL
-   > is already written in migration 045 and is re-runnable.
+   > Reps are their own entity in `sales_reps` (migration 048), not users — most are
+   > outside or former reps with no login, and their QuickBooks history has to survive
+   > either way. The join key is `sales_reps.quickbooks_name`; a rep's login, where they
+   > have one, hangs off `sales_reps.user_id`. **`customers.rep_id` and `invoices.rep_id`
+   > are legacy and are not the columns to use** — attribution lives in
+   > `customers.sales_rep_id` and `invoices.sales_rep_id`.
    >
-   > `sales_goals` exists (migration 045) but is empty, so MTD/YTD vs. goal needs targets
-   > entering.
+   > Current state: 33 reps, **9,339 of 34,729 invoices** credited, 314 customers assigned.
+   > The gap is because the QuickBooks Sales by Rep export covered 2026 only — it fills in
+   > when the fuller history is imported.
+   >
+   > Also done: rep and distributor logins are created directly on the rep form; access
+   > scoping limits them to their own customers' invoices and sales orders
+   > (`App\Services\AccessScope`); `invoices.processed_by` records who keyed each order,
+   > which is **not** attribution — see `Sales by Employee`.
+   >
+   > Still outstanding for this item: the rep-scoped dashboard, commission calculation and
+   > statements, and `sales_goals` (migration 045) is still empty, so MTD/YTD vs. goal has
+   > no targets. No user carries `role='rep'` yet either — the capability exists, nobody
+   > has been given it.
 5. **Customer portal** — order history, invoices, quotes, and a **Reorder** button that
    creates a new sales order from a past one. Accounts created internally via an invite
    sent from the customer record.
@@ -131,6 +171,9 @@ must be answered **before** the inventory module is built, not after.
    revision history, production notes, QA checklist, shop-floor photos, shipping
    documents. Everything about a job in one place, retrievable years later.
 7. **Security hardening** — 2FA, login lockout, audit log.
+   > CSRF is now enforced (2026-08). The middleware existed but was applied to no route;
+   > 36 POST forms were missing tokens and have been fixed. `/api/*` and `/webhook/*`
+   > stay exempt by design.
 
 ## Website & Publishing
 
