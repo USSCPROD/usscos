@@ -318,6 +318,22 @@ class AdminRepository
         ");
     }
 
+    /** The login linked to a sales rep, or null when they have none. */
+    public function findUserForRep(mixed $userId): ?array
+    {
+        if ($userId === null || $userId === '') {
+            return null;
+        }
+
+        $row = Database::selectOne(
+            'SELECT id, first_name, last_name, email, role, is_active
+             FROM users WHERE id = ? AND deleted_at IS NULL',
+            [(int)$userId]
+        );
+
+        return $row === false ? null : $row;
+    }
+
     /** Count of rows hidden by the default reps-only filter, for the "show all" link. */
     public function countNonRepSalesReps(): int
     {

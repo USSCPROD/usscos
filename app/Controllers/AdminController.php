@@ -13,11 +13,13 @@ use App\Repositories\AdminRepository;
 class AdminController extends Controller
 {
     private AdminRepository $repo;
+    private \App\Services\SalesRepService $reps;
 
     public function __construct()
     {
         parent::__construct();
         $this->repo = new AdminRepository();
+        $this->reps = new \App\Services\SalesRepService();
     }
 
     // -------------------------------------------------------------------------
@@ -138,19 +140,22 @@ class AdminController extends Controller
     public function salesRepsCreate(Request $request, Response $response): Response
     {
         return $this->view('admin.sales_reps_form', [
-            'title' => 'Add Sales Rep',
-            'item'  => null,
-            'users' => $this->repo->allUsers(),
+            'title'             => 'Add Sales Rep',
+            'item'              => null,
+            'loginUser'         => null,
+            'minPasswordLength' => (int)\App\Core\Config::get('auth.password.min_length', 8),
         ]);
     }
 
     public function salesRepsStore(Request $request, Response $response): Response
     {
-        if (trim($_POST['name'] ?? '') === '') {
-            Session::flash('error', 'A rep needs a name.');
+        try {
+            $this->reps->save($_POST);
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
             return $response->redirect('/admin/sales-reps/create');
         }
-        $this->repo->insertSalesRep($_POST);
+
         Session::flash('success', 'Sales rep added.');
         return $response->redirect('/admin/sales-reps');
     }
@@ -161,9 +166,10 @@ class AdminController extends Controller
         if (!$item) return $this->view('errors.404', ['title' => 'Not Found'], 404);
 
         return $this->view('admin.sales_reps_form', [
-            'title' => 'Edit ' . $item['name'],
-            'item'  => $item,
-            'users' => $this->repo->allUsers(),
+            'title'             => 'Edit ' . $item['name'],
+            'item'              => $item,
+            'loginUser'         => $this->repo->findUserForRep($item['user_id'] ?? null),
+            'minPasswordLength' => (int)\App\Core\Config::get('auth.password.min_length', 8),
         ]);
     }
 
@@ -172,11 +178,13 @@ class AdminController extends Controller
         $item = $this->repo->findSalesRep((int)$id);
         if (!$item) return $this->view('errors.404', ['title' => 'Not Found'], 404);
 
-        if (trim($_POST['name'] ?? '') === '') {
-            Session::flash('error', 'A rep needs a name.');
+        try {
+            $this->reps->save($_POST, (int)$id);
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
             return $response->redirect('/admin/sales-reps/' . (int)$id . '/edit');
         }
-        $this->repo->updateSalesRep((int)$id, $_POST);
+
         Session::flash('success', 'Sales rep updated.');
         return $response->redirect('/admin/sales-reps');
     }

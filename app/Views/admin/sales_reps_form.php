@@ -64,24 +64,6 @@ $types = [
             </td>
         </tr>
         <tr>
-            <td style="<?= $lbl ?>">
-                Linked login
-                <div style="font-size:.72rem;color:#9ca3af;margin-top:.15rem">
-                    Only if this rep has a USSCOS account
-                </div>
-            </td>
-            <td style="padding:.35rem 0">
-                <select name="user_id" style="<?= $inp ?>">
-                    <option value="">— None —</option>
-                    <?php foreach ($users as $u): ?>
-                        <option value="<?= (int)$u['id'] ?>" <?= (int)($r['user_id'] ?? 0) === (int)$u['id'] ? 'selected' : '' ?>>
-                            <?= e(trim($u['first_name'] . ' ' . $u['last_name'])) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </td>
-        </tr>
-        <tr>
             <td style="<?= $lbl ?>">Commission rate (%)</td>
             <td style="padding:.35rem 0">
                 <input type="number" step="0.01" name="commission_rate"
@@ -109,6 +91,55 @@ $types = [
             </td>
         </tr>
     </table>
+</div>
+
+<div class="card" style="max-width:680px;margin-top:1.25rem">
+    <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.9rem">
+        Login
+    </div>
+
+    <?php if ($loginUser !== null): ?>
+        <div style="font-size:.8rem;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:.6rem .8rem;margin-bottom:.9rem">
+            Has a login — <strong><?= e($loginUser['email']) ?></strong>
+            (<?= e($loginUser['role']) ?><?= (int)$loginUser['is_active'] === 0 ? ', inactive' : '' ?>).
+            Leave the password blank to keep the current one.
+        </div>
+    <?php else: ?>
+        <div style="font-size:.8rem;color:#6b7280;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:.6rem .8rem;margin-bottom:.9rem">
+            No login yet. Fill both fields to create one — leave them blank and the rep is
+            saved without access, which is right for outside or former reps.
+        </div>
+    <?php endif; ?>
+
+    <table style="width:100%;border-collapse:collapse">
+        <tr>
+            <td style="<?= $lbl ?>">Email</td>
+            <td style="padding:.35rem 0">
+                <input type="email" name="login_email" autocomplete="off"
+                       value="<?= e($loginUser['email'] ?? '') ?>"
+                       placeholder="e.g. firstname@usscproducts.com" style="<?= $inp ?>">
+            </td>
+        </tr>
+        <tr>
+            <td style="<?= $lbl ?>">
+                Password
+                <div style="font-size:.72rem;color:#9ca3af;margin-top:.15rem">
+                    At least <?= (int)$minPasswordLength ?> characters<?= $loginUser !== null ? '. Blank leaves it unchanged' : '' ?>
+                </div>
+            </td>
+            <td style="padding:.35rem 0">
+                <input type="password" name="login_password" autocomplete="new-password"
+                       placeholder="<?= $loginUser !== null ? 'Leave blank to keep current password' : 'Set a password' ?>"
+                       style="<?= $inp ?>">
+            </td>
+        </tr>
+    </table>
+
+    <div style="font-size:.72rem;color:#9ca3af;margin-top:.7rem">
+        A <strong>Sales Rep</strong> gets the rep role, a <strong>Partner</strong> the
+        distributor role — each limited to their own customers' orders and invoices.
+        Deactivating a login is done on the <a href="/admin/users" style="color:#0A3D91">Users</a> page.
+    </div>
 </div>
 
 <div style="padding:1rem 0 2rem;max-width:680px;text-align:right">

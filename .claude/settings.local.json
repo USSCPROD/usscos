@@ -181,7 +181,11 @@
       "Bash(grep -n ''\\\\''Num'\\\\''\\\\|Type\\\\|columns\\\\|header\\\\|=> *$row' database/import_sales_history.php)",
       "Bash(git commit -q -m 'Add invoice line item product relink *)",
       "Bash(git commit -q -m 'Show Processed By on the invoice page *)",
-      "Bash(git commit -q -m 'Fix findEntity returning false for a missing row *)"
+      "Bash(git commit -q -m 'Fix findEntity returning false for a missing row *)",
+      "Bash(sed -n \"/function salesRepParams/,/^    }/p\" app/Repositories/AdminRepository.php)",
+      "Bash(sed -n \"/function insertSalesRep/,/^    }/p\" app/Repositories/AdminRepository.php)",
+      "Bash(sed -n \"/function updateSalesRep/,/^    }/p\" app/Repositories/AdminRepository.php)",
+      "Bash(git commit -q -m 'Enter rep credentials directly on the sales rep form *)"
     ]
   }
 }
