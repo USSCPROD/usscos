@@ -25,6 +25,7 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
         <?php endif; ?>
         <?php if ($lead['status'] !== 'converted'): ?>
             <form method="POST" action="/leads/<?= (int)$lead['id'] ?>/convert" style="display:inline" onsubmit="return confirm('Convert this lead to a customer?')">
+            <?= csrf_field() ?>
                 <button type="submit" class="btn btn--success">Convert to Customer</button>
             </form>
         <?php else: ?>
@@ -197,6 +198,7 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
                         <tr class="table__row--clickable" onclick="window.location='/tasks/<?= (int)$t['id'] ?>/edit'" style="cursor:pointer">
                             <td onclick="event.stopPropagation()">
                                 <form method="POST" action="/tasks/<?= (int)$t['id'] ?>/status">
+                                <?= csrf_field() ?>
                                     <input type="hidden" name="status" value="<?= $t['status']==='completed' ? 'open' : 'completed' ?>">
                                     <input type="hidden" name="redirect" value="/leads/<?= (int)$lead['id'] ?>">
                                     <button type="submit" style="width:20px;height:20px;border-radius:50%;border:2px solid <?= $t['status']==='completed' ? '#10b981' : '#d1d5db' ?>;background:<?= $t['status']==='completed' ? '#10b981' : 'white' ?>;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center">

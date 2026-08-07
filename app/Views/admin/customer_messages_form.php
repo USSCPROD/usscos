@@ -14,6 +14,7 @@ $editing = !empty($item);
 
 <div class="card" style="max-width:620px;padding:1.5rem">
     <form method="post" action="<?= $editing ? '/admin/customer-messages/' . (int)$item['id'] . '/edit' : '/admin/customer-messages' ?>">
+    <?= csrf_field() ?>
         <div style="margin-bottom:1rem">
             <?= admLbl('Message') ?>
             <textarea name="message" required rows="3" style="<?= admInp() ?>;resize:vertical"><?= e($item['message'] ?? '') ?></textarea>

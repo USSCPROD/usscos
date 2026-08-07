@@ -17,6 +17,7 @@ $content    = ob_start(); ?>
 <?php endif; ?>
 
 <form method="POST" action="<?= $action ?>">
+<?= csrf_field() ?>
 
     <?php if ($hasPreset && !$isEdit): ?>
         <?php foreach ($preset as $k => $val): ?>

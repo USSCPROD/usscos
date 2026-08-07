@@ -12,6 +12,7 @@
 </div>
 
 <form method="POST" action="/customers/<?= (int)$c['id'] ?>/edit">
+<?= csrf_field() ?>
 
 <!-- Tab bar -->
 <div class="card" style="padding:0;margin-bottom:1.5rem;overflow:hidden">

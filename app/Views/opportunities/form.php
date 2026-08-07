@@ -17,6 +17,7 @@ $defaultProb = ['prospecting' => 20, 'proposal' => 50, 'negotiation' => 75, 'clo
 </div>
 
 <form method="POST" action="<?= $action ?>">
+<?= csrf_field() ?>
     <?php if ($lead): ?>
         <input type="hidden" name="lead_id" value="<?= (int)$lead['id'] ?>">
     <?php endif; ?>

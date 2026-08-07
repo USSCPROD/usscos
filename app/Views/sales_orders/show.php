@@ -82,6 +82,7 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
         <h3 style="margin:0 0 6px;color:#222b59;font-size:1.1rem">Ship &amp; Invoice — SO #<?= e($so['so_number']) ?></h3>
         <p style="margin:0 0 18px;font-size:.85rem;color:#6b7280">Creates the invoice from this order<?= $isPaid ? ' (payment already collected — invoice will show paid)' : '' ?> and closes the sales order.</p>
         <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/ship">
+        <?= csrf_field() ?>
             <div style="margin-bottom:14px">
                 <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">Ship Date</label>
                 <input type="date" name="ship_date" value="<?= date('Y-m-d') ?>" required
@@ -112,6 +113,7 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
     <div style="background:#fff;border-radius:10px;padding:28px 32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.25)">
         <h3 style="margin:0 0 18px;color:#222b59;font-size:1.1rem">Email Sales Order #<?= e($so['so_number']) ?></h3>
         <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/email">
+        <?= csrf_field() ?>
             <div style="margin-bottom:14px">
                 <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">From</label>
                 <input type="email" name="email_from" required value="<?= e($emailUser['email'] ?? '') ?>"
@@ -141,6 +143,7 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
     <div style="background:#fff;border-radius:10px;padding:28px 32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.25)">
         <h3 style="margin:0 0 18px;color:#222b59;font-size:1.1rem">Collect Payment — SO #<?= e($so['so_number']) ?></h3>
         <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/payment">
+        <?= csrf_field() ?>
             <div style="margin-bottom:14px">
                 <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">Payment Method</label>
                 <select name="payment_method" required style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.95rem;box-sizing:border-box;background:#fff">
@@ -211,6 +214,7 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
 
 <?php if (!$isLocked): ?>
 <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/edit" id="soForm">
+<?= csrf_field() ?>
     <input type="hidden" name="customer_id" value="<?= (int)$so['customer_id'] ?>">
 <?php endif; ?>
 

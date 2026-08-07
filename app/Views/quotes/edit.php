@@ -29,6 +29,7 @@ $hasShipAddr = !empty($q['ship_address_1']);
 </div>
 
 <form method="post" action="/quotes/<?= (int)$q['id'] ?>/edit" id="quoteForm">
+<?= csrf_field() ?>
 
 <div style="background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:visible;font-family:inherit">
 

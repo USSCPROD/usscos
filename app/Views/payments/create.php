@@ -34,6 +34,7 @@ $totalBalance = array_sum(array_column($invoices, 'balance_due'));
 <?php else: ?>
 
 <form method="post" action="/customers/<?= (int)$c['id'] ?>/payment" id="payForm">
+<?= csrf_field() ?>
 
 <div style="background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);font-family:inherit">
 

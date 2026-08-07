@@ -15,6 +15,7 @@
 </div>
 
 <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/edit">
+<?= csrf_field() ?>
 
 <div class="detail-layout">
 

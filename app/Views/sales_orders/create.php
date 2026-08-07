@@ -39,6 +39,7 @@ $currentUser = \App\Core\Auth::user();
 </div>
 
 <form method="post" action="/sales-orders" id="soForm">
+<?= csrf_field() ?>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      SALES ORDER DOCUMENT

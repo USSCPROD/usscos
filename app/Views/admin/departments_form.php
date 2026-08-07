@@ -14,6 +14,7 @@ $editing = !empty($item);
 
 <div class="card" style="max-width:520px;padding:1.5rem">
     <form method="post" action="<?= $editing ? '/admin/departments/' . (int)$item['id'] . '/edit' : '/admin/departments' ?>">
+    <?= csrf_field() ?>
 
         <div style="margin-bottom:1rem">
             <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.4rem">Name</div>

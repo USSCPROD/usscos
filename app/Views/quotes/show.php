@@ -58,22 +58,26 @@ $showEmail  = in_array($q['status'], ['draft', 'sent']);
         <!-- Status buttons -->
         <?php if ($q['status'] === 'draft'): ?>
             <form method="post" action="/quotes/<?= (int)$q['id'] ?>/status" style="display:inline">
+            <?= csrf_field() ?>
                 <input type="hidden" name="status" value="sent">
                 <button type="submit" class="btn btn--secondary">Mark Sent</button>
             </form>
         <?php endif; ?>
         <?php if (in_array($q['status'], ['draft','sent'])): ?>
             <form method="post" action="/quotes/<?= (int)$q['id'] ?>/status" style="display:inline">
+            <?= csrf_field() ?>
                 <input type="hidden" name="status" value="accepted">
                 <button type="submit" class="btn btn--secondary">Mark Accepted</button>
             </form>
             <form method="post" action="/quotes/<?= (int)$q['id'] ?>/status" style="display:inline">
+            <?= csrf_field() ?>
                 <input type="hidden" name="status" value="declined">
                 <button type="submit" class="btn btn--secondary">Mark Declined</button>
             </form>
         <?php endif; ?>
         <?php if ($canConvert): ?>
             <form method="post" action="/quotes/<?= (int)$q['id'] ?>/convert" style="display:inline" onsubmit="return confirm('Convert this quote to a Sales Order?')">
+            <?= csrf_field() ?>
                 <button type="submit" class="btn btn--primary">Convert to SO</button>
             </form>
         <?php endif; ?>
@@ -196,6 +200,7 @@ $showEmail  = in_array($q['status'], ['draft', 'sent']);
                 <!-- Inline link form -->
                 <div id="opp-link-form" style="display:<?= empty($q['opportunity_name']) ? 'block' : 'none' ?>;margin-top:.35rem">
                     <form method="POST" action="/quotes/<?= (int)$q['id'] ?>/link-opportunity" style="display:flex;gap:.5rem;align-items:center">
+                    <?= csrf_field() ?>
                         <select name="opportunity_id" id="oppLinkSelect" style="flex:1;padding:.35rem .5rem;border:1px solid #d1d5db;border-radius:6px;font-size:.875rem">
                             <option value="">— None —</option>
                         </select>
@@ -357,6 +362,7 @@ $showEmail  = in_array($q['status'], ['draft', 'sent']);
             <button type="button" onclick="document.getElementById('emailModal').style.display='none'" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;padding:0">&times;</button>
         </div>
         <form method="post" action="/quotes/<?= (int)$q['id'] ?>/email">
+        <?= csrf_field() ?>
             <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem">
                 <div>
                     <label style="display:block;font-size:.8rem;font-weight:700;color:#374151;margin-bottom:.4rem">To (Customer Email)</label>

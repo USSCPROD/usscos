@@ -142,6 +142,7 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
                 <div style="padding:.75rem 1.25rem;background:#f8f9fb;border-bottom:1px solid #d1d5db;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280">Move Stage</div>
                 <div style="padding:1rem 1.25rem">
                     <form method="post" action="/opportunities/<?= (int)$opp['id'] ?>/stage">
+                    <?= csrf_field() ?>
                         <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token'] ?? '') ?>">
                         <table style="width:100%;border-collapse:collapse">
                             <tr>
@@ -227,6 +228,7 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
                 <!-- Quick-add task form -->
                 <div style="padding:.85rem 1.25rem;border-bottom:1px solid #e5e7eb;background:#fafafa">
                     <form method="post" action="/tasks">
+                    <?= csrf_field() ?>
                         <input type="hidden" name="csrf_token"      value="<?= e($_SESSION['csrf_token'] ?? '') ?>">
                         <input type="hidden" name="opportunity_id"  value="<?= (int)$opp['id'] ?>">
                         <?php if (!empty($opp['customer_id'])): ?>
@@ -273,6 +275,7 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
                         <tr style="vertical-align:middle">
                             <td style="width:28px">
                                 <form method="post" action="/tasks/<?= (int)$task['id'] ?>/status" style="margin:0">
+                                <?= csrf_field() ?>
                                     <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token'] ?? '') ?>">
                                     <input type="hidden" name="status"   value="completed">
                                     <input type="hidden" name="redirect" value="/opportunities/<?= (int)$opp['id'] ?>">

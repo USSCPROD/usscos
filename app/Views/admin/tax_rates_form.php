@@ -14,6 +14,7 @@ $editing = !empty($item);
 
 <div class="card" style="max-width:520px;padding:1.5rem">
     <form method="post" action="<?= $editing ? '/admin/tax-rates/' . (int)$item['id'] . '/edit' : '/admin/tax-rates' ?>">
+    <?= csrf_field() ?>
         <div style="margin-bottom:1rem">
             <?= admLbl('Name') ?>
             <input type="text" name="name" required maxlength="100"

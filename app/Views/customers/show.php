@@ -357,6 +357,7 @@ $ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right
             <div id="panel-notes" id="notes">
                 <!-- Log a note -->
                 <form method="POST" action="/customers/<?= (int)$c['id'] ?>/note" style="padding:1.1rem 1.25rem;border-bottom:1px solid #e5e7eb;background:#fafafa">
+                <?= csrf_field() ?>
                     <div style="display:flex;gap:.6rem;margin-bottom:.6rem">
                         <?php foreach (['note' => 'Note', 'call' => 'Call', 'email' => 'Email', 'meeting' => 'Meeting'] as $val => $lbl): ?>
                             <label style="display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;font-weight:600;cursor:pointer;padding:.3rem .75rem;border:1px solid #d1d5db;border-radius:5px;color:#374151;background:#fff">
@@ -620,6 +621,7 @@ $ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right
                             <tr class="table__row--clickable" onclick="window.location='/tasks/<?= (int)$t['id'] ?>/edit'" style="cursor:pointer">
                                 <td onclick="event.stopPropagation()">
                                     <form method="POST" action="/tasks/<?= (int)$t['id'] ?>/status">
+                                    <?= csrf_field() ?>
                                         <input type="hidden" name="status" value="<?= $t['status']==='completed' ? 'open' : 'completed' ?>">
                                         <input type="hidden" name="redirect" value="/customers/<?= (int)$customer['id'] ?>">
                                         <button type="submit" style="width:20px;height:20px;border-radius:50%;border:2px solid <?= $t['status']==='completed' ? '#10b981' : '#d1d5db' ?>;background:<?= $t['status']==='completed' ? '#10b981' : 'white' ?>;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center">

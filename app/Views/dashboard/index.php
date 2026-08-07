@@ -217,6 +217,7 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
         <tr style="border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="window.location='/tasks/<?= (int)$t['id'] ?>/edit'">
             <td style="padding:.7rem .75rem .7rem 1rem;width:32px" onclick="event.stopPropagation()">
                 <form method="POST" action="/tasks/<?= (int)$t['id'] ?>/status">
+                <?= csrf_field() ?>
                     <input type="hidden" name="status" value="completed">
                     <input type="hidden" name="redirect" value="/dashboard">
                     <button type="submit" title="Mark complete"

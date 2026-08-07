@@ -13,6 +13,7 @@ $co = $company ?? [];
 </div>
 
 <form method="post" action="/admin/company" enctype="multipart/form-data">
+<?= csrf_field() ?>
 
 <!-- ── Company Details ──────────────────────────────────────────────────── -->
 <div class="card" style="max-width:720px;padding:1.5rem;margin-bottom:1.25rem">

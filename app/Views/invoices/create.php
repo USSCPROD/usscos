@@ -65,6 +65,7 @@ $currentUser = \App\Core\Auth::user();
 </div>
 
 <form method="post" action="/invoices" id="invForm">
+<?= csrf_field() ?>
 <?php if ($isPrefill): ?>
 <input type="hidden" name="sales_order_id" value="<?= (int)$prefill_so['id'] ?>">
 <?php endif; ?>

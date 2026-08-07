@@ -15,6 +15,7 @@ $val    = fn(string $k) => e($lead[$k] ?? '');
 </div>
 
 <form method="POST" action="<?= $action ?>">
+<?= csrf_field() ?>
 <div style="max-width:900px">
     <div class="card" style="padding:1.5rem">
             <h3 class="card__section-title">Company &amp; Contact</h3>

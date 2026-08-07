@@ -86,6 +86,7 @@ $stageColor = ['prospecting' => '#6b7280', 'proposal' => '#0A3D91', 'negotiation
                             <?php foreach (['prospecting' => 'Prosp.', 'proposal' => 'Prop.', 'negotiation' => 'Neg.', 'closed_won' => 'Won', 'closed_lost' => 'Lost'] as $s => $sl): ?>
                                 <?php if ($s !== $stage): ?>
                                 <form method="POST" action="/opportunities/<?= (int)$opp['id'] ?>/stage" style="display:inline">
+                                <?= csrf_field() ?>
                                     <input type="hidden" name="stage" value="<?= $s ?>">
                                     <button type="submit" style="font-size:.7rem;padding:.15rem .45rem;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;color:<?= in_array($s, ['closed_won']) ? '#16a34a' : (in_array($s, ['closed_lost']) ? '#dc2626' : '#374151') ?>"><?= $sl ?></button>
                                 </form>

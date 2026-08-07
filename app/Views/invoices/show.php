@@ -94,6 +94,7 @@ function invReadBox(): string {
     <div style="background:#fff;border-radius:10px;padding:28px 32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.25)">
         <h3 style="margin:0 0 18px;color:#222b59;font-size:1.1rem">Email Invoice #<?= e($inv['invoice_number']) ?></h3>
         <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/email">
+        <?= csrf_field() ?>
             <div style="margin-bottom:14px">
                 <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">From</label>
                 <input type="email" name="email_from" required value="<?= e($emailUser['email'] ?? '') ?>"
@@ -147,6 +148,7 @@ function invReadBox(): string {
 
 <?php if ($isEditable): ?>
 <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/edit" id="invForm">
+<?= csrf_field() ?>
 <?php endif; ?>
 
 <!-- ═══ INVOICE DOCUMENT ═══ -->

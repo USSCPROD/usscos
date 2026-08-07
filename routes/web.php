@@ -30,7 +30,7 @@ use App\Controllers\VendorController;
 // Guest routes (unauthenticated only)
 // -------------------------------------------------------------------------
 
-Router::group(['middleware' => 'guest'], function () {
+Router::group(['middleware' => ['guest', 'csrf']], function () {
     Router::get('/login',              [AuthController::class, 'showLogin'])->name('login');
     Router::post('/login',             [AuthController::class, 'login'])->name('login.post');
     Router::get('/forgot-password',    [AuthController::class, 'showForgotPassword'])->name('password.forgot');
@@ -43,7 +43,7 @@ Router::group(['middleware' => 'guest'], function () {
 // Authenticated routes
 // -------------------------------------------------------------------------
 
-Router::group(['middleware' => ['auth', 'internal']], function () {
+Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
 
     // Root redirect
     Router::get('/', [DashboardController::class, 'index'])->name('home');

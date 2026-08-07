@@ -114,6 +114,7 @@ $content = ob_start(); ?>
                     <!-- Quick complete checkbox -->
                     <td onclick="event.stopPropagation()">
                         <form method="POST" action="/tasks/<?= (int)$t['id'] ?>/status">
+                        <?= csrf_field() ?>
                             <input type="hidden" name="status" value="<?= $t['status']==='completed' ? 'open' : 'completed' ?>">
                             <input type="hidden" name="redirect" value="/tasks?<?= e(http_build_query(array_filter($filters))) ?>">
                             <button type="submit" title="<?= $t['status']==='completed' ? 'Mark open' : 'Mark complete' ?>"
