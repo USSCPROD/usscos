@@ -185,7 +185,8 @@
       "Bash(sed -n \"/function salesRepParams/,/^    }/p\" app/Repositories/AdminRepository.php)",
       "Bash(sed -n \"/function insertSalesRep/,/^    }/p\" app/Repositories/AdminRepository.php)",
       "Bash(sed -n \"/function updateSalesRep/,/^    }/p\" app/Repositories/AdminRepository.php)",
-      "Bash(git commit -q -m 'Enter rep credentials directly on the sales rep form *)"
+      "Bash(git commit -q -m 'Enter rep credentials directly on the sales rep form *)",
+      "Bash(git commit -q -m 'Add My Profile with self-service password change *)"
     ]
   }
 }

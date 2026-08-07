@@ -18,6 +18,7 @@ use App\Controllers\OpportunityController;
 use App\Controllers\QuoteController;
 use App\Controllers\PaymentController;
 use App\Controllers\ProductController;
+use App\Controllers\ProfileController;
 use App\Controllers\InventoryController;
 use App\Controllers\PurchaseOrderController;
 use App\Controllers\SalesOrderController;
@@ -108,6 +109,10 @@ Router::group(['middleware' => 'auth'], function () {
     Router::post('/customers/{id}/note',     [CustomerController::class, 'storeNote'])->name('customers.note');
 
     // Products
+    // Own account — every signed-in user, whatever their role
+    Router::get('/settings/profile',           [ProfileController::class, 'show'])->name('profile');
+    Router::post('/settings/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
     // Accounting
     Router::get('/accounting',                [AccountingController::class, 'index'])->name('accounting');
     Router::get('/accounting/accounts',       [AccountingController::class, 'accounts'])->name('accounting.accounts');
