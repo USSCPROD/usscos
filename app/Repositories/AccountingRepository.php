@@ -288,7 +288,8 @@ class AccountingRepository
                    MAX(TRIM(CONCAT(u.first_name, ' ', u.last_name))) AS user_name
             FROM invoices i
             LEFT JOIN users u
-                   ON u.first_name = i.processed_by
+                   ON (u.first_name = i.processed_by
+                       OR SUBSTRING_INDEX(u.email, '@', 1) = i.processed_by)
                   AND u.deleted_at IS NULL
             WHERE i.processed_by IS NOT NULL
               AND i.processed_by <> ''
