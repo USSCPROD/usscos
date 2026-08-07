@@ -147,6 +147,24 @@ if ($activeTab === 'all') {
                         </td>
                         <td style="padding:.75rem 1rem;text-align:right;font-family:monospace;font-weight:600;color:#111">$<?= number_format((float)$o['total_amount'], 2) ?></td>
                         <td style="padding:.75rem 1rem;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
+                            <?php
+                            // Pick state, so the floor can see at a glance what's underway
+                            // and what someone has already flagged as short.
+                            $pickState = $o['pick_status'] ?? 'not_started';
+                            $pickBadge = [
+                                'in_progress' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Picking'],
+                                'ready'       => ['#f0fdf4', '#bbf7d0', '#166534', 'Picked'],
+                                'short'       => ['#fffbeb', '#fcd34d', '#92400e', 'Short'],
+                            ][$pickState] ?? null;
+                            ?>
+                            <?php if ($pickBadge): ?>
+                                <span style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;
+                                             background:<?= $pickBadge[0] ?>;border:1px solid <?= $pickBadge[1] ?>;color:<?= $pickBadge[2] ?>">
+                                    <?= $pickBadge[3] ?>
+                                </span>
+                            <?php endif; ?>
+                            <a href="/shipping/<?= (int)$o['id'] ?>/pick"
+                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#fff;background:#0A3D91;text-decoration:none;margin-right:.4rem">Pick</a>
                             <a href="/sales-orders/<?= (int)$o['id'] ?>/packing-slip" target="_blank"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #d1d5db;border-radius:5px;color:#374151;text-decoration:none"
                                onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Packing Slip</a>

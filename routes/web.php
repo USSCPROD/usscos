@@ -156,6 +156,10 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
 
     // Shipping
     Router::get('/shipping', [ShippingController::class, 'index'])->name('shipping');
+    Router::get('/shipping/{id}/pick',       [ShippingController::class, 'pick'])->name('shipping.pick');
+    Router::post('/shipping/{id}/pick/scan', [ShippingController::class, 'scan'])->name('shipping.scan');
+    Router::post('/shipping/{id}/pick/line', [ShippingController::class, 'setLine'])->name('shipping.pick.line');
+    Router::post('/shipping/{id}/short',     [ShippingController::class, 'short'])->name('shipping.short');
 
     // Sales Orders
     Router::get('/sales-orders',                 [SalesOrderController::class, 'index'])->name('sales_orders');

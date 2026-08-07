@@ -289,6 +289,7 @@ class SalesOrderRepository
     {
         return $this->pdo->query("
             SELECT so.id, so.so_number, so.order_date, so.requested_ship_date, so.status,
+                   so.pick_status, so.pick_note,
                    so.po_number, so.total_amount, so.ship_via_id,
                    so.ship_address_1, so.ship_city, so.ship_state, so.ship_zip,
                    c.id AS customer_id, c.company_name, c.phone,
@@ -301,6 +302,121 @@ class SalesOrderRepository
             WHERE so.status IN ('confirmed', 'processing', 'partially_shipped', 'paid')
             ORDER BY so.requested_ship_date ASC, so.order_date ASC
         ")->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    // ------------------------------------------------------------- pick and verify
+
+    /** Lines for the picking screen, with what has been picked so far. */
+    public function getPickLines(int $salesOrderId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT li.id, li.product_id, li.description, li.quickbooks_item,
+                   li.qty_ordered, li.qty_picked, li.qty_shipped, li.pick_note,
+                   p.sku, p.name AS product_name, p.gtin12, p.gtin14,
+                   p.units_per_case, p.uom_code
+            FROM sales_order_line_items li
+            LEFT JOIN products p ON p.id = li.product_id
+            WHERE li.sales_order_id = ?
+            ORDER BY li.sort_order, li.id
+        ");
+        $stmt->execute([$salesOrderId]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Resolve a scanned code to a product.
+     *
+     * Tries the case barcode first, then the unit barcode, then the SKU — a scanner in
+     * keyboard mode and someone typing a SKU by hand arrive here identically, which is
+     * the fallback when a label is scuffed.
+     *
+     * `is_case` matters: a GTIN-14 is the outer carton, so one scan means a whole case
+     * of units, not one unit.
+     *
+     * @return array{product:array,is_case:bool}|null
+     */
+    public function resolveScan(string $code): ?array
+    {
+        $code = trim($code);
+
+        if ($code === '') {
+            return null;
+        }
+
+        foreach ([['gtin14', true], ['gtin12', false], ['sku', false]] as [$column, $isCase]) {
+            $stmt = $this->pdo->prepare(
+                "SELECT id, sku, name, gtin12, gtin14, units_per_case, uom_code
+                 FROM products WHERE {$column} = ? LIMIT 1"
+            );
+            $stmt->execute([$code]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($row) {
+                return ['product' => $row, 'is_case' => $isCase];
+            }
+        }
+
+        return null;
+    }
+
+    /** Set the picked quantity on a line, clamped to zero and below. */
+    public function setPicked(int $lineId, float $qty, ?string $note = null): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE sales_order_line_items SET qty_picked = ?, pick_note = ? WHERE id = ?"
+        );
+        $stmt->execute([max(0, $qty), $note, $lineId]);
+    }
+
+    /**
+     * Recalculate the order's pick status from its lines.
+     *
+     * `short` wins over `ready`: if anything is missing the order is short even when
+     * every other line is complete, because that is the state someone has to act on.
+     */
+    public function refreshPickStatus(int $salesOrderId, ?int $userId = null): string
+    {
+        $lines = $this->getPickLines($salesOrderId);
+
+        $anyPicked = $anyShort = false;
+        $allDone   = true;
+
+        foreach ($lines as $l) {
+            $ordered = (float)$l['qty_ordered'];
+            $picked  = (float)$l['qty_picked'];
+
+            if ($picked > 0)               { $anyPicked = true; }
+            if ($picked < $ordered)        { $allDone   = false; }
+            if (!empty($l['pick_note']))   { $anyShort  = true; }
+        }
+
+        $status = match (true) {
+            $anyShort             => 'short',
+            $allDone && $anyPicked => 'ready',
+            $anyPicked            => 'in_progress',
+            default               => 'not_started',
+        };
+
+        $stmt = $this->pdo->prepare(
+            "UPDATE sales_orders
+             SET pick_status = ?,
+                 picked_by = COALESCE(?, picked_by),
+                 picked_at = CASE WHEN ? IN ('ready','short') THEN NOW() ELSE picked_at END
+             WHERE id = ?"
+        );
+        $stmt->execute([$status, $userId, $status, $salesOrderId]);
+
+        return $status;
+    }
+
+    /** Record what the shipping team says is missing, against the whole order. */
+    public function reportShort(int $salesOrderId, string $note, ?int $userId = null): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE sales_orders SET pick_status = 'short', pick_note = ?, picked_by = COALESCE(?, picked_by), picked_at = NOW() WHERE id = ?"
+        );
+        $stmt->execute([$note, $userId, $salesOrderId]);
     }
 
     public function getShipViaOptions(): array
