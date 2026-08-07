@@ -172,6 +172,7 @@ class Router
             'csrf'     => \App\Middleware\CsrfMiddleware::class,
             'throttle' => \App\Middleware\ThrottleMiddleware::class,
             'apikey'   => \App\Middleware\ApiKeyMiddleware::class,
+            'internal' => \App\Middleware\InternalOnlyMiddleware::class,
         ];
 
         $class = $map[$name] ?? $name;

@@ -21,6 +21,13 @@ class InvoiceRepository
         $params = [];
         $where  = ['1=1'];
 
+        // Reps and distributors see only documents belonging to their own customers.
+        [$scopeSql, $scopeParams] = \App\Services\AccessScope::customerOwnedConditionNamed('i');
+        if ($scopeSql !== '') {
+            $where[] = $scopeSql;
+            $params  = array_merge($params, $scopeParams);
+        }
+
         if ($search !== '') {
             $where[]          = '(i.invoice_number LIKE :s OR c.company_name LIKE :s2 OR i.po_number LIKE :s3)';
             $params[':s']     = "%{$search}%";
@@ -100,7 +107,17 @@ class InvoiceRepository
         ");
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $row ?: null;
+
+        if (!$row) {
+            return null;
+        }
+
+        // A guessed id must not open another rep's invoice — treated as not found.
+        if (!\App\Services\AccessScope::canSeeCustomer((int)$row['customer_id'])) {
+            return null;
+        }
+
+        return $row;
     }
 
     public function getLineItems(int $invoiceId): array

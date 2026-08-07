@@ -1,6 +1,10 @@
 <?php
 $user    = \App\Core\Auth::user();
 $current = $_SERVER['REQUEST_URI'] ?? '/';
+
+// Reps and distributors get the sales-facing nav only. The routes refuse these
+// sections anyway (InternalOnlyMiddleware) — this just avoids showing dead ends.
+$restricted = \App\Services\AccessScope::isRestricted();
 $current = strtok($current, '?') ?: '/';
 
 function isActive(string $prefix): string {
@@ -89,6 +93,7 @@ function isActive(string $prefix): string {
     </a>
 
     <!-- Operations -->
+    <?php if (!$restricted): ?>
     <div class="sidebar__section-label">Operations</div>
 
     <a href="/products" class="sidebar__link <?= isActive('/products') ?>">
@@ -165,7 +170,10 @@ function isActive(string $prefix): string {
         <span class="sidebar__link-text">Payroll</span>
     </a>
 
+    <?php endif; // end Operations + Finance, internal roles only ?>
+
     <!-- Tools -->
+    <?php if (!$restricted): ?>
     <div class="sidebar__section-label">Tools</div>
 
     <a href="/reports" class="sidebar__link <?= isActive('/reports') ?>">
@@ -220,6 +228,17 @@ function isActive(string $prefix): string {
         </svg>
         <span class="sidebar__link-text">Settings</span>
     </a>
+    <?php endif; // end Tools ?>
+
+    <?php if ($restricted): ?>
+    <div class="sidebar__section-label">My Account</div>
+    <a href="/settings/profile" class="sidebar__link <?= isActive('/settings/profile') ?>">
+        <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        <span class="sidebar__link-text">My Profile</span>
+    </a>
+    <?php endif; ?>
 
 </div>
 

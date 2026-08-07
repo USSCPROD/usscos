@@ -32,6 +32,13 @@ class CustomerRepository extends Repository
         $params     = [];
         $conditions = ['1=1'];
 
+        // Reps and distributors only ever see their own customers.
+        [$scopeSql, $scopeParams] = \App\Services\AccessScope::customerCondition('c');
+        if ($scopeSql !== '') {
+            $conditions[] = $scopeSql;
+            array_push($params, ...$scopeParams);
+        }
+
         if ($search !== '') {
             $conditions[] = '(c.company_name LIKE ? OR c.quickbooks_name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)';
             $s = '%' . $search . '%';
@@ -89,7 +96,7 @@ class CustomerRepository extends Repository
 
     public function findWithDetails(int $id): array|false
     {
-        return Database::selectOne("
+        $row = Database::selectOne("
             SELECT c.*,
                    p.company_name AS parent_name,
                    pt.name        AS payment_term_name,
@@ -106,6 +113,13 @@ class CustomerRepository extends Repository
             WHERE c.id = ?
             LIMIT 1
         ", [$id]);
+
+        // A guessed id must not open another rep's customer — treated as not found.
+        if ($row !== false && !\App\Services\AccessScope::canSeeCustomer((int)$row['id'])) {
+            return false;
+        }
+
+        return $row;
     }
 
     /**

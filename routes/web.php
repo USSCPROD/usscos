@@ -43,7 +43,7 @@ Router::group(['middleware' => 'guest'], function () {
 // Authenticated routes
 // -------------------------------------------------------------------------
 
-Router::group(['middleware' => 'auth'], function () {
+Router::group(['middleware' => ['auth', 'internal']], function () {
 
     // Root redirect
     Router::get('/', [DashboardController::class, 'index'])->name('home');
