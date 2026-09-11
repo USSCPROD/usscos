@@ -162,7 +162,7 @@ renewal timer.
 ## 8. After the switch
 
 - The webhook can finally use HTTPS. In `/var/www/usscos.com/config.php`:
-  `define('BUSINESSOS_WEBHOOK', 'https://os.usscos.com/webhook/lead');`
+  `define('USSCOS_WEBHOOK', 'https://os.usscos.com/webhook/lead');`
   (The `http://` workaround existed only because cPanel blocked loopback HTTPS.)
 - Keep the GoDaddy account for a month as a fallback.
 - Verify the DigitalOcean backup is running.

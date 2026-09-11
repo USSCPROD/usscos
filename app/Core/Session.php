@@ -32,7 +32,7 @@ class Session
             'samesite' => $cfg['same_site'] ?? 'Lax',
         ]);
 
-        session_name($cfg['cookie'] ?? 'businessos_session');
+        session_name($cfg['cookie'] ?? 'usscos_session');
         session_start();
 
         self::$started = true;

@@ -6,7 +6,7 @@
  * Nothing is ever deleted unless you explicitly ask, and even then only
  * products with zero references anywhere in the system.
  *
- * Usage (from the BusinessOS root on the server):
+ * Usage (from the USSCOS root on the server):
  *
  *   # 1. See exactly what would happen. Writes nothing.
  *   php database/import_products.php

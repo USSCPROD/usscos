@@ -71,7 +71,7 @@ Forms go in `usscos.com/forms/`.
 `website/config.php` points at the USSCOS webhook:
 
 ```php
-define('BUSINESSOS_WEBHOOK', 'https://os.usscos.com/webhook/lead');
+define('USSCOS_WEBHOOK', 'https://os.usscos.com/webhook/lead');
 ```
 
 > On the old cPanel host this had to be `http://` — cPanel blocked HTTPS loopback cURL

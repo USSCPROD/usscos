@@ -242,7 +242,7 @@ class WebhookController extends Controller
     {
         $headers  = "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: BusinessOS <noreply@usscproducts.com>\r\n";
+        $headers .= "From: USSCOS <noreply@usscproducts.com>\r\n";
 
         mail($to, $subject, $this->wrapEmail($subject, $body), $headers);
     }
@@ -255,7 +255,7 @@ class WebhookController extends Controller
             </div>
             <div style="border:1px solid #d1d5db;border-top:none;padding:20px;border-radius:0 0 8px 8px">
                 ' . $body . '
-                <p style="margin-top:24px;font-size:.8rem;color:#9ca3af">This lead was created automatically from a website form submission. Log in to BusinessOS to view and manage it.</p>
+                <p style="margin-top:24px;font-size:.8rem;color:#9ca3af">This lead was created automatically from a website form submission. Log in to USSCOS to view and manage it.</p>
             </div>
         </body></html>';
     }
@@ -335,7 +335,7 @@ class WebhookController extends Controller
     private function buildStencilEmail(array $d): string
     {
         $attachment = !empty($d['attachment'])
-            ? '<tr><td style="padding:6px 12px 6px 0;font-weight:600;color:#374151">Attachment</td><td style="padding:6px 0"><em>File uploaded — see BusinessOS lead record</em></td></tr>'
+            ? '<tr><td style="padding:6px 12px 6px 0;font-weight:600;color:#374151">Attachment</td><td style="padding:6px 0"><em>File uploaded — see USSCOS lead record</em></td></tr>'
             : '';
         return '<table style="width:100%;border-collapse:collapse">'
             . $this->row('Name',        $d['first_name'] . ' ' . $d['last_name'])

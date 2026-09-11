@@ -2,7 +2,7 @@
 /**
  * QuickBooks Excel Importer
  *
- * Usage (from BusinessOS root on server):
+ * Usage (from USSCOS root on server):
  *   php database/import_quickbooks.php /path/to/spreadsheets/
  *
  * Run order is automatic. Script is idempotent — safe to re-run.

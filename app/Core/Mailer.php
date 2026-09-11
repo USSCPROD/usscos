@@ -150,7 +150,7 @@ class Mailer
             "Subject: {$encodedSubject}",
             "MIME-Version: 1.0",
             "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
-            "X-Mailer: BusinessOS",
+            "X-Mailer: USSCOS",
             "",
             "--{$boundary}",
             "Content-Type: text/plain; charset=UTF-8",

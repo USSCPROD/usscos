@@ -51,7 +51,7 @@ $paintPool = array_filter(explode(',', $s['lead_routing_paint_pool'] ?? ''));
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <div style="font-size:.78rem;color:var(--color-text-muted);margin-top:.3rem">Lead will be assigned to this person in BusinessOS.</div>
+                    <div style="font-size:.78rem;color:var(--color-text-muted);margin-top:.3rem">Lead will be assigned to this person in USSCOS.</div>
                 </td>
             </tr>
         </table>
@@ -118,7 +118,7 @@ $paintPool = array_filter(explode(',', $s['lead_routing_paint_pool'] ?? ''));
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <div style="font-size:.78rem;color:var(--color-text-muted);margin-top:.3rem">Lead will be assigned to this person in BusinessOS.</div>
+                    <div style="font-size:.78rem;color:var(--color-text-muted);margin-top:.3rem">Lead will be assigned to this person in USSCOS.</div>
                 </td>
             </tr>
         </table>

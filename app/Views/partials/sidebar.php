@@ -18,7 +18,7 @@ function isActive(string $prefix): string {
         <span class="sidebar__logo-text">BOS</span>
     </div>
     <div class="sidebar__brand-info">
-        <span class="sidebar__brand-name"><?= e(\App\Core\Config::get('app.name', 'BusinessOS')) ?></span>
+        <span class="sidebar__brand-name"><?= e(\App\Core\Config::get('app.name', 'USSCOS')) ?></span>
         <span class="sidebar__brand-sub">US Specialty Coatings</span>
     </div>
 </a>

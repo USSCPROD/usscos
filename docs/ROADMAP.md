@@ -1,6 +1,6 @@
 # Roadmap
 
-Status as of **August 2026**. Last reconciled with `BusinessOS_CRM_Vision.docx` in
+Status as of **August 2026**. Last reconciled with `USSCOS_CRM_Vision.docx` in
 July — see the note at the top of [Next up](#next-up).
 
 The original blueprint (`Custom_BMS_Blueprint_InHouse.docx`, June 2026) laid out seven
@@ -114,7 +114,7 @@ records exist but only 4,156 have ever ordered.
 
 ## Next up
 
-> Reconciled July 2026 with `BusinessOS_CRM_Vision.docx`, which proposed a fuller CRM
+> Reconciled July 2026 with `USSCOS_CRM_Vision.docx`, which proposed a fuller CRM
 > layer (Customer Intelligence, Marketing, expanded Rep Portal). That document's
 > sequencing is folded in below rather than tracked separately, so there's one list.
 

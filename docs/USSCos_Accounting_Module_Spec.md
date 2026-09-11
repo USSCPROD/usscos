@@ -1,6 +1,6 @@
 # USSCos Accounting Module — Technical Specification
 
-**For:** USSCos (formerly BusinessOS) — internal application for USSC, a paint manufacturer
+**For:** USSCos (formerly USSCOS) — internal application for USSC, a paint manufacturer
 **Prepared:** August 2026
 **Purpose:** Hand-off spec for engineering to implement an accounting/bookkeeping section covering sales orders/invoices, online orders, credit card payments, checks, and purchase orders/bills.
 

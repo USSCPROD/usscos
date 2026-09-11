@@ -9,5 +9,5 @@ return [
     'http_only' => true,
     'same_site' => 'lax',
     'path'      => BASE_PATH . '/storage/sessions',
-    'cookie'    => 'businessos_session',
+    'cookie'    => 'usscos_session',
 ];

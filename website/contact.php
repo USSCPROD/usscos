@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'message'    => trim($_POST['message']),
         ]);
 
-        $ch = curl_init(BUSINESSOS_WEBHOOK);
+        $ch = curl_init(USSCOS_WEBHOOK);
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,

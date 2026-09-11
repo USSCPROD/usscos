@@ -53,7 +53,7 @@ php database/seeders/DatabaseSeeder.php
 ```apache
 <VirtualHost *:80>
     DocumentRoot /path/to/USSCOS/public
-    ServerName businessos.local
+    ServerName usscos.local
 
     <Directory /path/to/USSCOS/public>
         AllowOverride All

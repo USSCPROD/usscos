@@ -1,5 +1,5 @@
 /**
- * BusinessOS — Core JavaScript
+ * USSCOS — Core JavaScript
  * Version: 2.0.0
  */
 
@@ -282,6 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
     Toast.init();
     initAlerts();
 
-    window.BusinessOS = window.BusinessOS || {};
-    Object.assign(window.BusinessOS, { Http, Toast, Modal, Form, Format, CSRF });
+    window.USSCOS = window.USSCOS || {};
+    Object.assign(window.USSCOS, { Http, Toast, Modal, Form, Format, CSRF });
 });

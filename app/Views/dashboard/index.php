@@ -374,9 +374,9 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
         </div>
 
         <div class="ai-card__actions">
-            <button class="ai-action-btn" onclick="BusinessOS.AI.ask('Who owes us money?')">Who owes us money?</button>
-            <button class="ai-action-btn" onclick="BusinessOS.AI.ask('What should I focus on today?')">What to focus on?</button>
-            <button class="ai-action-btn" onclick="BusinessOS.AI.ask('Why did profits decrease?')">Why did profits decrease?</button>
+            <button class="ai-action-btn" onclick="USSCOS.AI.ask('Who owes us money?')">Who owes us money?</button>
+            <button class="ai-action-btn" onclick="USSCOS.AI.ask('What should I focus on today?')">What to focus on?</button>
+            <button class="ai-action-btn" onclick="USSCOS.AI.ask('Why did profits decrease?')">Why did profits decrease?</button>
         </div>
 
         <div class="ai-card__input-wrap">
@@ -498,8 +498,8 @@ ob_start();
     // -------------------------------------------------------------------------
     // AI Assistant
     // -------------------------------------------------------------------------
-    window.BusinessOS = window.BusinessOS || {};
-    window.BusinessOS.AI = {
+    window.USSCOS = window.USSCOS || {};
+    window.USSCOS.AI = {
         messagesEl: document.getElementById('aiMessages'),
         inputEl:    document.getElementById('aiInput'),
         sendBtn:    document.getElementById('aiSend'),
@@ -554,7 +554,7 @@ ob_start();
 
         async sendToAPI(question) {
             try {
-                const res = await window.BusinessOS.Http.post('/ai/chat', { message: question });
+                const res = await window.USSCOS.Http.post('/ai/chat', { message: question });
                 this.removeTyping();
                 this.addMessage('assistant', res.reply || 'I need more data to answer that. Connect your modules first.');
             } catch (e) {
@@ -572,7 +572,7 @@ ob_start();
         }
     };
 
-    window.BusinessOS.AI.init();
+    window.USSCOS.AI.init();
 
 })();
 </script>
