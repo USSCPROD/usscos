@@ -77,6 +77,21 @@ EOF
 
 # ---------------------------------------------------------------- verify helper
 
+# Verification needs to CREATE a scratch database, which the application's MySQL user
+# deliberately cannot do — it is granted only its own schema, and widening that to make
+# backups testable would be the wrong trade. So verification uses the local root socket
+# instead, which is available to cron (running as root) but to nobody over the network.
+admin_mysql() {
+    if [ "$ADMIN_SOCKET" -eq 1 ]; then
+        mysql "$@"
+    else
+        mysql --defaults-extra-file="$CNF" "$@"
+    fi
+}
+
+ADMIN_SOCKET=0
+mysql -e "SELECT 1" >/dev/null 2>&1 && ADMIN_SOCKET=1
+
 # Restore a dump into a scratch database and compare row counts with the live one.
 verify_dump() {
     local file="$1"
@@ -86,11 +101,17 @@ verify_dump() {
 
     gzip -t "$file" || die "Not a valid gzip file — the dump is corrupt"
 
-    mysql --defaults-extra-file="$CNF" -e "DROP DATABASE IF EXISTS \`$scratch\`; CREATE DATABASE \`$scratch\`"
-    # Drop the scratch database whatever happens from here.
-    trap 'mysql --defaults-extra-file="$CNF" -e "DROP DATABASE IF EXISTS \`'"$scratch"'\`" 2>/dev/null; cleanup' EXIT INT TERM
+    if [ "$ADMIN_SOCKET" -eq 0 ]; then
+        warn "Cannot verify: creating a scratch database needs admin access."
+        warn "Run this as root on the server, where socket auth is available."
+        return 0
+    fi
 
-    if ! gunzip -c "$file" | mysql --defaults-extra-file="$CNF" "$scratch"; then
+    admin_mysql -e "DROP DATABASE IF EXISTS \`$scratch\`; CREATE DATABASE \`$scratch\`"
+    # Drop the scratch database whatever happens from here.
+    trap 'mysql -e "DROP DATABASE IF EXISTS \`'"$scratch"'\`" 2>/dev/null; cleanup' EXIT INT TERM
+
+    if ! gunzip -c "$file" | admin_mysql "$scratch"; then
         die "Restore FAILED — this dump would not have saved you"
     fi
 
@@ -98,8 +119,8 @@ verify_dump() {
     printf '  %-26s %12s %12s\n' "TABLE" "LIVE" "RESTORED"
     for t in invoices invoice_line_items customers products sales_orders sales_reps users; do
         local live restored
-        live=$(mysql --defaults-extra-file="$CNF" -N -e "SELECT COUNT(*) FROM \`$DB_NAME\`.\`$t\`" 2>/dev/null || echo "n/a")
-        restored=$(mysql --defaults-extra-file="$CNF" -N -e "SELECT COUNT(*) FROM \`$scratch\`.\`$t\`" 2>/dev/null || echo "n/a")
+        live=$(admin_mysql -N -e "SELECT COUNT(*) FROM \`$DB_NAME\`.\`$t\`" 2>/dev/null || echo "n/a")
+        restored=$(admin_mysql -N -e "SELECT COUNT(*) FROM \`$scratch\`.\`$t\`" 2>/dev/null || echo "n/a")
         if [ "$live" = "$restored" ]; then
             printf '  %-26s %12s %12s  ok\n' "$t" "$live" "$restored"
         else
@@ -109,12 +130,12 @@ verify_dump() {
     done
 
     local live_tables restored_tables
-    live_tables=$(mysql --defaults-extra-file="$CNF" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME'")
-    restored_tables=$(mysql --defaults-extra-file="$CNF" -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$scratch'")
+    live_tables=$(admin_mysql -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$DB_NAME'")
+    restored_tables=$(admin_mysql -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$scratch'")
     printf '  %-26s %12s %12s  %s\n' "(table count)" "$live_tables" "$restored_tables" \
         "$([ "$live_tables" = "$restored_tables" ] && echo ok || { bad=1; echo MISMATCH; })"
 
-    mysql --defaults-extra-file="$CNF" -e "DROP DATABASE IF EXISTS \`$scratch\`"
+    admin_mysql -e "DROP DATABASE IF EXISTS \`$scratch\`"
     trap cleanup EXIT INT TERM
 
     [ "$bad" -eq 0 ] || die "Verification failed — do not rely on this backup"
