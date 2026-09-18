@@ -12,6 +12,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Repositories\SalesOrderRepository;
+use App\Services\ArtworkService;
 use App\Services\SalesOrderService;
 
 class SalesOrderController extends Controller
@@ -43,12 +44,18 @@ class SalesOrderController extends Controller
     {
         try {
             $data = $this->service->show((int)$id);
+        } catch (\PDOException $e) {
+            throw $e;                 // a real database error must not read as "not found"
         } catch (\RuntimeException) {
             return $this->view('errors.404', ['title' => 'Not Found'], 404);
         }
 
+        $artwork = new ArtworkService();
+
         return $this->view('sales_orders.show', [
-            'title' => 'Sales Order #' . $data['so']['so_number'],
+            'title'         => 'Sales Order #' . $data['so']['so_number'],
+            'artwork'       => $artwork->forSalesOrder((int)$id),
+            'artworkCounts' => $artwork->counts((int)$id),
             ...$data,
         ]);
     }

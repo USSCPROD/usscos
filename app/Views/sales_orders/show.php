@@ -683,5 +683,238 @@ var EXISTING_LINES = <?= json_encode(array_values($line_items), JSON_HEX_TAG) ?>
 <?php endif; ?>
 
 <?php
+// ---------------------------------------------------------------- Digital Job Binder
+// Helpers are guarded and jb-prefixed: two views declaring the same function name in one
+// request is a fatal error, and there is no global fileSize().
+if (!function_exists('jbFileSize')) {
+    function jbFileSize(?int $bytes): string {
+        if (!$bytes) return '';
+        $u = ['B','KB','MB','GB']; $i = 0;
+        while ($bytes >= 1024 && $i < 3) { $bytes /= 1024; $i++; }
+        return round($bytes, $i ? 1 : 0) . ' ' . $u[$i];
+    }
+}
+if (!function_exists('jbIsImage')) {
+    function jbIsImage(?string $mime, string $path): bool {
+        if ($mime && str_starts_with($mime, 'image/')) return true;
+        return in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), ['png','jpg','jpeg','gif','webp'], true);
+    }
+}
+if (!function_exists('jbSourceLabel')) {
+    function jbSourceLabel(?string $s): string {
+        return [
+            'internal'        => 'internally',
+            'customer_email'  => 'by email',
+            'customer_phone'  => 'by phone',
+            'customer_portal' => 'via the portal',
+        ][$s] ?? '';
+    }
+}
+
+$jbInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;border:1px solid #d1d5db;'
+       . 'border-radius:5px;box-sizing:border-box;background:#fff;color:#111';
+?>
+
+<!-- Artwork -->
+<div id="artwork" style="margin-top:1.5rem">
+    <div style="display:block;border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">
+        <span style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            Artwork
+        </span>
+        <?php if (($artworkCounts['items'] ?? 0) > 0): ?>
+            <span style="font-size:.78rem;color:#9ca3af">
+                &nbsp;— <?= (int)$artworkCounts['items'] ?> design<?= $artworkCounts['items'] === 1 ? '' : 's' ?>,
+                <?= (int)$artworkCounts['revisions'] ?> revision<?= $artworkCounts['revisions'] === 1 ? '' : 's' ?>
+                <?php if (($artworkCounts['pending'] ?? 0) > 0): ?>
+                    · <strong style="color:#b45309"><?= (int)$artworkCounts['pending'] ?> awaiting approval</strong>
+                <?php endif; ?>
+            </span>
+        <?php endif; ?>
+    </div>
+
+    <?php if (empty($artwork)): ?>
+        <p style="color:#9ca3af;font-size:.9rem;margin:0 0 1rem">
+            No artwork on this job yet. Upload the first proof below — every later version is
+            kept, so you can always see what the customer approved.
+        </p>
+    <?php endif; ?>
+
+    <?php foreach ($artwork as $art): ?>
+        <?php
+        $latest   = $art['latest'] ?? null;
+        $approved = $art['approved'] ?? null;
+        $stale    = $approved && $latest && (int)$approved['id'] !== (int)$latest['id'];
+        ?>
+        <div class="card" style="padding:1.25rem;margin-bottom:1rem">
+            <table style="width:100%;border-collapse:collapse;margin-bottom:.75rem">
+                <tr>
+                    <td style="vertical-align:top">
+                        <div style="font-weight:600;font-size:1rem"><?= e($art['title']) ?></div>
+                        <?php if (!empty($art['notes'])): ?>
+                            <div style="font-size:.85rem;color:#6b7280;margin-top:.2rem"><?= e($art['notes']) ?></div>
+                        <?php endif; ?>
+                    </td>
+                    <td style="vertical-align:top;text-align:right;white-space:nowrap">
+                        <?php if ($approved && !$stale): ?>
+                            <span class="badge badge--success">Approved</span>
+                        <?php elseif ($stale): ?>
+                            <span class="badge badge--warning">Rev <?= (int)$approved['revision_no'] ?> approved, newer version pending</span>
+                        <?php elseif ($latest && $latest['status'] === 'rejected'): ?>
+                            <span class="badge badge--danger">Rejected</span>
+                        <?php else: ?>
+                            <span class="badge badge--neutral">Awaiting approval</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            </table>
+
+            <?php foreach ($art['revisions'] as $rev): ?>
+                <?php
+                $isApproved = $rev['status'] === 'approved';
+                $isRejected = $rev['status'] === 'rejected';
+                $edge       = $isApproved ? '#16a34a' : ($isRejected ? '#dc2626' : '#d1d5db');
+                ?>
+                <table style="width:100%;border-collapse:collapse;border-left:3px solid <?= $edge ?>;
+                              background:#fafafa;margin-bottom:.6rem">
+                    <tr>
+                        <td style="padding:.7rem .9rem;width:84px;vertical-align:top">
+                            <?php if (jbIsImage($rev['mime_type'], $rev['file_path'])): ?>
+                                <a href="<?= e($rev['file_path']) ?>" target="_blank">
+                                    <img src="<?= e($rev['file_path']) ?>" alt=""
+                                         style="width:72px;height:72px;object-fit:cover;border:1px solid #e5e7eb;border-radius:4px;background:#fff">
+                                </a>
+                            <?php else: ?>
+                                <a href="<?= e($rev['file_path']) ?>" target="_blank"
+                                   style="display:block;width:72px;height:72px;border:1px solid #e5e7eb;border-radius:4px;
+                                          background:#fff;text-align:center;line-height:72px;font-size:.7rem;
+                                          font-weight:700;color:#6b7280;text-decoration:none">
+                                    <?= strtoupper(pathinfo($rev['file_path'], PATHINFO_EXTENSION)) ?>
+                                </a>
+                            <?php endif; ?>
+                        </td>
+                        <td style="padding:.7rem .9rem .7rem 0;vertical-align:top">
+                            <div style="font-size:.9rem">
+                                <strong>Rev <?= (int)$rev['revision_no'] ?></strong>
+                                &nbsp;<a href="<?= e($rev['file_path']) ?>" target="_blank" style="color:#0A3D91"><?= e($rev['file_name']) ?></a>
+                                <span style="color:#9ca3af;font-size:.8rem"><?= jbFileSize($rev['file_size'] ? (int)$rev['file_size'] : null) ?></span>
+                            </div>
+                            <div style="font-size:.78rem;color:#6b7280;margin-top:.2rem">
+                                Uploaded <?= date('M j, Y', strtotime($rev['created_at'])) ?>
+                                <?= $rev['uploaded_by_name'] ? 'by ' . e($rev['uploaded_by_name']) : '' ?>
+                            </div>
+                            <?php if (!empty($rev['notes'])): ?>
+                                <div style="font-size:.82rem;color:#374151;margin-top:.3rem"><?= e($rev['notes']) ?></div>
+                            <?php endif; ?>
+
+                            <?php if ($isApproved || $isRejected): ?>
+                                <div style="font-size:.8rem;margin-top:.4rem;color:<?= $isApproved ? '#166534' : '#b91c1c' ?>">
+                                    <?= $isApproved ? '✓ Approved' : '✕ Rejected' ?>
+                                    <?= $rev['decided_name'] ? ' by ' . e($rev['decided_name']) : '' ?>
+                                    <?= jbSourceLabel($rev['decision_source']) ?>
+                                    <?= $rev['decided_at'] ? ' on ' . date('M j, Y', strtotime($rev['decided_at'])) : '' ?>
+                                    <?= $rev['decided_by_name'] ? ' — recorded by ' . e($rev['decided_by_name']) : '' ?>
+                                </div>
+                                <?php if (!empty($rev['decision_note'])): ?>
+                                    <div style="font-size:.8rem;color:#6b7280;margin-top:.2rem">"<?= e($rev['decision_note']) ?>"</div>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/revision/<?= (int)$rev['id'] ?>/decision"
+                                      style="margin-top:.5rem">
+                                    <?= csrf_field() ?>
+                                    <table style="width:100%;border-collapse:separate;border-spacing:.35rem 0;margin:0 -.35rem">
+                                        <tr>
+                                            <td style="width:26%">
+                                                <select name="source" style="<?= $jbInp ?>;font-size:.82rem;padding:.35rem .5rem">
+                                                    <option value="customer_email">Customer, by email</option>
+                                                    <option value="customer_phone">Customer, by phone</option>
+                                                    <option value="internal">Internal sign-off</option>
+                                                </select>
+                                            </td>
+                                            <td style="width:26%">
+                                                <input type="text" name="decided_name" placeholder="Their name"
+                                                       style="<?= $jbInp ?>;font-size:.82rem;padding:.35rem .5rem">
+                                            </td>
+                                            <td>
+                                                <input type="text" name="decision_note" placeholder="Note (optional)"
+                                                       style="<?= $jbInp ?>;font-size:.82rem;padding:.35rem .5rem">
+                                            </td>
+                                            <td style="width:150px;white-space:nowrap;text-align:right">
+                                                <button type="submit" name="decision" value="approved" class="btn btn--xs"
+                                                        style="background:#16a34a;color:#fff;border-color:#16a34a">Approve</button>
+                                                <button type="submit" name="decision" value="rejected" class="btn btn--xs"
+                                                        style="background:#fff;color:#b91c1c;border-color:#fca5a5">Reject</button>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </form>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+            <?php endforeach; ?>
+
+            <!-- New revision -->
+            <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/artwork/<?= (int)$art['id'] ?>/revision"
+                  enctype="multipart/form-data" style="margin-top:.6rem;padding-top:.7rem;border-top:1px dashed #e5e7eb">
+                <?= csrf_field() ?>
+                <table style="width:100%;border-collapse:separate;border-spacing:.4rem 0;margin:0 -.4rem">
+                    <tr>
+                        <td style="width:36%"><input type="file" name="artwork_file" required style="font-size:.82rem"></td>
+                        <td><input type="text" name="revision_notes" placeholder="What changed in this version?"
+                                   style="<?= $jbInp ?>;font-size:.82rem;padding:.4rem .5rem"></td>
+                        <td style="width:210px;white-space:nowrap;text-align:right">
+                            <button type="submit" class="btn btn--xs btn--secondary">Upload Revision</button>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+
+            <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/artwork/<?= (int)$art['id'] ?>/remove"
+                  style="text-align:right;margin-top:.4rem"
+                  onsubmit="return confirm('Remove this artwork from the binder? Its revision history is kept.')">
+                <?= csrf_field() ?>
+                <button type="submit" style="background:none;border:none;padding:0;color:#9ca3af;cursor:pointer;
+                                             font-size:.75rem;text-decoration:underline">Remove this artwork</button>
+            </form>
+        </div>
+    <?php endforeach; ?>
+
+    <!-- Add artwork -->
+    <div class="card" style="padding:1.25rem;background:#f8fafc">
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.8rem">
+            Add artwork
+        </div>
+        <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/artwork" enctype="multipart/form-data">
+            <?= csrf_field() ?>
+            <table style="width:100%;border-collapse:collapse">
+                <tr>
+                    <td style="width:30%;padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280">Name</td>
+                    <td style="padding:.3rem 0">
+                        <input type="text" name="title" required placeholder='e.g. 48in Walking Man' style="<?= $jbInp ?>">
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280">File</td>
+                    <td style="padding:.3rem 0"><input type="file" name="artwork_file" required style="font-size:.9rem"></td>
+                </tr>
+                <tr>
+                    <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280">Notes</td>
+                    <td style="padding:.3rem 0">
+                        <input type="text" name="revision_notes" placeholder="Optional — anything worth knowing about this proof"
+                               style="<?= $jbInp ?>">
+                    </td>
+                </tr>
+            </table>
+            <div style="text-align:right;margin-top:.8rem">
+                <button type="submit" class="btn btn--primary">Add Artwork</button>
+            </div>
+        </form>
+        <div style="font-size:.75rem;color:#9ca3af;margin-top:.7rem">
+            Accepted: PDF, PNG, JPG, GIF, WebP, SVG, AI, EPS, DXF, DWG — up to 30 MB.
+        </div>
+    </div>
+</div>
+
+<?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/app.php';

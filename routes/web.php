@@ -18,6 +18,7 @@ use App\Controllers\OpportunityController;
 use App\Controllers\QuoteController;
 use App\Controllers\PaymentController;
 use App\Controllers\ProductController;
+use App\Controllers\JobBinderController;
 use App\Controllers\ProfileController;
 use App\Controllers\InventoryController;
 use App\Controllers\PurchaseOrderController;
@@ -155,6 +156,12 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/raw-materials/{id}/edit',     [ProductController::class, 'rawMaterialsUpdate'])->name('raw_materials.update');
 
     // Shipping
+    // Digital Job Binder — artwork, hung off the sales order
+    Router::post('/sales-orders/{id}/artwork',                        [JobBinderController::class, 'storeArtwork'])->name('binder.artwork.store');
+    Router::post('/sales-orders/{id}/artwork/{artworkId}/revision',   [JobBinderController::class, 'storeRevision'])->name('binder.artwork.revision');
+    Router::post('/sales-orders/{id}/artwork/{artworkId}/remove',     [JobBinderController::class, 'removeArtwork'])->name('binder.artwork.remove');
+    Router::post('/sales-orders/{id}/revision/{revisionId}/decision', [JobBinderController::class, 'decide'])->name('binder.artwork.decision');
+
     Router::get('/shipping', [ShippingController::class, 'index'])->name('shipping');
     Router::get('/shipping/{id}/pick',       [ShippingController::class, 'pick'])->name('shipping.pick');
     Router::post('/shipping/{id}/pick/scan', [ShippingController::class, 'scan'])->name('shipping.scan');
