@@ -18,6 +18,11 @@
 #
 # Dumps contain every customer, invoice and price in the business, so the directory and
 # the files are owner-only.
+#
+# OFF-SITE COPY: if /root/.s3cfg exists and SPACES_BUCKET is set below, each dump is
+# also uploaded to DigitalOcean Spaces. A backup that lives only on the machine it
+# protects does not survive losing that machine. Upload failure is reported but does not
+# fail the run — a local backup that exists beats no backup at all.
 
 set -euo pipefail
 
@@ -25,6 +30,10 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/usscos}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 MIN_BYTES="${MIN_BYTES:-1000000}"      # a real dump of this database is tens of MB
+SPACES_BUCKET="${SPACES_BUCKET:-}"     # e.g. usscos-backups — empty disables upload
+SPACES_PREFIX="${SPACES_PREFIX:-db}"
+S3CFG="${S3CFG:-/root/.s3cfg}"
+REMOTE_RETENTION_DAYS="${REMOTE_RETENTION_DAYS:-60}"
 
 BOLD=$'\033[1m'; RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[0;33m'; OFF=$'\033[0m'
 say()  { echo "${BOLD}==>${OFF} $*"; }
@@ -187,6 +196,31 @@ chmod 600 "$OUT"
 ok "$(basename "$OUT")  ($(numfmt --to=iec "$SIZE" 2>/dev/null || echo "$SIZE bytes"))"
 
 [ "$VERIFY" -eq 1 ] && verify_dump "$OUT"
+
+# ---------------------------------------------------------------- off-site copy
+
+if [ -n "$SPACES_BUCKET" ] && [ -f "$S3CFG" ]; then
+    say "Uploading to Spaces: s3://$SPACES_BUCKET/$SPACES_PREFIX/"
+    if s3cmd --config="$S3CFG" put "$OUT" "s3://$SPACES_BUCKET/$SPACES_PREFIX/$(basename "$OUT")" >/dev/null 2>&1; then
+        ok "Uploaded $(basename "$OUT")"
+
+        # Expire remote copies too, or the bill grows forever. Kept longer than local
+        # because off-site is the copy that matters when the droplet is gone.
+        CUTOFF=$(date -d "-${REMOTE_RETENTION_DAYS} days" +%Y-%m-%d 2>/dev/null || echo "")
+        if [ -n "$CUTOFF" ]; then
+            s3cmd --config="$S3CFG" ls "s3://$SPACES_BUCKET/$SPACES_PREFIX/" 2>/dev/null \
+              | awk -v c="$CUTOFF" '$1 < c {print $NF}' \
+              | while read -r old; do
+                    s3cmd --config="$S3CFG" del "$old" >/dev/null 2>&1 && say "Expired remote $(basename "$old")"
+                done
+        fi
+    else
+        warn "Upload FAILED — the local backup is fine, but there is no off-site copy tonight."
+        warn "Check: s3cmd --config=$S3CFG ls"
+    fi
+elif [ -n "$SPACES_BUCKET" ]; then
+    warn "SPACES_BUCKET is set but $S3CFG is missing — no off-site copy."
+fi
 
 # ---------------------------------------------------------------- rotation
 
