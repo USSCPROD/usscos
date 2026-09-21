@@ -38,16 +38,71 @@ PO follows it.
 
 Any purchasing build has to allow this rather than locking a PO on approval.
 
-## Markov
+## Mar-Kov — https://mar-kov.com
 
-The program TCC uses today to record the details of **every batch**. We want either to
-integrate with it or to rebuild that capability inside USSCOS.
+Not a small batch-notes program. **Mar-Kov is a batch manufacturing ERP/MES** for process
+industries, with **paint and coatings named as a target market**. It covers:
 
-This is the same data the accounting spec calls WIP and production runs (§3.5, §4.8), and
-it is where actual batch cost would come from — which matters because costing here follows
-**actual cost, not standard cost**.
+- Lot traceability and electronic batch records, with recall support
+- Formulation/recipe control with version history and audit trail
+- Inventory and warehouse management, with barcode scanning
+- Production planning, equipment and labour tracking
+- **Batch-level costing and margin analysis**
+- Quality control and compliance documentation
+- Purchase and sales orders
 
-Open: what Markov is exactly, whether it exports, and whether integrating beats replacing.
+It already integrates with **QuickBooks Desktop and Online**, plus ShipStation, EDI,
+Shopify, scales, barcode scanners and PLCs.
+
+### Recommendation: integrate, do not rebuild
+
+Rebuilding this inside USSCOS would be a serious mistake. Batch records, formulation
+version control, lot traceability and batch costing are years of work in a
+compliance-adjacent domain, and Mar-Kov is a mature product built for exactly this
+industry. Replacing it would cost far more than it returns and would put USSCOS on the
+hook for regulatory-facing manufacturing records.
+
+**It also lands on a clean boundary that matches the entity split:**
+
+| | System | Owns |
+|---|---|---|
+| **TCC** | Mar-Kov | Raw materials, WIP, formulation, batch cost, lot traceability |
+| **USSC** | USSCOS | Finished goods, customers, sales, shipping, artwork |
+| **Boundary** | Intercompany PO + invoice | The handover between them |
+
+That interface is narrow and well defined — a purchase order out, a receipt and an invoice
+back — rather than a broad two-way sync. Narrow interfaces are the ones that survive.
+
+### This qualifies "inventory will be kept in USSCOS"
+
+Stated earlier, and still true **for USSC finished goods**. It is not true for TCC's raw
+materials and WIP, which live in Mar-Kov. Worth being explicit, because the two statements
+look contradictory otherwise.
+
+### Watch for overlap
+
+Mar-Kov also does inventory, purchase/sales orders and barcode scanning. So does USSCOS,
+or will. The line above needs stating plainly to whoever operates both, or the same work
+gets done twice in two systems and the numbers drift.
+
+### Questions for Mar-Kov directly
+
+Their site advertises integrations but publishes no API documentation — the line is "we'll
+work with whatever your accounting software and ERP are", which suggests integration is an
+engagement rather than something self-serve. So ask them:
+
+- Is there a **REST API**, web services, or direct database access?
+- Can it **export on a schedule** — batch records, yields, costs — and in what format?
+- How does the **QuickBooks integration** work, in which direction, and for which records?
+- Have they integrated with a **custom in-house system** before?
+- What does an integration cost, and who does the work?
+
+### And one to think about first
+
+If USSCOS feeds QuickBooks, and Mar-Kov also feeds QuickBooks, and the two entities
+consolidate into **one** QuickBooks file — that is two systems writing to one ledger.
+Worth deciding who writes what before either integration is built, or the same
+transaction arrives twice by different routes.
 
 ## Access — users see only their own entity
 
