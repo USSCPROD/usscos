@@ -225,3 +225,66 @@ posting, opening balances and period close. **None of that is needed** while Qui
 remains the ledger — it only applies if USSCOS ever takes over as the book of record.
 The chart of accounts is seeded (migration 046) and used for reporting and mapping, not
 for posting.
+
+---
+
+## Decided 2026-09-21: the sync becomes bidirectional
+
+Mar-Kov's own QuickBooks integration **stays as it is**. USSCOS does not talk to Mar-Kov.
+Instead **QuickBooks becomes the hub**, and USSCOS both pushes to it and pulls from it:
+
+```
+        Mar-Kov ──────────┐
+       (TCC batches)      │
+                          ▼
+                    QuickBooks  ── two company files, TCC and USSC
+                      ▲     │
+          push ───────┘     └─────── pull
+        (USSC invoices,       (POs and invoices that
+         payments, SOs)        originated elsewhere)
+```
+
+This is a real change of shape. Everything built so far is **push-only** — `GET /pending`
+hands records out, `POST /ack` confirms them. There is no inbound path.
+
+### What pulling needs that pushing did not
+
+**A key that survives both directions.** QuickBooks' `TxnID` is the only stable identifier
+for a transaction. `invoices.qb_txn_id` already exists and is stamped on acknowledgement,
+so the same column serves both — pull matches on it.
+
+**Not re-importing our own records.** USSCOS pushes invoices to QuickBooks and would then
+pull invoices back. Any record already carrying a `qb_txn_id` we set ourselves is ours and
+must be skipped, or every pushed invoice returns as a duplicate on the next pull.
+
+**Picking up edits, not just creates.** This matters here specifically: the intercompany PO
+**is edited after creation** to the actual batch yield. A pull that only looks for new
+records would never see the correction. QuickBooks gives each transaction an
+**`EditSequence`** that changes on every edit — store it and compare, and an amended PO is
+detectable without diffing every field.
+
+**An entity on every record.** Two company files, so each pulled record has to say which
+one it came from, and each pushed record which one it is destined for.
+
+**Deciding who wins.** If a record exists on both sides and they disagree, which is
+authoritative? Simplest defensible rule: **whoever created it owns it.** USSC invoices
+originate in USSCOS, so USSCOS wins. POs and TCC-side records originate in
+QuickBooks/Mar-Kov, so QuickBooks wins. Anything else needs a human.
+
+### Endpoints to add
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/qb/inbound` | Bridge posts records read from QuickBooks — POs, invoices |
+| `GET` | `/api/qb/cursor` | Last successful pull point per entity and record type, so the bridge knows where to resume |
+
+Both need the entity, and `inbound` must be idempotent on `TxnID` + `EditSequence`.
+
+### Open
+
+- Does USSCOS hold TCC-side purchasing and push to **TCC's** file, or is TCC's bookkeeping
+  outside USSCOS entirely?
+- Which records are pulled — POs and invoices were named. Bills? Payments entered directly
+  in QuickBooks?
+- `qb_export_log.record_type` is an enum of `invoice`, `sales_order`, `payment`. It needs
+  `purchase_order` and `bill` adding, and a direction column.
