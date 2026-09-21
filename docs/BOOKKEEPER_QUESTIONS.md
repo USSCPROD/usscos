@@ -29,6 +29,8 @@ written down.
 
 ## 2. Invoices — how one actually comes to exist
 
+> **Answered 2026-09-21 (Chip):** invoices are created in USSCOS once a sales order ships. This matches what is built. Still open: how often a sent invoice gets edited, and how credit memos/returns are handled.
+
 USSCOS currently creates invoices when a sales order ships. We need to know whether that
 matches reality.
 
@@ -46,6 +48,8 @@ matches reality.
 
 ## 3. Payments — the mechanics
 
+> **Answered 2026-09-21 (Chip):** payments are accepted in USSCOS. Still open: Undeposited Funds practice, processor fees, partial/short payments.
+
 - How do checks arrive, and what happens between arriving and reaching the bank?
 - **Do you use Undeposited Funds in QuickBooks today, or post straight to the bank?**
   (The spec insists on Undeposited Funds; worth knowing whether that's current practice
@@ -59,6 +63,8 @@ matches reality.
 ---
 
 ## 4. The exports we've asked for
+
+> **Answered 2026-09-21 (Chip):** the exports are coming. Still worth agreeing the exact columns and making it a memorised report so each one comes out the same shape.
 
 USSCOS is missing invoice fields because the original import didn't carry them. These come
 from them, so agree the format now.
@@ -75,6 +81,8 @@ from them, so agree the format now.
 
 ## 5. The SKU renaming
 
+> **Answered 2026-09-21 (Chip):** SKUs are being finalised. **The historical-invoice question below is still open and is the one that decides whether the reimport actually closes the $6.1M gap.**
+
 - How far along is it, and when will it be finished?
 - Will every QuickBooks item name then match the product spreadsheet exactly?
 - **What happens to items that no longer exist** — renamed, merged, or left alone?
@@ -88,6 +96,8 @@ from them, so agree the format now.
 
 ## 6. Sales tax
 
+> **Answered 2026-09-21 (Chip):** USSCOS needs to handle sales tax. That makes every question below live rather than hypothetical.
+
 - How many states do you currently file in?
 - Who calculates the tax on an invoice today — QuickBooks, a person, or a lookup?
 - Who files and remits, and how often?
@@ -99,6 +109,8 @@ from them, so agree the format now.
 ---
 
 ## 7. Inventory, as it stands today
+
+> **Answered 2026-09-21 (Chip):** inventory will be kept in USSCOS. Note this settles **quantity**, not **valuation** — see `ACCOUNTANT_QUESTIONS.md` §1a, still open.
 
 Related to `ACCOUNTANT_QUESTIONS.md` §1a, but this is the practical half.
 
@@ -126,6 +138,8 @@ Not what exists — what somebody reads.
 ---
 
 ## 9. Bills and purchasing
+
+> **Answered 2026-09-21 (Chip):** bills and purchasing will run through USSCOS. Currently 269 vendors, 1 purchase order and 0 bills exist, so this is a build, not a migration.
 
 USSCOS has 269 vendors and one purchase order — so this is clearly happening elsewhere.
 
