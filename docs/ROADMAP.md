@@ -350,7 +350,10 @@ get harder to retrofit the longer the catalog grows.
 ### Business structure
 - **Distributor portal** — tier pricing (retail / distributor / stocking distributor)
   with commission on the spread. *Awaiting detail on how the two distributor types differ.*
-- **Intercompany** — US Technical Coatings as a second entity with intercompany PO flow
+- **Intercompany** — TCC (Technical Coatings) and USSC as two legal entities, with an
+    intercompany PO flow and entity-level access scoping. **This is structural, not a
+    feature** — see [INTERCOMPANY.md](INTERCOMPANY.md). Cheapest to retrofit during the
+    clean reimport, since everything is being reloaded anyway.
 - **Internal messaging** — employee DMs with notification badge
 - **Website port** — usscos.com → usscproducts.com, same structure
 
