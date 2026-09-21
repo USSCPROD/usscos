@@ -96,7 +96,7 @@ Two things to say at the start:
 41. Does it know anything about the canning step, or does that happen outside it?
 42. Does it work out what a batch cost, and does anyone look at that?
 43. What does it do badly? What do people work around?
-44. Is it hooked up to QuickBooks today?
+44. Is it hooked up to QuickBooks today — and to which company file, TCC's or USSC's?
 45. Who looks after it, and who would we ring about connecting it to something?
 
 ---

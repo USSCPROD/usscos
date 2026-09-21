@@ -132,7 +132,7 @@ is being cleared and reloaded anyway.
 | Shared products? | **No. TCC holds raw materials, USSC holds finished goods.** |
 | Does TCC sell to anyone else? | **No, only USSC.** |
 | Can anyone see both entities? | **Yes — upper management.** |
-| One QuickBooks file or two? | **Two currently — the intent is to move to one.** |
+| One QuickBooks file or two? | **Two, and staying two** (corrected 2026-09-21). |
 
 ### What follows from those answers
 
@@ -152,8 +152,17 @@ overhead allocation — lives **entirely inside TCC**. USSC's cost of a finished
 simply the intercompany invoice price. So "actual cost, not standard cost" is a TCC
 problem, not a USSC one, and it depends on Markov rather than on anything USSCOS invents.
 
-**Two QuickBooks files means two sync pipelines.** `QUICKBOOKS_SYNC.md` and the export
-queue currently assume one company, one API key, one queue. Each needs an entity.
+**Two QuickBooks files means the sync has to route by entity.** `QUICKBOOKS_SYNC.md` and
+the export queue currently assume one company, one API key, one queue. With two files,
+every queued record needs to know which company it belongs to and therefore which file it
+is destined for — a USSC invoice must not land in TCC's file. Two API keys, or one key with
+an entity on each record.
+
+**It also means USSCOS is probably the only place a combined view can exist.** Neither
+QuickBooks file sees the other, so if upper management wants TCC and USSC figures side by
+side, USSCOS is where that happens. Worth knowing: consolidated reporting stops being an
+accounting question and becomes a USSCOS feature — and the intercompany sale still has to
+be eliminated from any combined total, or the same paint is counted twice.
 
 **Access needs three states, not two:** TCC-only, USSC-only, and both (upper management).
 The existing `AccessScope` pattern is right — enforce in repositories — but the scope
@@ -188,16 +197,17 @@ decides whose inventory it is. Captured in
 - **Transfer pricing** — at what price does TCC invoice USSC? Cost-plus, or a set
   schedule? This has tax consequences and is a question for the accountant, not a build
   decision.
-- **Consolidated reporting** — if upper management wants combined figures, intercompany
-  sales and purchases have to be **eliminated** or the combined revenue double-counts.
-  Does anyone need a consolidated view, or only each entity separately?
+- **Consolidated reporting** — with two separate QuickBooks files, neither sees the other,
+  so a combined view can only come from USSCOS. Does upper management want one? If so, the
+  intercompany sale and purchase must be **eliminated** from the combined total or the same
+  paint is counted twice.
 - **Markov** — what it is, whether it exports, integrate vs rebuild.
 - **Freight** — is inbound freight from TCC to USSC part of USSC's cost of goods?
-- **One QuickBooks file for two legal entities** — the stated intent. Possible, but the
-  two companies file separately (TCC yearly, USSC monthly), so the file needs to keep them
-  cleanly apart — usually via classes. Worth the accountant's view before it is done,
-  since getting it wrong is painful to unpick. Good news for USSCOS: it would mean **one**
-  sync pipeline rather than two.
+- **Which file does each record go to?** USSC's sales and invoices clearly go to USSC's
+  file. But USSCOS will also hold TCC-side purchasing — do those POs and bills sync to
+  TCC's file, or does TCC's bookkeeping stay outside USSCOS entirely?
+- **Does Mar-Kov already write to TCC's file?** If so, that plus a USSCOS feed means two
+  systems writing to one file, and who writes what needs settling first.
 
 ## Related
 
