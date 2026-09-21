@@ -50,13 +50,13 @@ matches reality.
 
 > **Answered 2026-09-21 (Chip):** payments are accepted in USSCOS. Still open: Undeposited Funds practice, processor fees, partial/short payments.
 
-- How do checks arrive, and what happens between arriving and reaching the bank?
-- **Do you use Undeposited Funds in QuickBooks today, or post straight to the bank?**
-  (The spec insists on Undeposited Funds; worth knowing whether that's current practice
-  or a change.)
-- How are card payments taken — over the phone, a terminal, online?
-- Who applies a payment to an invoice, and how do you handle one check covering several?
-- How often is a payment partial, or short-paid by a few dollars?
+**Answered 2026-09-21:**
+
+- Payments post **straight to the bank**, not through Undeposited Funds. The spec
+  recommends Undeposited Funds so bank reconciliation matches deposit-for-deposit — worth
+  raising with the accountant, but current practice is direct.
+- **Processor fees are captured per transaction**, which is the better option and means
+  USSCOS should record the fee on the payment rather than reconciling monthly.
 
 **Answer:**
 
@@ -116,13 +116,19 @@ from them, so agree the format now.
 > the state rate**, so it is not two numbers. Find out how QuickBooks is set up before
 > assuming anything.
 
-- How many states do you currently file in?
-- Who calculates the tax on an invoice today — QuickBooks, a person, or a lookup?
-- Who files and remits, and how often?
-- Is anyone already using Avalara or TaxJar, or is it manual?
-- How are tax-exempt customers and resale certificates handled?
+**Answered 2026-09-21:**
 
-**Answer:**
+- **Separate county tax codes**, not one rate per state
+- Tax charged on **where the customer is** — destination-based sourcing, which is correct
+  for both GA and NC
+- **The accountant files**, not the bookkeeper
+- **Two filing entities: Technical Coatings files yearly, USSC files monthly** — see the
+  multi-entity note below
+- Tax-exempt: certificates are filed and no tax is charged
+
+So USSCOS needs county-level rates for GA and NC, destination-based, with an exemption
+flag per customer and somewhere to record the certificate. `customers.tax_exempt` and
+`resale_certificate_number` already exist and are unpopulated.
 
 ---
 
@@ -143,11 +149,15 @@ from them, so agree the format now.
 
 Related to `ACCOUNTANT_QUESTIONS.md` §1a, but this is the practical half.
 
-- **Does QuickBooks currently track inventory quantities, or is it off?**
-- If it does, is anyone confident the numbers are right?
-- How is a physical count done, and when was the last one?
-- Is there a cost per product anywhere today, and who maintains it?
-- When paint is produced, is anything recorded in QuickBooks at all?
+**Answered 2026-09-21:**
+
+- **No cost per product exists today.** Costing is expected to follow **actual cost**, not
+  a standard cost. **This contradicts spec §4.8**, which assumes simplified standard
+  costing with quarterly true-up. Actual costing is materially more work — it needs a real
+  cost captured per production run and a costing method (FIFO or weighted average) agreed
+  with the accountant.
+- Physical count is done by **Greg** (warehouse) and takes **a couple of days**
+- Production is recorded in **Markov**, a separate program
 
 **Answer:**
 
@@ -172,10 +182,8 @@ Not what exists — what somebody reads.
 
 USSCOS has 269 vendors and one purchase order — so this is clearly happening elsewhere.
 
-- Are purchase orders raised at all, or do you order and reconcile against the bill?
-- Who enters bills, and when?
-- How are bills paid — check run, card, ACH — and on what schedule?
-- Would you want this in USSCOS, or is QuickBooks fine for it?
+**Answered 2026-09-21:** POs **are** raised. **Sharon** enters bills. Paid by **ACH,
+weekly**. All of this moves into USSCOS.
 
 **Answer:**
 
