@@ -119,6 +119,57 @@ And two things about the whole chain:
 
 ---
 
+## Mar-Kov
+
+Mar-Kov turns out to be a full batch manufacturing ERP/MES for process industries, with
+paint and coatings as a named market — lot traceability, electronic batch records,
+formulation control, batch costing, QC, and an existing QuickBooks integration. See
+[INTERCOMPANY.md](INTERCOMPANY.md) for why the recommendation is to **integrate rather
+than rebuild**.
+
+The operations manager will know how it is actually used, which matters more than what the
+brochure claims.
+
+### How it is used day to day
+
+- **Which parts of Mar-Kov do we actually use, and which are switched off or ignored?**
+  Most companies use a fraction of a system like this.
+- Who enters batches, and at what point — during the run, or after?
+- Is formulation/recipe control used, or are recipes kept elsewhere?
+- Is lot or batch numbering used, and does it reach the finished product?
+- **Is inventory in Mar-Kov trusted?** (QuickBooks inventory is not — is this different?)
+- Does it produce batch costs today, and does anyone look at them?
+- Is quality control recorded in it?
+
+### Where it stops
+
+- **Does Mar-Kov cover the canning company step, or does that happen outside it?**
+- Does it know about the totes going out and the cases coming back?
+- Does it track anything once the paint leaves TCC?
+- Are purchase orders raised in Mar-Kov, or elsewhere?
+
+### The boundary question
+
+The proposal is that Mar-Kov keeps TCC — raw materials, WIP, formulation, batch cost — and
+USSCOS takes USSC: finished goods, customers, sales, shipping. The intercompany PO and
+invoice are the handover.
+
+- **Does that match how people actually think about the split?**
+- Is anything today being done in Mar-Kov that ought to be on the USSC side, or the
+  reverse?
+- What does Mar-Kov do badly, or what do people work around?
+- Is there any appetite to replace it, or is it doing its job?
+
+### Practical
+
+- Who administers it, and is there a support contract?
+- Is it hosted by Mar-Kov or running on a machine here?
+- **Is the QuickBooks integration switched on today?** If so, what does it push, and to
+  which company file?
+- Who at Mar-Kov do we talk to about an integration?
+
+---
+
 ## Also worth asking, since they will know
 
 - What goes wrong most often in this process?
