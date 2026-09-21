@@ -259,6 +259,10 @@ Ignore this section if QuickBooks stays.
 
 ## Related
 
+- [BOOKKEEPER_QUESTIONS.md](BOOKKEEPER_QUESTIONS.md) — the practical half: what actually
+  happens day to day, which shapes what USSCOS must produce whichever way this decision
+  lands.
+
 - [USSCos_Accounting_Module_Spec.md](USSCos_Accounting_Module_Spec.md) — the full spec
 - [QUICKBOOKS_SYNC.md](QUICKBOOKS_SYNC.md) — the export API as built, and the Windows bridge
 - [ROADMAP.md](ROADMAP.md#accounting) — where this sits in the plan
