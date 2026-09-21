@@ -68,14 +68,56 @@ Retrofitting an entity column across the financial tables is far cheaper **befor
 real data import than after. The import is the natural moment to do it, since everything
 is being cleared and reloaded anyway.
 
-### Open questions
+### Answered 2026-09-21
 
-- Does **TCC** invoice USSC, or is the intercompany PO the whole transaction?
-- Do TCC and USSC share the **customer list**, or does TCC only ever sell to USSC?
-- Do they share **products**, or does TCC hold raw materials and USSC finished goods?
-- Is there a **third** relationship — does TCC ever sell to anyone but USSC?
-- Should a user ever see **both** entities (an owner, or the bookkeeper)?
-- Do the two entities share a QuickBooks file, or is there one per company?
+| Question | Answer |
+|---|---|
+| Does TCC invoice USSC, or is the PO the whole transaction? | **Both** — PO *and* invoice. A full purchase cycle. |
+| Shared customer list? | **No. TCC sells only to USSC** — TCC has exactly one customer. |
+| Shared products? | **No. TCC holds raw materials, USSC holds finished goods.** |
+| Does TCC sell to anyone else? | **No, only USSC.** |
+| Can anyone see both entities? | **Yes — upper management.** |
+| One QuickBooks file or two? | **Two, currently.** |
+
+### What follows from those answers
+
+**The inventory split maps cleanly onto the accounting spec, and it makes USSC's costing
+much simpler than the spec assumes.**
+
+```
+TCC                                  │ USSC
+raw materials → WIP → finished batch │ finished goods → COGS on shipment
+(actual batch cost, from Markov)     │ (cost = what TCC invoiced, plus freight)
+                                     │
+        └────── intercompany PO + invoice ──────┘
+```
+
+The spec's hard part — three-stage inventory with actual costing, WIP capitalisation and
+overhead allocation — lives **entirely inside TCC**. USSC's cost of a finished good is
+simply the intercompany invoice price. So "actual cost, not standard cost" is a TCC
+problem, not a USSC one, and it depends on Markov rather than on anything USSCOS invents.
+
+**Two QuickBooks files means two sync pipelines.** `QUICKBOOKS_SYNC.md` and the export
+queue currently assume one company, one API key, one queue. Each needs an entity.
+
+**Access needs three states, not two:** TCC-only, USSC-only, and both (upper management).
+The existing `AccessScope` pattern is right — enforce in repositories — but the scope
+becomes a set of permitted entities rather than a single value.
+
+**TCC's customer list is one row.** Worth knowing before building anything general: TCC
+does not need customer management, quoting, or a CRM. Its side of USSCOS is purchasing,
+production and one recurring sale.
+
+### Still open
+
+- **Transfer pricing** — at what price does TCC invoice USSC? Cost-plus, or a set
+  schedule? This has tax consequences and is a question for the accountant, not a build
+  decision.
+- **Consolidated reporting** — if upper management wants combined figures, intercompany
+  sales and purchases have to be **eliminated** or the combined revenue double-counts.
+  Does anyone need a consolidated view, or only each entity separately?
+- **Markov** — what it is, whether it exports, integrate vs rebuild.
+- **Freight** — is inbound freight from TCC to USSC part of USSC's cost of goods?
 
 ## Related
 
