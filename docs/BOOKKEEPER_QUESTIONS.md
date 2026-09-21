@@ -81,7 +81,16 @@ from them, so agree the format now.
 
 ## 5. The SKU renaming
 
-> **Answered 2026-09-21 (Chip):** SKUs are being finalised. **The historical-invoice question below is still open and is the one that decides whether the reimport actually closes the $6.1M gap.**
+> **Answered 2026-09-21 (Chip):** SKUs are being imported **into QuickBooks first**, so the
+> exports will carry the new names.
+>
+> **This looks like good news for the $6.1M gap.** Renaming an item in QuickBooks Desktop
+> updates that item everywhere it is referenced, including on historical transactions — so
+> a fresh export should carry new names on old invoices too. Worth confirming with the
+> bookkeeper rather than assuming, and *merged* items behave differently from renamed ones.
+>
+> Confirmed: **all data here gets cleared when the real data comes in.** Backups and a
+> tested restore are in place as of 2026-09-18.
 
 - How far along is it, and when will it be finished?
 - Will every QuickBooks item name then match the product spreadsheet exactly?
@@ -96,7 +105,16 @@ from them, so agree the format now.
 
 ## 6. Sales tax
 
-> **Answered 2026-09-21 (Chip):** USSCOS needs to handle sales tax. That makes every question below live rather than hypothetical.
+> **Answered 2026-09-21 (Chip):** USSCOS needs to handle sales tax. QuickBooks calculates
+> it today. **Only two states: Georgia and North Carolina.** Unsure whether the bookkeeper
+> or the accountant files — ask. Avalara/TaxJar not in use and not familiar.
+>
+> **This changes the recommendation.** The spec assumes genuinely multi-state selling and
+> tells us to buy a tax API. At two states that is the wrong trade — Avalara and TaxJar
+> price for dozens of jurisdictions and constant nexus change. Two states can be a rate
+> table we maintain. The catch is that **GA and NC both have county/local rates on top of
+> the state rate**, so it is not two numbers. Find out how QuickBooks is set up before
+> assuming anything.
 
 - How many states do you currently file in?
 - Who calculates the tax on an invoice today — QuickBooks, a person, or a lookup?
@@ -110,7 +128,18 @@ from them, so agree the format now.
 
 ## 7. Inventory, as it stands today
 
-> **Answered 2026-09-21 (Chip):** inventory will be kept in USSCOS. Note this settles **quantity**, not **valuation** — see `ACCOUNTANT_QUESTIONS.md` §1a, still open.
+> **Answered 2026-09-21 (Chip):** inventory will be kept in USSCOS. QuickBooks tracks it
+> today but **the numbers are not reliable**; counting is manual and occasional.
+>
+> **Agreed plan:** do a full physical count at cutover, seed USSCOS with accurate figures,
+> and USSCOS maintains them from there. That is the right sequence — starting from known
+> numbers rather than importing figures nobody trusts.
+>
+> Paint production currently goes into **a separate program**, which we would eventually
+> want to fold into USSCOS. That program is the WIP/batch piece of the spec (§4.8).
+>
+> Still open: **valuation**, not quantity — `ACCOUNTANT_QUESTIONS.md` §1a. And whether any
+> per-product cost exists today.
 
 Related to `ACCOUNTANT_QUESTIONS.md` §1a, but this is the practical half.
 
