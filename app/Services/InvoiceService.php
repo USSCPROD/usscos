@@ -166,20 +166,62 @@ class InvoiceService extends Service
             ':rep_id'           => !empty($so['rep_id']) ? (int)$so['rep_id'] : null,
         ]);
 
-        // Copy SO line items onto the invoice
-        $soLines = $this->soRepo->getLineItems($soId);
-        $lines   = array_map(fn($li) => [
-            'product_id'      => $li['product_id'],
-            'quickbooks_item' => $li['quickbooks_item'] ?? null,
-            'description'     => $li['description'],
-            'qty'             => $li['qty_ordered'] ?? $li['qty'] ?? 1,
-            'uom_id'          => $li['uom_id'],
-            'unit_price'      => $li['unit_price'],
-            'discount_pct'    => $li['discount_pct'] ?? 0,
-            'is_taxable'      => $li['taxable'] ?? $li['is_taxable'] ?? 0,
-            'line_total'      => $li['line_total'],
-        ], $soLines);
+        // Copy SO line items onto the invoice.
+        //
+        // Invoice what was PICKED, not what was ordered — otherwise a picker who finds
+        // only 4 of 10 cases still bills the customer for 10, and the scan-to-verify step
+        // catches the error while the invoice repeats it.
+        //
+        // Orders that never went through picking keep the old behaviour and invoice the
+        // ordered quantity, so nothing that bypasses the shipping station changes.
+        $soLines  = $this->soRepo->getLineItems($soId);
+        $wasPicked = in_array($so['pick_status'] ?? 'not_started', ['in_progress', 'ready', 'short'], true);
+
+        $lines     = [];
+        $shortfall = false;
+
+        foreach ($soLines as $li) {
+            $ordered = (float)($li['qty_ordered'] ?? $li['qty'] ?? 1);
+            $picked  = (float)($li['qty_picked'] ?? 0);
+            $qty     = $wasPicked ? $picked : $ordered;
+
+            if ($qty < $ordered) {
+                $shortfall = true;
+            }
+
+            // Nothing picked on this line means nothing shipped, so it does not belong on
+            // the invoice at all. The line stays open on the sales order.
+            if ($wasPicked && $qty <= 0) {
+                continue;
+            }
+
+            $unitPrice = (float)$li['unit_price'];
+            $discount  = (float)($li['discount_pct'] ?? 0);
+
+            $lines[] = [
+                'product_id'      => $li['product_id'],
+                'quickbooks_item' => $li['quickbooks_item'] ?? null,
+                'description'     => $li['description'],
+                'qty'             => $qty,
+                'uom_id'          => $li['uom_id'],
+                'unit_price'      => $unitPrice,
+                'discount_pct'    => $discount,
+                'is_taxable'      => $li['taxable'] ?? $li['is_taxable'] ?? 0,
+                // Recalculated from the shipped quantity — the stored line_total is for
+                // the ordered quantity and would be wrong on a short ship.
+                'line_total'      => round($qty * $unitPrice * (1 - $discount / 100), 2),
+            ];
+        }
+
         $this->invoices->replaceLineItems($invoiceId, $lines);
+
+        // Totals follow the lines actually invoiced. Uses the same tax rate the order was
+        // priced at — `tax_rate_pct` comes from the joined tax_rates row and is a fraction,
+        // so 0.07 means 7%.
+        if ($wasPicked && $shortfall) {
+            $taxRatePct = (float)($so['tax_rate_pct'] ?? 0) * 100;
+            $this->invoices->updateTotals($invoiceId, $this->calcTotals($lines, $taxRatePct));
+        }
 
         // Apply prepayment if the SO was already paid
         $isPrepaid = ($so['status'] ?? '') === 'paid' && !empty($so['payment_amount']);
@@ -195,8 +237,10 @@ class InvoiceService extends Service
             }
         }
 
-        // Close the sales order
-        $this->soRepo->setStatus($soId, 'invoiced');
+        // Close the sales order — but only if everything went out. A short ship leaves it
+        // `partially_shipped` so the remainder can be shipped later, rather than
+        // disappearing from the open list with product still owed.
+        $this->soRepo->setStatus($soId, ($wasPicked && $shortfall) ? 'partially_shipped' : 'invoiced');
 
         return $invoiceId;
     }

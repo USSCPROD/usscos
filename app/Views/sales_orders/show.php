@@ -81,6 +81,45 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
     <div style="background:#fff;border-radius:10px;padding:28px 32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.25)">
         <h3 style="margin:0 0 6px;color:#222b59;font-size:1.1rem">Ship &amp; Invoice — SO #<?= e($so['so_number']) ?></h3>
         <p style="margin:0 0 18px;font-size:.85rem;color:#6b7280">Creates the invoice from this order<?= $isPaid ? ' (payment already collected — invoice will show paid)' : '' ?> and closes the sales order.</p>
+
+            <?php
+            // State what will actually be invoiced. Silence here is how a short pick turns
+            // into a wrong invoice.
+            $pickState  = $so['pick_status'] ?? 'not_started';
+            $pickedQty  = 0.0;
+            $orderedQty = 0.0;
+            foreach ($line_items ?? [] as $pli) {
+                $orderedQty += (float)($pli['qty_ordered'] ?? 0);
+                $pickedQty  += (float)($pli['qty_picked'] ?? 0);
+            }
+            $n = fn($v) => rtrim(rtrim(number_format((float)$v, 2), '0'), '.');
+            ?>
+
+            <?php if ($pickState === 'short'): ?>
+                <div style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:6px;padding:.7rem .85rem;margin-bottom:16px;font-size:.85rem">
+                    <strong>Flagged short by shipping.</strong>
+                    <?= !empty($so['pick_note']) ? '<br>"' . e($so['pick_note']) . '"' : '' ?>
+                    <br>Only what was picked (<?= $n($pickedQty) ?> of <?= $n($orderedQty) ?>) will be
+                    invoiced, and the order stays open for the rest.
+                </div>
+            <?php elseif ($pickState === 'in_progress'): ?>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:6px;padding:.7rem .85rem;margin-bottom:16px;font-size:.85rem">
+                    <strong>Still being picked.</strong> Only the <?= $n($pickedQty) ?> picked so far
+                    will be invoiced. Finish picking unless you mean to ship a partial.
+                </div>
+            <?php elseif ($pickState === 'not_started'): ?>
+                <div style="background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;border-radius:6px;padding:.7rem .85rem;margin-bottom:16px;font-size:.85rem">
+                    Not picked through the shipping station — the full ordered quantity will be
+                    invoiced.
+                    <a href="/shipping/<?= (int)$so['id'] ?>/pick" style="color:#0A3D91">Pick it first</a>
+                    to verify what actually ships.
+                </div>
+            <?php else: ?>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:6px;padding:.7rem .85rem;margin-bottom:16px;font-size:.85rem">
+                    <strong>Picked and verified</strong> — <?= $n($pickedQty) ?> of <?= $n($orderedQty) ?>
+                    confirmed by scan.
+                </div>
+            <?php endif; ?>
         <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/ship">
         <?= csrf_field() ?>
             <div style="margin-bottom:14px">
