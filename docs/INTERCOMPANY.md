@@ -77,7 +77,7 @@ is being cleared and reloaded anyway.
 | Shared products? | **No. TCC holds raw materials, USSC holds finished goods.** |
 | Does TCC sell to anyone else? | **No, only USSC.** |
 | Can anyone see both entities? | **Yes — upper management.** |
-| One QuickBooks file or two? | **Two, currently.** |
+| One QuickBooks file or two? | **Two currently — the intent is to move to one.** |
 
 ### What follows from those answers
 
@@ -108,6 +108,26 @@ becomes a set of permitted entities rather than a single value.
 does not need customer management, quoting, or a CRM. Its side of USSCOS is purchasing,
 production and one recurring sale.
 
+### A third party in the chain — the canning company
+
+The flow is not just TCC → USSC. For aerosol:
+
+```
+TCC makes the paint
+  → USSC semi takes totes to a CANNING COMPANY
+    → cans are filled
+      → USSC collects the finished aerosol later
+```
+
+Bulk is simpler: TCC makes it and the semi brings it the mile to USSC. Sometimes a
+shipping company collects instead of our own semi.
+
+This matters because the paint spends time in a facility **neither entity owns**, and a
+tote of paint does not become an exact number of cases — so quantity changes there as well
+as at batch yield. Who owns the stock while it sits at the canner is the question that
+decides whose inventory it is. Captured in
+[OPERATIONS_DISCOVERY.md](OPERATIONS_DISCOVERY.md) for the operations manager.
+
 ### Still open
 
 - **Transfer pricing** — at what price does TCC invoice USSC? Cost-plus, or a set
@@ -118,6 +138,11 @@ production and one recurring sale.
   Does anyone need a consolidated view, or only each entity separately?
 - **Markov** — what it is, whether it exports, integrate vs rebuild.
 - **Freight** — is inbound freight from TCC to USSC part of USSC's cost of goods?
+- **One QuickBooks file for two legal entities** — the stated intent. Possible, but the
+  two companies file separately (TCC yearly, USSC monthly), so the file needs to keep them
+  cleanly apart — usually via classes. Worth the accountant's view before it is done,
+  since getting it wrong is painful to unpick. Good news for USSCOS: it would mean **one**
+  sync pipeline rather than two.
 
 ## Related
 
