@@ -7,6 +7,10 @@ it. Written 2026-09-21.
 Best format: walk it once out loud, start to finish, for **one bulk order and one aerosol
 order**. Those are different routes and the aerosol one involves a third party.
 
+> **For the conversation itself, use [OPERATIONS_INTERVIEW.md](OPERATIONS_INTERVIEW.md)** —
+> the same ground, in the order the paint moves, written to be read aloud. This document is
+> the reference behind it, explaining why each answer is needed.
+
 What is already known, so it does not need re-explaining:
 
 - USSC raises a PO to TCC. TCC produces. TCC invoices USSC.
