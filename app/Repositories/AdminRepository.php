@@ -112,6 +112,19 @@ class AdminRepository
                 ['customers', 'customer_type', 'customers', 'name'],
             ],
         ],
+        'locations' => [
+            'table'     => 'stock_locations',
+            'label'     => 'Location',
+            'name_col'  => 'name',
+            'redirect'  => '/admin/locations',
+            'deletable' => true,
+            'refs'      => [
+                ['product_stock',          'location_id',      'stock records'],
+                ['inventory_transactions', 'from_location_id', 'movements out'],
+                ['inventory_transactions', 'to_location_id',   'movements in'],
+                ['stock_locations',        'parent_id',        'child locations'],
+            ],
+        ],
         'users' => [
             'table'     => 'users',
             'label'     => 'User',
@@ -121,6 +134,116 @@ class AdminRepository
             'refs'      => [],
         ],
     ];
+
+    // ------------------------------------------------------------ stock locations
+
+    /**
+     * Every location, ordered as a tree — warehouse, then its bays, then their racks.
+     *
+     * Built in PHP rather than with a recursive query: the list is small, and sorting a
+     * handful of rows by hand is clearer than a CTE nobody will want to edit later.
+     * `depth` comes back with each row so the view can indent without recalculating it.
+     */
+    public function allLocations(): array
+    {
+        $rows = Database::select("
+            SELECT l.*,
+                   (SELECT COUNT(*) FROM product_stock ps WHERE ps.location_id = l.id AND ps.qty_on_hand <> 0) AS products_here,
+                   (SELECT COALESCE(SUM(ps.qty_on_hand), 0) FROM product_stock ps WHERE ps.location_id = l.id) AS units_here
+            FROM stock_locations l
+            ORDER BY l.sort_order, l.code
+        ");
+
+        $byParent = [];
+        foreach ($rows as $r) {
+            $byParent[$r['parent_id'] ?? 0][] = $r;
+        }
+
+        $out = [];
+        $walk = function (?int $parent, int $depth) use (&$walk, &$out, $byParent) {
+            foreach ($byParent[$parent ?? 0] ?? [] as $row) {
+                $row['depth'] = $depth;
+                $out[] = $row;
+                $walk((int)$row['id'], $depth + 1);
+            }
+        };
+        $walk(null, 0);
+
+        return $out;
+    }
+
+    public function findLocation(int $id): ?array
+    {
+        $row = Database::selectOne("SELECT * FROM stock_locations WHERE id = ?", [$id]);
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Locations that can be a parent, excluding the one being edited and its descendants —
+     * otherwise a location could be made its own ancestor and the tree would never
+     * terminate.
+     */
+    public function locationParentOptions(?int $excludeId = null): array
+    {
+        $all = $this->allLocations();
+
+        if ($excludeId === null) {
+            return array_values(array_filter($all, fn($l) => $l['location_type'] !== 'transit'));
+        }
+
+        $banned = [$excludeId];
+        foreach ($all as $l) {
+            if (in_array((int)($l['parent_id'] ?? 0), $banned, true)) {
+                $banned[] = (int)$l['id'];
+            }
+        }
+
+        return array_values(array_filter(
+            $all,
+            fn($l) => !in_array((int)$l['id'], $banned, true) && $l['location_type'] !== 'transit'
+        ));
+    }
+
+    public function insertLocation(array $d): int
+    {
+        $pdo = Database::connection();
+        $pdo->prepare("
+            INSERT INTO stock_locations (parent_id, code, name, location_type, sort_order, notes, is_active)
+            VALUES (:parent, :code, :name, :type, :sort, :notes, :active)
+        ")->execute($this->locationParams($d));
+
+        return (int)$pdo->lastInsertId();
+    }
+
+    public function updateLocation(int $id, array $d): void
+    {
+        $params = $this->locationParams($d);
+        $params[':id'] = $id;
+
+        Database::connection()->prepare("
+            UPDATE stock_locations
+            SET parent_id = :parent, code = :code, name = :name, location_type = :type,
+                sort_order = :sort, notes = :notes, is_active = :active
+            WHERE id = :id
+        ")->execute($params);
+    }
+
+    private function locationParams(array $d): array
+    {
+        $types = ['warehouse', 'bay', 'rack', 'bin', 'transit', 'staging'];
+        $type  = in_array($d['location_type'] ?? '', $types, true) ? $d['location_type'] : 'bay';
+
+        return [
+            ':parent' => ($d['parent_id'] ?? '') !== '' ? (int)$d['parent_id'] : null,
+            ':code'   => strtoupper(trim((string)($d['code'] ?? ''))),
+            ':name'   => trim((string)($d['name'] ?? '')),
+            ':type'   => $type,
+            ':sort'   => (int)($d['sort_order'] ?? 0),
+            ':notes'  => trim((string)($d['notes'] ?? '')) ?: null,
+            ':active' => (int)(bool)($d['is_active'] ?? 1),
+        ];
+    }
 
     /** Config for an admin entity slug, or null if the slug isn't one we manage. */
     public function entityConfig(string $slug): ?array

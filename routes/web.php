@@ -233,6 +233,12 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/admin/sales-reps/{id}/edit',               [AdminController::class, 'salesRepsEdit'])->name('admin.sales_reps.edit');
     Router::post('/admin/sales-reps/{id}/edit',              [AdminController::class, 'salesRepsUpdate'])->name('admin.sales_reps.update');
 
+    Router::get('/admin/locations',                          [AdminController::class, 'locations'])->name('admin.locations');
+    Router::get('/admin/locations/create',                   [AdminController::class, 'locationsCreate'])->name('admin.locations.create');
+    Router::post('/admin/locations',                         [AdminController::class, 'locationsStore'])->name('admin.locations.store');
+    Router::get('/admin/locations/{id}/edit',                [AdminController::class, 'locationsEdit'])->name('admin.locations.edit');
+    Router::post('/admin/locations/{id}/edit',               [AdminController::class, 'locationsUpdate'])->name('admin.locations.update');
+
     Router::get('/admin/ship-via',                           [AdminController::class, 'shipVia'])->name('admin.ship_via');
     Router::get('/admin/ship-via/create',                    [AdminController::class, 'shipViaCreate'])->name('admin.ship_via.create');
     Router::post('/admin/ship-via',                          [AdminController::class, 'shipViaStore'])->name('admin.ship_via.store');

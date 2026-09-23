@@ -189,6 +189,75 @@ class AdminController extends Controller
         return $response->redirect('/admin/sales-reps');
     }
 
+    // -------------------------------------------------------------------------
+    // Stock locations
+    // -------------------------------------------------------------------------
+
+    public function locations(Request $request, Response $response): Response
+    {
+        return $this->view('admin.locations', [
+            'title'     => 'Locations — Admin',
+            'items'     => $this->repo->allLocations(),
+            'refCounts' => $this->repo->entityReferenceCounts('locations'),
+        ]);
+    }
+
+    public function locationsCreate(Request $request, Response $response): Response
+    {
+        return $this->view('admin.locations_form', [
+            'title'   => 'Add Location',
+            'item'    => null,
+            'parents' => $this->repo->locationParentOptions(),
+        ]);
+    }
+
+    public function locationsStore(Request $request, Response $response): Response
+    {
+        if (trim($_POST['name'] ?? '') === '' || trim($_POST['code'] ?? '') === '') {
+            Session::flash('error', 'A location needs a code and a name.');
+            return $response->redirect('/admin/locations/create');
+        }
+
+        $this->repo->insertLocation($_POST);
+        Session::flash('success', 'Location added.');
+
+        return $response->redirect('/admin/locations');
+    }
+
+    public function locationsEdit(Request $request, Response $response, string $id = '0'): Response
+    {
+        $item = $this->repo->findLocation((int)$id);
+
+        if ($item === null) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        return $this->view('admin.locations_form', [
+            'title'   => 'Edit ' . $item['name'],
+            'item'    => $item,
+            'parents' => $this->repo->locationParentOptions((int)$id),
+        ]);
+    }
+
+    public function locationsUpdate(Request $request, Response $response, string $id = '0'): Response
+    {
+        $item = $this->repo->findLocation((int)$id);
+
+        if ($item === null) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        if (trim($_POST['name'] ?? '') === '' || trim($_POST['code'] ?? '') === '') {
+            Session::flash('error', 'A location needs a code and a name.');
+            return $response->redirect('/admin/locations/' . (int)$id . '/edit');
+        }
+
+        $this->repo->updateLocation((int)$id, $_POST);
+        Session::flash('success', 'Location updated.');
+
+        return $response->redirect('/admin/locations');
+    }
+
     public function shipVia(Request $request, Response $response): Response
     {
         return $this->view('admin.ship_via', [
