@@ -220,7 +220,8 @@
       "Bash(sed -e 's/WHERE units_per_case > 1 ORDER BY id LIMIT 1/WHERE sku IS NOT NULL AND sku <> \\\\x27\\\\x27 ORDER BY id LIMIT 1/' -e 's/'\\\\''case'\\\\''\\);/'\\\\''unit'\\\\''\\);/' -e 's/\\(per case {\\\\$p\\\\[.units_per_case.\\\\]}, /\\(/' /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/rectest.php)",
       "Bash(sed -i '' 's/\\\\$look\\\\[.suggested_qty.\\\\] - 2/$look[\"suggested_qty\"] + 5/' /tmp/rectest2.php)",
       "Bash(scp -q /tmp/rectest2.php root@159.223.177.58:/tmp/rectest2.php)",
-      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/rendertest.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/rendertest.php root@159.223.177.58:/tmp/)",
+      "Bash(php -l app/Services/ReceivingService.php)"
     ]
   }
 }

@@ -54,8 +54,15 @@ class ReceivingService
             'case'   => $perCase > 0
                 ? [(float)$perCase, $perCase . ' per case']
                 : [1.0, 'no case quantity on this product — enter units'],
+            // A pail or a drum has no intermediate pack (units_per_case is 1), so say
+            // "24 per pallet" rather than the nonsense "24 packs x 1 per pallet".
             'pallet' => ($perCase > 0 && $palletPacks > 0)
-                ? [(float)$perCase * $palletPacks, $palletPacks . ' packs x ' . $perCase . ' per pallet']
+                ? [
+                    (float)$perCase * $palletPacks,
+                    $perCase > 1
+                        ? $palletPacks . ' packs x ' . $perCase . ' per pallet'
+                        : $palletPacks . ' per pallet',
+                ]
                 : [1.0, 'no pallet quantity on this product — enter units'],
             default  => [1.0, 'single unit'],
         };
