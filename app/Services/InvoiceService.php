@@ -58,6 +58,27 @@ class InvoiceService extends Service
 
     public function store(int $userId, array $post): int
     {
+        // Invoice, lines and the stock they move are one event — see the note on
+        // shipAndInvoice().
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+
+        try {
+            $invoiceId = $this->storeWithin($userId, $post);
+            $pdo->commit();
+
+            return $invoiceId;
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /** The body of store(), which always runs inside its transaction. */
+    private function storeWithin(int $userId, array $post): int
+    {
         $lines  = $this->parseLines($post);
         $totals = $this->calcTotals($lines, (float)($post['tax_rate_pct'] ?? 0));
         $soId   = ($post['sales_order_id'] ?? '') !== '' ? (int)$post['sales_order_id'] : null;
@@ -90,6 +111,15 @@ class InvoiceService extends Service
         ]);
 
         $this->invoices->replaceLineItems($invoiceId, $lines);
+
+        // An invoice written directly — a counter sale, a correction — is still goods
+        // leaving the building, so it moves stock exactly as a shipment does.
+        $this->stock->syncInvoice($invoiceId, $lines, [
+            'type'          => 'sale',
+            'reference_num' => $post['invoice_number'] ?? null,
+            'user_id'       => $userId,
+            'date'          => $post['invoice_date'] ?? null,
+        ]);
 
         if ($soId) {
             // Check if pre-paid before flipping status
@@ -315,6 +345,23 @@ class InvoiceService extends Service
 
     public function update(int|string $id, array $post, string $userRole = 'user'): void
     {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+
+        try {
+            $this->updateWithin($id, $post, $userRole);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /** The body of update(), which always runs inside its transaction. */
+    private function updateWithin(int|string $id, array $post, string $userRole = 'user'): void
+    {
         $invoice = $this->invoices->findWithDetails((int)$id);
         if (!$invoice) {
             throw new \RuntimeException('Invoice not found.');
@@ -351,6 +398,14 @@ class InvoiceService extends Service
             $totals = $this->calcTotals($lines, (float)($post['tax_rate_pct'] ?? 0));
             $this->invoices->replaceLineItems((int)$id, $lines);
             $this->invoices->updateTotals((int)$id, $totals);
+
+            // Keep stock in step with the corrected invoice. Only the difference moves:
+            // ten down to eight puts two back, and a line added takes it out.
+            $this->stock->syncInvoice((int)$id, $lines, [
+                'type'          => 'sale',
+                'reference_num' => $invoice['invoice_number'] ?? null,
+                'notes'         => 'Invoice edited — stock brought back in line',
+            ]);
         }
     }
 

@@ -246,6 +246,100 @@ class StockRepository
         }
     }
 
+    /**
+     * How much has already moved for one invoice, per product.
+     *
+     * Signed the way the transaction log stores it, so a negative number means that much
+     * has gone out. Lets a second look at the same invoice work out the difference rather
+     * than moving the stock all over again.
+     *
+     * @return array<int,float> net signed quantity, keyed by product id
+     */
+    public function netMovedForInvoice(int $invoiceId): array
+    {
+        $rows = Database::select("
+            SELECT product_id, SUM(qty) AS net
+            FROM inventory_transactions
+            WHERE reference_type = 'invoice' AND reference_id = ?
+            GROUP BY product_id
+        ", [$invoiceId]);
+
+        $net = [];
+        foreach ($rows as $r) {
+            $net[(int)$r['product_id']] = (float)$r['net'];
+        }
+
+        return $net;
+    }
+
+    /**
+     * Put stock back, where an invoice has been corrected downwards.
+     *
+     * It goes back to the locations this invoice took it from, most recent first, because
+     * that is where it physically is — somebody carried it back to the shelf it came off.
+     * Only if the original movements are gone does it fall back to the main warehouse.
+     *
+     * @return list<array{location_id:int, qty:float}>
+     */
+    public function restore(int $productId, float $qty, array $m = []): array
+    {
+        if ($qty <= 0) {
+            return [];
+        }
+
+        $sources = Database::select("
+            SELECT from_location_id, SUM(-qty) AS taken
+            FROM inventory_transactions
+            WHERE reference_type = 'invoice' AND reference_id = ?
+              AND product_id = ? AND from_location_id IS NOT NULL AND qty < 0
+            GROUP BY from_location_id
+            ORDER BY MAX(id) DESC
+        ", [$m['reference_id'] ?? 0, $productId]);
+
+        $remaining = $qty;
+        $puts      = [];
+
+        foreach ($sources as $s) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $put = min($remaining, (float)$s['taken']);
+            $puts[] = ['location_id' => (int)$s['from_location_id'], 'qty' => $put];
+            $remaining -= $put;
+        }
+
+        if ($remaining > 0.0001) {
+            $fallback = $this->defaultWarehouseId();
+
+            if ($fallback === null) {
+                throw new \RuntimeException(
+                    'No stock location to return to — add a warehouse under Admin > Locations.'
+                );
+            }
+
+            $puts[] = ['location_id' => $fallback, 'qty' => $remaining];
+        }
+
+        foreach ($puts as $p) {
+            $this->applyMovement([
+                'product_id'     => $productId,
+                'qty'            => $p['qty'],
+                // Not a customer return — nothing came back from a customer. The invoice
+                // was corrected, so this is an adjustment that happens to reference it.
+                'type'           => 'adjustment',
+                'to_location_id' => $p['location_id'],
+                'reference_type' => 'invoice',
+                'reference_id'   => $m['reference_id']  ?? null,
+                'reference_num'  => $m['reference_num'] ?? null,
+                'notes'          => $m['notes'] ?? 'Invoice reduced — stock put back',
+                'user_id'        => $m['user_id'] ?? null,
+            ]);
+        }
+
+        return $puts;
+    }
+
     /** The warehouse to fall back on when a product is recorded at no location at all. */
     public function defaultWarehouseId(): ?int
     {

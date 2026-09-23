@@ -230,7 +230,11 @@
       "Bash(git commit *)",
       "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/shiptest.php root@159.223.177.58:/tmp/)",
       "Bash(sed -i '' \"s/'open', 'short'/'confirmed', 'short'/\" shiptest.php)",
-      "Bash(scp -q shiptest.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q shiptest.php root@159.223.177.58:/tmp/)",
+      "Bash(sed -i '' 's/'\\\\''line_item'\\\\''    => \\\\[$prod\\\\['\\\\''id'\\\\''\\\\], $svc\\\\['\\\\''id'\\\\''\\\\] ?? '\\\\'''\\\\''\\\\],/'\\\\''line_product_id'\\\\'' => [$prod['\\\\''id'\\\\''], $svc['\\\\''id'\\\\''] ?? '\\\\'''\\\\''],/' invtest.php)",
+      "Bash(sed -i '' 's/$post\\\\['\\\\''line_item'\\\\''\\\\] = \\\\[$svc\\\\['\\\\''id'\\\\''\\\\] ?? '\\\\'''\\\\''\\\\];/$post['\\\\''line_product_id'\\\\''] = [$svc['\\\\''id'\\\\''] ?? '\\\\'''\\\\''];/' invtest.php)",
+      "Bash(scp -q invtest.php root@159.223.177.58:/tmp/)",
+      "Bash(scp -q /tmp/guard.php root@159.223.177.58:/tmp/)"
     ]
   }
 }
