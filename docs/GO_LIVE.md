@@ -91,6 +91,55 @@ movement screens exist, not before — otherwise the count is stale before anyon
 
 ---
 
+## 2a. Order channels, priority, and orders that cannot ship
+
+Recorded 2026-09-23.
+
+### Amazon orders come straight in, and jump the queue
+
+Today Amazon orders are printed and **typed into QuickBooks only** — they never reach
+USSCOS. When the integration is built they should arrive here **directly as sales orders,
+labelled Amazon**.
+
+**They carry a same-day ship obligation**, so they outrank everything else in the queue.
+That is a harder deadline than a phone order and it cannot depend on someone remembering
+which printout came from Amazon.
+
+Practically this means:
+
+- A **channel** on every order — direct, Amazon, website, pickup, EDI
+- A **priority**, defaulting to urgent for Amazon
+- A **ship-by time, not just a date** — "today" stops being useful at about 3pm, and the
+  queue needs to show what is at risk while there is still time to act
+- Shipment confirmed back to Amazon with tracking inside their window, since late
+  confirmation affects account standing
+
+### Orders that cannot be fulfilled need to be a list
+
+Wanted: a way to see, from stock, **which sales orders cannot be filled** — rather than
+finding out one at a time at the shelf, which is what happens now.
+
+What that needs:
+
+- Availability per line: stock on hand, less what is already committed to other orders
+- A verdict per order: fully fillable, partly, or not at all
+- **Which product is blocking it** — the question actually asked is "what are we waiting
+  on", not "is this order blocked"
+- Re-checked when stock arrives, so a receipt **releases** the orders it unblocks instead
+  of Hannah checking the pile
+
+This is the same list production needs in order to know what to make, viewed from the
+other end. One calculation, two audiences.
+
+### A correction worth recording
+
+An earlier note inferred from "1 open sales order" that backorders must be tracked outside
+USSCOS. That was wrong. **USSCOS is still in testing** — there are no real orders in it
+yet, so counts from it describe the test data and nothing else. Worth remembering before
+drawing conclusions from any live figure in this system.
+
+---
+
 ## 2. Sales orders and the shipping queue
 
 ### Does a new order reach shipping automatically? No.
