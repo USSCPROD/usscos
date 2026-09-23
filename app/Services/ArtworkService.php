@@ -23,6 +23,7 @@ class ArtworkService
 
     public function __construct(
         private ArtworkRepository $repo = new ArtworkRepository(),
+        private JobFileStore $files = new JobFileStore(),
     ) {
     }
 
@@ -135,70 +136,9 @@ class ArtworkService
         $this->repo->deactivateArtwork($artworkId);
     }
 
-    /**
-     * Validate and store one uploaded file under public/uploads/jobs/<so>/.
-     *
-     * Mirrors the product-document handling: the stored name is generated server-side,
-     * extensions are whitelisted, and only the web path is returned for the database.
-     * nginx refuses to execute anything in that tree.
-     *
-     * @return array{path:string,name:string,size:int,mime:?string}
-     * @throws \RuntimeException
-     */
+    /** Storing the file itself is shared with job documents — see JobFileStore. */
     private function storeUpload(?array $file, int $salesOrderId): array
     {
-        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            throw new \RuntimeException('Choose a file to upload.');
-        }
-
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            throw new \RuntimeException(match ((int)$file['error']) {
-                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'That file is too large for the server to accept.',
-                UPLOAD_ERR_PARTIAL                        => 'The upload was interrupted — please try again.',
-                default                                   => 'Upload failed (error ' . (int)$file['error'] . ').',
-            });
-        }
-
-        if (!is_uploaded_file($file['tmp_name'])) {
-            throw new \RuntimeException('Invalid upload.');
-        }
-
-        if ((int)$file['size'] > self::MAX_BYTES) {
-            throw new \RuntimeException('File is too large. Maximum is ' . round(self::MAX_BYTES / 1048576) . ' MB.');
-        }
-
-        $original = (string)$file['name'];
-        $ext      = strtolower(pathinfo($original, PATHINFO_EXTENSION));
-
-        if (!in_array($ext, self::ALLOWED_EXT, true)) {
-            throw new \RuntimeException(
-                'File type ".' . $ext . '" is not allowed. Accepted: ' . implode(', ', self::ALLOWED_EXT) . '.'
-            );
-        }
-
-        $dir = BASE_PATH . '/public/uploads/jobs/' . $salesOrderId;
-
-        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-            throw new \RuntimeException('Could not create the upload folder.');
-        }
-
-        $base = pathinfo($original, PATHINFO_FILENAME);
-        $slug = trim(strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $base) ?? ''), '-');
-        $slug = substr($slug !== '' ? $slug : 'artwork', 0, 60);
-
-        $filename = $slug . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
-
-        if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $filename)) {
-            throw new \RuntimeException('Could not save the uploaded file.');
-        }
-
-        @chmod($dir . '/' . $filename, 0644);
-
-        return [
-            'path' => '/uploads/jobs/' . $salesOrderId . '/' . $filename,
-            'name' => $original,
-            'size' => (int)$file['size'],
-            'mime' => $file['type'] ?? null,
-        ];
+        return $this->files->store($file, $salesOrderId, self::ALLOWED_EXT, self::MAX_BYTES, 'artwork');
     }
 }

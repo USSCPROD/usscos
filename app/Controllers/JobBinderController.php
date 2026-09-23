@@ -9,21 +9,49 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Services\ArtworkService;
+use App\Services\JobDocumentService;
 
 /**
  * The Digital Job Binder — everything about a job, hung off its sales order.
  *
- * Artwork first: proofs and mockups with full revision history and an approval trail.
- * Production notes, QA and photos will join it here.
+ * Artwork: proofs and mockups with full revision history and an approval trail.
+ * Documents: the paperwork on the job, the customer's purchase order above all.
+ *
+ * Both hang off the sales order rather than off its status, so the binder stays with the
+ * job for good — invoicing does not close it, and an invoice links back to its order.
  */
 class JobBinderController extends Controller
 {
     private ArtworkService $artwork;
+    private JobDocumentService $documents;
 
     public function __construct()
     {
         parent::__construct();
-        $this->artwork = new ArtworkService();
+        $this->artwork   = new ArtworkService();
+        $this->documents = new JobDocumentService();
+    }
+
+    /** File a document against the job — a customer PO, a BOL, a signed proof. */
+    public function storeDocument(Request $request, Response $response, string $id = '0'): Response
+    {
+        try {
+            $this->documents->add((int)$id, $_POST, $_FILES['document_file'] ?? null);
+            Session::flash('success', 'Filed on the job binder.');
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        return $response->redirect('/sales-orders/' . (int)$id . '#documents');
+    }
+
+    /** Take a document off the binder. The file and the record are kept. */
+    public function removeDocument(Request $request, Response $response, string $id = '0', string $documentId = '0'): Response
+    {
+        $this->documents->remove((int)$documentId);
+        Session::flash('success', 'Removed from the binder.');
+
+        return $response->redirect('/sales-orders/' . (int)$id . '#documents');
     }
 
     /** Add a new artwork item, with its first revision. */

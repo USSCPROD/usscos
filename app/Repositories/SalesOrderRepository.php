@@ -252,6 +252,12 @@ class SalesOrderRepository
         $stmt->execute([':qty' => $qty, ':id' => $lineId]);
     }
 
+    public function setPoNumber(int $id, string $poNumber): void
+    {
+        $stmt = $this->pdo->prepare("UPDATE sales_orders SET po_number = :po WHERE id = :id");
+        $stmt->execute([':po' => $poNumber, ':id' => $id]);
+    }
+
     public function setStatus(int $id, string $status): void
     {
         $stmt = $this->pdo->prepare("UPDATE sales_orders SET status = :status WHERE id = :id");

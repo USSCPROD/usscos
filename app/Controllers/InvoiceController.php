@@ -93,6 +93,8 @@ class InvoiceController extends Controller
     {
         try {
             $data = $this->service->show((int)$id);
+        } catch (\PDOException $e) {
+            throw $e;                 // PDOException extends RuntimeException — let real DB errors surface
         } catch (\RuntimeException) {
             return $this->view('errors.404', ['title' => 'Not Found'], 404);
         }

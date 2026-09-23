@@ -13,6 +13,7 @@ use App\Core\Response;
 use App\Core\Session;
 use App\Repositories\SalesOrderRepository;
 use App\Services\ArtworkService;
+use App\Services\JobDocumentService;
 use App\Services\SalesOrderService;
 
 class SalesOrderController extends Controller
@@ -50,12 +51,14 @@ class SalesOrderController extends Controller
             return $this->view('errors.404', ['title' => 'Not Found'], 404);
         }
 
-        $artwork = new ArtworkService();
+        $artwork   = new ArtworkService();
+        $documents = new JobDocumentService();
 
         return $this->view('sales_orders.show', [
             'title'         => 'Sales Order #' . $data['so']['so_number'],
             'artwork'       => $artwork->forSalesOrder((int)$id),
             'artworkCounts' => $artwork->counts((int)$id),
+            'jobDocuments'  => $documents->forSalesOrder((int)$id),
             ...$data,
         ]);
     }

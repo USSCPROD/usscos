@@ -276,6 +276,12 @@ function invReadBox(): string {
                 <?php else: ?>
                     <div style="<?= invReadBox() ?>"><?= e($inv['po_number'] ?? '—') ?></div>
                 <?php endif; ?>
+                <?php if (!empty($customer_po)): ?>
+                    <a href="<?= e($customer_po['file_path']) ?>" target="_blank" rel="noopener"
+                       style="display:inline-block;margin-top:.35rem;font-size:.78rem;color:#0A3D91;text-decoration:none">
+                        View customer PO
+                    </a>
+                <?php endif; ?>
             </td>
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:25%">
                 <div style="<?= invLbl() ?>">Ship Via</div>

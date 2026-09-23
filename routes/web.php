@@ -158,6 +158,8 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
 
     // Shipping
     // Digital Job Binder — artwork, hung off the sales order
+    Router::post('/sales-orders/{id}/documents',                      [JobBinderController::class, 'storeDocument'])->name('binder.document.store');
+    Router::post('/sales-orders/{id}/documents/{documentId}/remove',  [JobBinderController::class, 'removeDocument'])->name('binder.document.remove');
     Router::post('/sales-orders/{id}/artwork',                        [JobBinderController::class, 'storeArtwork'])->name('binder.artwork.store');
     Router::post('/sales-orders/{id}/artwork/{artworkId}/revision',   [JobBinderController::class, 'storeRevision'])->name('binder.artwork.revision');
     Router::post('/sales-orders/{id}/artwork/{artworkId}/remove',     [JobBinderController::class, 'removeArtwork'])->name('binder.artwork.remove');

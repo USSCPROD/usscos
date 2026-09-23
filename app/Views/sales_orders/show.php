@@ -750,9 +750,136 @@ if (!function_exists('jbSourceLabel')) {
     }
 }
 
+// Named uniquely and guarded: two views defining the same function in one request is a
+// fatal error, and there is no global fileSize() to lean on.
+if (!function_exists('jbDocType')) {
+    function jbDocType(string $t): string
+    {
+        return \App\Services\JobDocumentService::TYPES[$t] ?? 'Document';
+    }
+}
+
+if (!function_exists('jbFileSize')) {
+    function jbFileSize(int $bytes): string
+    {
+        if ($bytes >= 1048576) return round($bytes / 1048576, 1) . ' MB';
+        if ($bytes >= 1024)    return round($bytes / 1024) . ' KB';
+        return $bytes . ' B';
+    }
+}
+
 $jbInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;border:1px solid #d1d5db;'
        . 'border-radius:5px;box-sizing:border-box;background:#fff;color:#111';
 ?>
+
+<!-- Job documents — the customer's PO and the rest of the paperwork -->
+<div id="documents" style="margin-top:1.5rem">
+    <div style="display:block;border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">
+        <span style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            Documents
+        </span>
+        <?php if (!empty($jobDocuments)): ?>
+            <span style="font-size:.78rem;color:#9ca3af">
+                &nbsp;— <?= count($jobDocuments) ?> on file
+            </span>
+        <?php endif; ?>
+    </div>
+
+    <?php if (empty($jobDocuments)): ?>
+        <p style="color:#9ca3af;font-size:.9rem;margin:0 0 1rem">
+            Nothing filed yet. The customer's PO belongs here — it stays with this job for
+            good, and is still one click from the invoice long after the order is closed.
+        </p>
+    <?php else: ?>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:1rem">
+            <?php foreach ($jobDocuments as $jd): ?>
+                <?php
+                $isPo = $jd['doc_type'] === 'customer_po';
+                $td   = 'padding:.6rem .5rem;border-bottom:1px solid #f3f4f6;vertical-align:top';
+                ?>
+                <tr>
+                    <td style="<?= $td ?>;width:8.5rem">
+                        <span class="badge <?= $isPo ? 'badge--info' : 'badge--neutral' ?>">
+                            <?= e(jbDocType($jd['doc_type'])) ?>
+                        </span>
+                    </td>
+                    <td style="<?= $td ?>">
+                        <a href="<?= e($jd['file_path']) ?>" target="_blank" rel="noopener"
+                           style="color:#0A3D91;font-weight:600;font-size:.92rem;text-decoration:none">
+                            <?= e($jd['reference_num'] ?: ($jd['title'] ?: $jd['file_name'])) ?>
+                        </a>
+                        <?php if ($jd['reference_num'] && $jd['title']): ?>
+                            <span style="color:#6b7280;font-size:.85rem"> — <?= e($jd['title']) ?></span>
+                        <?php endif; ?>
+                        <div style="font-size:.78rem;color:#9ca3af;margin-top:.15rem">
+                            <?= e($jd['file_name']) ?><?= $jd['file_size'] ? ' · ' . jbFileSize((int)$jd['file_size']) : '' ?>
+                        </div>
+                        <?php if (!empty($jd['notes'])): ?>
+                            <div style="font-size:.82rem;color:#6b7280;margin-top:.2rem"><?= e($jd['notes']) ?></div>
+                        <?php endif; ?>
+                    </td>
+                    <td style="<?= $td ?>;width:11rem;font-size:.78rem;color:#9ca3af;text-align:right">
+                        <?= date('M j, Y', strtotime($jd['created_at'])) ?>
+                        <?php if (!empty($jd['uploaded_by_name'])): ?>
+                            <div><?= e($jd['uploaded_by_name']) ?></div>
+                        <?php endif; ?>
+                    </td>
+                    <td style="<?= $td ?>;width:5rem;text-align:right">
+                        <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/documents/<?= (int)$jd['id'] ?>/remove"
+                              onsubmit="return confirm('Take this off the binder? The file is kept.')" style="margin:0">
+                            <?= csrf_field() ?>
+                            <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;color:#9ca3af;
+                                                         font-size:.75rem;text-decoration:underline">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php endif; ?>
+
+    <!-- File a document -->
+    <div class="card" style="padding:1.25rem;background:#f8fafc">
+        <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.8rem">
+            File a document
+        </div>
+        <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/documents" enctype="multipart/form-data">
+            <?= csrf_field() ?>
+            <table style="width:100%;border-collapse:collapse">
+                <tr>
+                    <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280;width:7rem">Kind</td>
+                    <td style="padding:.3rem 0;width:40%">
+                        <select name="doc_type" style="<?= $jbInp ?>">
+                            <?php foreach (\App\Services\JobDocumentService::TYPES as $typeKey => $typeLabel): ?>
+                                <option value="<?= e($typeKey) ?>"><?= e($typeLabel) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                    <td style="padding:.3rem .6rem .3rem 1rem;font-size:.85rem;color:#6b7280;width:7rem">PO / reference</td>
+                    <td style="padding:.3rem 0">
+                        <input type="text" name="reference_num" maxlength="100"
+                               placeholder="The customer's PO number"
+                               value="<?= e($so['po_number'] ?? '') ?>" style="<?= $jbInp ?>">
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280">File</td>
+                    <td style="padding:.3rem 0"><input type="file" name="document_file" required style="font-size:.9rem"></td>
+                    <td style="padding:.3rem .6rem .3rem 1rem;font-size:.85rem;color:#6b7280">Notes</td>
+                    <td style="padding:.3rem 0">
+                        <input type="text" name="notes" maxlength="500" placeholder="Optional" style="<?= $jbInp ?>">
+                    </td>
+                </tr>
+            </table>
+            <div style="text-align:right;margin-top:.8rem">
+                <button type="submit" class="btn btn--primary">File on Binder</button>
+            </div>
+        </form>
+        <div style="font-size:.75rem;color:#9ca3af;margin-top:.7rem">
+            Accepted: PDF, images, Office files, email files — up to 20 MB.
+            A customer PO needs its number, because that is what people search by later.
+        </div>
+    </div>
+</div>
 
 <!-- Artwork -->
 <div id="artwork" style="margin-top:1.5rem">

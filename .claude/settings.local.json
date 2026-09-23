@@ -234,7 +234,18 @@
       "Bash(sed -i '' 's/'\\\\''line_item'\\\\''    => \\\\[$prod\\\\['\\\\''id'\\\\''\\\\], $svc\\\\['\\\\''id'\\\\''\\\\] ?? '\\\\'''\\\\''\\\\],/'\\\\''line_product_id'\\\\'' => [$prod['\\\\''id'\\\\''], $svc['\\\\''id'\\\\''] ?? '\\\\'''\\\\''],/' invtest.php)",
       "Bash(sed -i '' 's/$post\\\\['\\\\''line_item'\\\\''\\\\] = \\\\[$svc\\\\['\\\\''id'\\\\''\\\\] ?? '\\\\'''\\\\''\\\\];/$post['\\\\''line_product_id'\\\\''] = [$svc['\\\\''id'\\\\''] ?? '\\\\'''\\\\''];/' invtest.php)",
       "Bash(scp -q invtest.php root@159.223.177.58:/tmp/)",
-      "Bash(scp -q /tmp/guard.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /tmp/guard.php root@159.223.177.58:/tmp/)",
+      "Bash(php -l app/Services/ArtworkService.php)",
+      "Bash(php -l app/Controllers/JobBinderController.php)",
+      "Bash(php -l routes/web.php)",
+      "Bash(php -l app/Services/JobDocumentService.php)",
+      "Bash(php -l app/Repositories/JobDocumentRepository.php)",
+      "Bash(php -l app/Services/JobFileStore.php)",
+      "Bash(php -l app/Controllers/SalesOrderController.php)",
+      "Bash(grep -n '^\\\\$jbInp\\\\|jbInp =' app/Views/sales_orders/show.php)",
+      "Bash(php -l app/Views/sales_orders/show.php)",
+      "Bash(php -l app/Views/invoices/show.php)",
+      "Bash(php -l app/Controllers/InvoiceController.php)"
     ]
   }
 }

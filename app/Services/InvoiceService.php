@@ -492,8 +492,23 @@ class InvoiceService extends Service
 
         $lineItems = $this->invoices->getLineItems((int)$id);
 
+        // The customer's PO, filed on the job binder. An invoice already links back to its
+        // sales order, but the PO is the document people actually go looking for years
+        // later, so it is worth one click rather than two.
+        $customerPo = null;
+
+        if (!empty($invoice['sales_order_id'])) {
+            foreach ((new JobDocumentService())->forSalesOrder((int)$invoice['sales_order_id']) as $doc) {
+                if ($doc['doc_type'] === 'customer_po') {
+                    $customerPo = $doc;
+                    break;
+                }
+            }
+        }
+
         return [
             'invoice'          => $invoice,
+            'customer_po'      => $customerPo,
             'line_items'       => $lineItems,
             'payments'         => $this->paymentRepo->getByInvoice((int)$id),
             'ship_via_options' => $this->invoices->getShipViaOptions(),
