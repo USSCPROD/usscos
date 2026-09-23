@@ -211,7 +211,16 @@
       "Bash(python3 /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/doc1.py /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad /Users/artdeptmac/Projects/BusinessOS/docs/pdf/USSCOS_Shipping_and_Fulfillment.pdf)",
       "Bash(python3 /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/doc3.py /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad /Users/artdeptmac/Projects/BusinessOS/docs/pdf/USSCOS_Order_to_Shipment.pdf)",
       "Bash(git checkout *)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(bash deploy/deploy.sh)",
+      "Bash(ssh -o BatchMode=yes root@159.223.177.58 'cd /var/www/usscos && bash deploy/deploy.sh')",
+      "Bash(ssh -o BatchMode=yes root@159.223.177.58 'cd /var/www/usscos && git remote -v && ls ~/.ssh/')",
+      "Bash(ssh -o BatchMode=yes root@159.223.177.58 'sudo -u deploy ls /home/deploy/.ssh/ 2>&1; sudo -u deploy bash -lc \"cd /var/www/usscos && bash deploy/deploy.sh\" 2>&1 | tail -25')",
+      "Bash(scp -q rectest.php root@159.223.177.58:/tmp/rectest.php)",
+      "Bash(sed -e 's/WHERE units_per_case > 1 ORDER BY id LIMIT 1/WHERE sku IS NOT NULL AND sku <> \\\\x27\\\\x27 ORDER BY id LIMIT 1/' -e 's/'\\\\''case'\\\\''\\);/'\\\\''unit'\\\\''\\);/' -e 's/\\(per case {\\\\$p\\\\[.units_per_case.\\\\]}, /\\(/' /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/rectest.php)",
+      "Bash(sed -i '' 's/\\\\$look\\\\[.suggested_qty.\\\\] - 2/$look[\"suggested_qty\"] + 5/' /tmp/rectest2.php)",
+      "Bash(scp -q /tmp/rectest2.php root@159.223.177.58:/tmp/rectest2.php)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/rendertest.php root@159.223.177.58:/tmp/)"
     ]
   }
 }
