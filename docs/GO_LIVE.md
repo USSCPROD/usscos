@@ -91,6 +91,42 @@ movement screens exist, not before — otherwise the count is stale before anyon
 
 ---
 
+## 2b. Answers from shipping, 2026-09-23
+
+| Question | Answer | What follows |
+|---|---|---|
+| Website channel? | **Yes** — products pushed to a website, orders come into USSCOS | Build the channel model for four routes now, not three |
+| Amazon automation today? | **None. Entirely by hand**, including shipment confirmation | A missed confirmation is invisible until account health drops |
+| Pick list per person or shared? | **Undecided** — several shipping people | Recommend one shared queue where picking an order claims it |
+| Label printers? | **Location to be decided** | Decides whether a label prints where the work is, or someone walks |
+| Wrong shipments? | **Several times a week** | ~150/year — see below |
+| Customer pickup? | Packing list to a file holder, clerk pulls it to the **CPU area** | No record of who collected or when |
+| Freight PRO number? | **From the carrier**, once they enter the shipment to raise the BOL | Arrives *after* shipping, not with the label — the customer email may go before it exists |
+
+### The wrong shipments are the strongest argument for scanning
+
+At three a week, roughly **150 a year**. Each costs freight out, freight back, freight out
+again, picking and packing twice, the admin of the credit and re-order — and **the stock
+count goes wrong twice**, because the wrong item left and the right one did not, and the
+return may never be recorded.
+
+Even at a conservative $75 of hard cost each, that is **over $11,000 a year** before
+counting the inventory drift or the customer relationships. A scan at the packing bench
+refuses the wrong item before the carton closes, which is the only point where stopping it
+is cheap.
+
+It also explains part of the inventory problem directly: ~150 unplanned returns a year
+arriving with no process to record them is exactly the kind of leak that produces a count
+nobody can explain.
+
+### Customer pickup needs a release record
+
+Today there is no record of **who collected an order or when**. That is awkward when a
+customer says it never arrived, and it is a stock movement like any other — the goods left
+the building. Worth a signature or at least a name and timestamp at the CPU counter.
+
+---
+
 ## 2a. Order channels, priority, and orders that cannot ship
 
 Recorded 2026-09-23.

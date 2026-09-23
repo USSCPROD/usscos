@@ -60,8 +60,15 @@ def story_fn(S, st):
                "process marks them as more urgent than anything else in the pile. They are urgent "
                "because someone recognises the printout.", st))
 
-    S.append(P("Route 3 — customer pickup", st, 'h2'))
-    S.append(P("Its own pile, no carrier, but the same paper trail.", st))
+    S.append(P("Route 3 — customer pickup (CPU)", st, 'h2'))
+    S.append(P("The packing list goes into a file holder, the clerk collects it and pulls the order "
+               "into the CPU area. No carrier, but the same paper trail — and <b>no record of who "
+               "collected it or when</b>, which matters when a customer says it never arrived.", st))
+
+    S.append(P("Coming soon — the website", st, 'h2'))
+    S.append(P("Products will be pushed to a website and those orders will come into USSCOS "
+               "directly. Worth building the channel model to expect it now rather than retrofitting "
+               "a fourth route later.", st))
 
     S.append(P("And separately — picking and packing", st, 'h2'))
     for b in ["Orders are gathered, <b>counted by hand across all of them</b>, then someone walks the warehouse to pick.",
@@ -103,12 +110,24 @@ def story_fn(S, st):
               ("5","Packer rescans at the bench to confirm the carton","Packer","<b>Wrong packs stopped</b>"),
               ("6","Customer PO shown on screen beside the address","Hannah","No paperwork to open"),
               ("7","Carrier rated and label printed from the order","Hannah","<b>No re-typing</b>"),
-              ("8","Tracking captured automatically from the carrier","—","<b>Step removed</b>"),
+              ("8","Tracking captured automatically. Freight PRO arrives later, when the carrier raises the BOL","—","<b>Step removed</b>"),
               ("9","Invoice raised and emailed with tracking on it","—","<b>Step removed</b>"),
               ("10","Stock deducted as it ships","—","Count stays true"),
               ("11","Backorders release themselves when stock arrives","—","<b>No more checking</b>")]:
         fut.append([C(r[0], st), C(r[1], st), C(r[2], st), C(r[3], st)])
     S.append(table(fut, [0.35*inch, 3.2*inch, 1.05*inch, 1.55*inch], st))
+
+    S.append(P("Several pickers, one queue", st, 'h2'))
+    S.append(P("There are several shipping people, and whether each gets their own pick list or "
+               "everyone works one general list is still open. The usual answer avoids choosing:", st))
+    for b in ["<b>One shared queue, and picking an order claims it.</b> Whoever starts an order holds it, and it disappears from everyone else's list.",
+              "No one has to assign work in advance, and nobody picks the same order twice.",
+              "A claimed order that goes quiet can be released back, so a person going home does not strand it.",
+              "Progress is already stored per order rather than per person, so one picker can finish what another started."]:
+        S.append(B(b, st))
+    S.append(Spacer(1, 4))
+    S.append(P("Worth deciding after the pilot rather than before it — the right answer depends on "
+               "whether pickers naturally work whole orders or split a trip between several.", st, 'note'))
 
     S.append(P("And the orders that cannot ship", st, 'h2'))
     S.append(P("Today these are a physical pile that Hannah manages, checking repeatedly whether "
@@ -164,6 +183,30 @@ def story_fn(S, st):
     S.append(PageBreak())
 
     # ---------- WON'T FIX
+    S.append(P("The wrong shipments", st, 'h1'))
+    S.append(P("Wrong shipments happen <b>several times a week</b>. Taking that as three, it is "
+               "roughly <b>150 a year</b>, and each one costs more than it first appears.", st))
+    w = [[C("What a wrong shipment costs", st, True), C("Note", st, True)]]
+    for r in [("Freight out on the wrong goods", "Already spent"),
+              ("Freight back", "Usually ours"),
+              ("Freight out again on the right goods", "Paid twice for one sale"),
+              ("Picking and packing a second time", "Labour, twice"),
+              ("Admin — the call, the credit, the re-order", "Sales and bookkeeping"),
+              ("<b>The stock count goes wrong twice</b>", "Wrong item left, right item did not — and the return may never be recorded"),
+              ("The customer relationship", "Not costed here, and not nothing")]:
+        w.append([C(r[0], st), C(r[1], st)])
+    S.append(table(w, [3.4*inch, 3.2*inch], st))
+    S.append(Spacer(1, 8))
+    S.append(callout(
+        "<b>This is the strongest single argument for scanning.</b> At 150 a year, even a "
+        "conservative $75 of hard cost each is over <b>$11,000 a year</b> — before counting the "
+        "inventory drift they cause or the customers they annoy. A scan at the bench refuses the "
+        "wrong item before the carton closes, which is the only point where stopping it is cheap.",
+        st, GREEN, '#f0fdf4'))
+    S.append(P("It also explains part of the inventory problem. Roughly 150 unplanned returns a "
+               "year, arriving with no process to record them, is precisely the kind of leak that "
+               "produces a count nobody can explain.", st))
+
     S.append(P("What it will not fix, and what to watch", st, 'h1'))
     S.append(P("Worth being straight about these — they decide whether the rollout succeeds.", st))
     for b in ["<b>Scanning only helps where barcodes exist.</b> Today: 38% of items have a retail barcode, 49% a case barcode. For the rest the SKU is typed. That works, but it is not instant — and prioritising barcodes on fast movers matters more than reaching every item.",
@@ -210,14 +253,18 @@ def story_fn(S, st):
 
     # ---------- QUESTIONS
     S.append(P("Questions this raised", st, 'h1'))
-    for b in ["<b>Is there a website order channel as well?</b> usscproducts.com runs a store — do those orders follow the same path as Amazon, or a different one?",
-              "<b>Does Amazon shipment confirmation happen by hand today?</b> Late tracking upload affects account standing, and it is exactly what automation protects.",
-              "<b>Who packs, and is it the same person who picks?</b> Decides whether pack verification is a separate station or the same screen.",
-              "<b>Is there a label printer at the pack bench</b>, or one shared printer?",
-              "<b>How often does a wrong shipment happen now?</b> Even a rough number puts a value on pack verification.",
-              "<b>What is the customer pickup process?</b> No carrier, but it still needs picking, verifying and a record that it left.",
-              "<b>Freight uses a PRO number rather than a tracking number.</b> Does that come from the carrier, from Kuebix, or off the bill of lading?"]:
+    for b in ["<b>Where will the label printers go?</b> One at the pack bench per picker, or a shared printer — decides whether a label prints where the work happens or someone walks for it.",
+              "<b>Own pick list per person, or one shared queue?</b> Recommendation above is a shared queue with claiming, but worth settling after the pilot.",
+              "<b>Should a customer pickup be signed for?</b> There is no record today of who collected or when, which is awkward when an order is disputed.",
+              "<b>Does Amazon need confirming back the same day?</b> It is fully manual now, so a missed confirmation is invisible until account health drops.",
+              "<b>Who is the pilot group</b>, and when can they give it a full day with real orders?"]:
         S.append(B(b, st))
+    S.append(Spacer(1, 6))
+    S.append(P("Answered since the first draft: the website channel is coming and will feed USSCOS "
+               "directly; Amazon is entirely manual today; wrong shipments run several times a week; "
+               "customer pickup runs on a file holder and the CPU area; and the freight PRO number "
+               "comes back from the carrier once they have entered the shipment to raise the BOL — "
+               "so it arrives <b>after</b> the order ships, not with the label.", st, 'note'))
     S.append(Spacer(1, 8))
     S.append(callout("<b>A note on figures from USSCOS.</b> The system is still in testing, so order "
                      "and stock counts inside it describe test data rather than the business. Live "
