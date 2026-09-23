@@ -86,6 +86,117 @@ class PurchaseOrderRepository
         );
     }
 
+    /** Lines of a PO, for receiving against. Alias kept explicit for readability. */
+    public function getLinesById(int $poId): array
+    {
+        return $this->getLines($poId);
+    }
+
+    /**
+     * Add to what has been received on a line.
+     *
+     * Deliberately NOT capped at the quantity ordered. receiveLine() used to cap, so a
+     * delivery larger than the PO was silently trimmed to fit — the paperwork winning
+     * over what was actually on the pallet. What arrived is what is recorded, and the
+     * difference goes on the variance queue for somebody to resolve.
+     */
+    public function addReceivedQty(int $lineId, float $qty): void
+    {
+        Database::statement(
+            "UPDATE purchase_order_lines SET qty_received = qty_received + ? WHERE id = ?",
+            [$qty, $lineId]
+        );
+    }
+
+    /** Recalculate a PO's status after receiving. */
+    public function recalcStatusFor(int $poId): void
+    {
+        $this->recalcStatus(Database::connection(), $poId);
+    }
+
+    /**
+     * PO lines where what arrived does not match what was ordered, unreviewed.
+     *
+     * Only lines that have actually had something received against them: a PO nobody has
+     * started receiving is merely outstanding, not a discrepancy.
+     */
+    public function openVariances(): array
+    {
+        return Database::select("
+            SELECT pol.id, pol.po_id, pol.qty_ordered, pol.qty_received, pol.description,
+                   pol.qty_received - pol.qty_ordered AS difference,
+                   po.po_number, po.status AS po_status,
+                   v.name AS vendor_name,
+                   p.sku, p.name AS product_name, p.uom_code,
+                   (SELECT MAX(t.created_at) FROM inventory_transactions t
+                     WHERE t.reference_type = 'purchase_order' AND t.reference_id = po.id
+                       AND t.product_id = pol.product_id) AS last_received_at
+            FROM purchase_order_lines pol
+            JOIN purchase_orders po ON po.id = pol.po_id
+            LEFT JOIN vendors  v ON v.id = po.vendor_id
+            LEFT JOIN products p ON p.id = pol.product_id
+            WHERE pol.qty_received > 0
+              AND ABS(pol.qty_received - pol.qty_ordered) > 0.0001
+              AND pol.variance_ack_at IS NULL
+              AND po.status <> 'cancelled'
+            ORDER BY po.po_number, pol.sort_order, pol.id
+        ");
+    }
+
+    /**
+     * Set a line's ordered quantity to what actually arrived, and close the variance.
+     *
+     * This is the normal outcome with TCC: a batch yields what it yields, so the PO
+     * follows the receipt. The line total is recalculated, because the PO is what gets
+     * billed and billing 600 cases when 570 were made would be wrong.
+     */
+    public function setOrderedToReceived(int $lineId, int $userId, string $note): void
+    {
+        Database::statement("
+            UPDATE purchase_order_lines
+            SET qty_ordered     = qty_received,
+                line_total      = ROUND(qty_received * unit_cost, 2),
+                variance_note   = ?,
+                variance_ack_by = ?,
+                variance_ack_at = NOW()
+            WHERE id = ?
+        ", [$note, $userId, $lineId]);
+
+        $this->refreshTotalsAfterVariance($lineId);
+    }
+
+    /** Close a variance without changing the PO — the difference is expected. */
+    public function acknowledgeVariance(int $lineId, int $userId, string $note): void
+    {
+        Database::statement("
+            UPDATE purchase_order_lines
+            SET variance_note = ?, variance_ack_by = ?, variance_ack_at = NOW()
+            WHERE id = ?
+        ", [$note, $userId, $lineId]);
+    }
+
+    /** Re-add the PO header totals from its lines, after a line quantity changed. */
+    private function refreshTotalsAfterVariance(int $lineId): void
+    {
+        $line = Database::selectOne("SELECT po_id FROM purchase_order_lines WHERE id = ?", [$lineId]);
+
+        if ($line === false) {
+            return;
+        }
+
+        $poId = (int)$line['po_id'];
+
+        Database::statement("
+            UPDATE purchase_orders po
+            SET po.subtotal     = (SELECT COALESCE(SUM(line_total), 0) FROM purchase_order_lines WHERE po_id = po.id),
+                po.total_amount = (SELECT COALESCE(SUM(line_total), 0) FROM purchase_order_lines WHERE po_id = po.id)
+                                  + po.tax_amount + po.shipping_cost
+            WHERE po.id = ?
+        ", [$poId]);
+
+        $this->recalcStatus(Database::connection(), $poId);
+    }
+
     public function nextPoNumber(): string
     {
         $row = Database::selectOne(
@@ -191,57 +302,6 @@ class PurchaseOrderRepository
         // Replace lines
         $pdo->prepare("DELETE FROM purchase_order_lines WHERE po_id = ?")->execute([$id]);
         $this->insertLines($pdo, $id, $lines);
-    }
-
-    public function receiveLine(int $lineId, float $qtyReceiving, int $userId): void
-    {
-        $pdo = Database::connection();
-
-        $line = Database::selectOne(
-            "SELECT pol.*, p.qty_on_hand, p.uom_code
-             FROM purchase_order_lines pol
-             LEFT JOIN products p ON p.id = pol.product_id
-             WHERE pol.id = ? LIMIT 1",
-            [$lineId]
-        );
-
-        if (!$line || $qtyReceiving <= 0) return;
-
-        $maxReceivable = (float)$line['qty_ordered'] - (float)$line['qty_received'];
-        $actualQty     = min($qtyReceiving, $maxReceivable);
-
-        if ($actualQty <= 0) return;
-
-        // Update line qty_received
-        $pdo->prepare(
-            "UPDATE purchase_order_lines SET qty_received = qty_received + ? WHERE id = ?"
-        )->execute([$actualQty, $lineId]);
-
-        // Update product qty_on_hand if linked to a product
-        if ($line['product_id']) {
-            $newQty = (float)$line['qty_on_hand'] + $actualQty;
-
-            $pdo->prepare(
-                "UPDATE products SET qty_on_hand = qty_on_hand + ? WHERE id = ?"
-            )->execute([$actualQty, $line['product_id']]);
-
-            // Log inventory transaction
-            $pdo->prepare("
-                INSERT INTO inventory_transactions
-                    (product_id, transaction_type, transaction_date, qty,
-                     qty_on_hand_after, notes, created_by)
-                VALUES (?, 'receipt', CURDATE(), ?, ?, ?, ?)
-            ")->execute([
-                $line['product_id'],
-                $actualQty,
-                $newQty,
-                'Received on PO ' . $this->getPoNumber($line['po_id']),
-                $userId,
-            ]);
-        }
-
-        // Recalculate PO status
-        $this->recalcStatus($pdo, (int)$line['po_id']);
     }
 
     public function updateStatus(int $id, string $status): void

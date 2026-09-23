@@ -212,9 +212,11 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/purchasing',                       [PurchaseOrderController::class, 'index'])->name('purchasing');
     Router::get('/purchasing/create',                [PurchaseOrderController::class, 'create'])->name('purchasing.create');
     Router::post('/purchasing',                      [PurchaseOrderController::class, 'store'])->name('purchasing.store');
+    Router::get('/purchasing/variances',             [PurchaseOrderController::class, 'variances'])->name('purchasing.variances');
     Router::get('/purchasing/{id}',                  [PurchaseOrderController::class, 'show'])->name('purchasing.show');
     Router::get('/purchasing/{id}/edit',             [PurchaseOrderController::class, 'edit'])->name('purchasing.edit');
     Router::post('/purchasing/{id}/edit',            [PurchaseOrderController::class, 'update'])->name('purchasing.update');
+    Router::post('/purchasing/variance/{lineId}',    [PurchaseOrderController::class, 'resolveVariance'])->name('purchasing.variance.resolve');
     Router::post('/purchasing/{id}/receive',         [PurchaseOrderController::class, 'receive'])->name('purchasing.receive');
     Router::post('/purchasing/{id}/status',          [PurchaseOrderController::class, 'updateStatus'])->name('purchasing.status');
     Router::get('/purchasing/{id}/print',            [PurchaseOrderController::class, 'printView'])->name('purchasing.print');

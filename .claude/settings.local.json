@@ -245,7 +245,13 @@
       "Bash(grep -n '^\\\\$jbInp\\\\|jbInp =' app/Views/sales_orders/show.php)",
       "Bash(php -l app/Views/sales_orders/show.php)",
       "Bash(php -l app/Views/invoices/show.php)",
-      "Bash(php -l app/Controllers/InvoiceController.php)"
+      "Bash(php -l app/Controllers/InvoiceController.php)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/bindertest.php root@159.223.177.58:/tmp/)",
+      "Bash(scp -q /tmp/render2.php root@159.223.177.58:/tmp/)",
+      "Bash(php -l app/Controllers/PurchaseOrderController.php)",
+      "Bash(php -l app/Views/purchasing/show.php)",
+      "Bash(php -l app/Views/purchasing/variances.php)",
+      "Bash(php -l app/Services/PurchaseReceivingService.php)"
     ]
   }
 }

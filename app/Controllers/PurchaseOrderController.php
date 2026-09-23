@@ -13,17 +13,20 @@ use App\Core\Session;
 use App\Core\Database;
 use App\Repositories\PurchaseOrderRepository;
 use App\Repositories\VendorRepository;
+use App\Services\PurchaseReceivingService;
 
 class PurchaseOrderController extends Controller
 {
     private PurchaseOrderRepository $repo;
     private VendorRepository $vendors;
+    private PurchaseReceivingService $receiving;
 
     public function __construct()
     {
         parent::__construct();
-        $this->repo    = new PurchaseOrderRepository();
-        $this->vendors = new VendorRepository();
+        $this->repo      = new PurchaseOrderRepository();
+        $this->vendors   = new VendorRepository();
+        $this->receiving = new PurchaseReceivingService();
     }
 
     public function index(Request $request, Response $response): Response
@@ -85,9 +88,10 @@ class PurchaseOrderController extends Controller
         if (!$po) return $this->view('errors.404', ['title' => 'Not Found'], 404);
 
         return $this->view('purchasing.show', [
-            'title' => 'PO ' . $po['po_number'],
-            'po'    => $po,
-            'lines' => $this->repo->getLines((int)$id),
+            'title'     => 'PO ' . $po['po_number'],
+            'po'        => $po,
+            'lines'     => $this->repo->getLines((int)$id),
+            'locations' => (new \App\Repositories\StockRepository())->storableLocations(),
         ]);
     }
 
@@ -133,17 +137,64 @@ class PurchaseOrderController extends Controller
 
         if (!$po) return $this->view('errors.404', ['title' => 'Not Found'], 404);
 
-        $quantities = $_POST['receive_qty'] ?? [];
+        try {
+            $result = $this->receiving->receive(
+                (int)$id,
+                $_POST['receive_qty'] ?? [],
+                (int)($_POST['location_id'] ?? 0),
+                (int)$user['id'],
+                trim((string)($_POST['receipt_notes'] ?? ''))
+            );
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
 
-        foreach ($quantities as $lineId => $qty) {
-            $qty = (float)$qty;
-            if ($qty > 0) {
-                $this->repo->receiveLine((int)$lineId, $qty, (int)$user['id']);
-            }
+            return $response->redirect('/purchasing/' . (int)$id);
         }
 
-        Session::flash('success', 'Items received and inventory updated.');
+        if ($result['variances'] > 0) {
+            // Said plainly rather than buried: the PO and the delivery disagree, and
+            // somebody has to decide which one is right.
+            Session::flash('error', sprintf(
+                '%d line%s came in at a different quantity than the PO says. %s',
+                $result['variances'],
+                $result['variances'] === 1 ? '' : 's',
+                'Review it under Purchasing > Variances.'
+            ));
+        } else {
+            Session::flash('success', 'Received and put into stock.');
+        }
+
         return $response->redirect('/purchasing/' . (int)$id);
+    }
+
+    /** Receipts that disagree with their purchase order, waiting on somebody. */
+    public function variances(Request $request, Response $response): Response
+    {
+        return $this->view('purchasing.variances', [
+            'title' => 'Receipt Variances',
+            'items' => $this->receiving->openVariances(),
+        ]);
+    }
+
+    /** Resolve one variance — either the PO follows the receipt, or the difference is explained. */
+    public function resolveVariance(Request $request, Response $response, string $lineId = '0'): Response
+    {
+        $user = Auth::user();
+        $note = trim((string)($_POST['variance_note'] ?? ''));
+
+        try {
+            if (($_POST['action'] ?? '') === 'accept_received') {
+                $this->receiving->acceptReceived((int)$lineId, (int)$user['id'], $note);
+                Session::flash('success', 'PO updated to the quantity actually received.');
+            } else {
+                $this->receiving->acknowledge((int)$lineId, (int)$user['id'], $note);
+                Session::flash('success', 'Variance closed with your note.');
+            }
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        return $response->redirect('/purchasing/variances');
     }
 
     public function updateStatus(Request $request, Response $response, string $id = '0'): Response

@@ -207,11 +207,17 @@ foreach ($lines as $line) {
                                 <td class="text-right" style="padding:.4rem .75rem">
                                     <?php if ($outstanding > 0): ?>
                                         <input type="number" name="receive_qty[<?= (int)$line['id'] ?>]"
-                                               step="0.01" min="0" max="<?= $outstanding ?>"
+                                               step="0.01" min="0"
                                                class="input" style="width:80px;text-align:right;font-size:.85rem"
-                                               placeholder="0.00">
+                                               placeholder="<?= number_format($outstanding, 2, '.', '') ?>">
                                     <?php else: ?>
-                                        <span style="color:#16a34a;font-size:.8rem">✓ Done</span>
+                                        <?php // No max, and still receivable when the line is full: a batch that
+                                              // over-yields is a fact, and refusing to record it does not make it
+                                              // untrue — it just moves the problem to the count. ?>
+                                        <input type="number" name="receive_qty[<?= (int)$line['id'] ?>]"
+                                               step="0.01" min="0"
+                                               class="input" style="width:80px;text-align:right;font-size:.85rem"
+                                               placeholder="0.00" title="Already complete — anything entered here is an over-delivery">
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>
@@ -223,9 +229,38 @@ foreach ($lines as $line) {
     </div>
     <?php if ($canReceive): ?>
     <div style="padding:.875rem 1.25rem;border-top:1px solid var(--color-border)">
-        <button type="submit" class="btn btn--primary">Mark Received &amp; Update Inventory</button>
+        <table style="width:100%;border-collapse:separate;border-spacing:.6rem 0;margin:0 -.6rem .75rem">
+            <tr>
+                <td style="width:16rem">
+                    <label for="poLoc" style="display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;
+                                              letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:.3rem">
+                        Putting it in
+                    </label>
+                    <select name="location_id" id="poLoc" required class="input" style="width:100%;font-size:.875rem">
+                        <option value="">— Choose —</option>
+                        <?php foreach (($locations ?? []) as $poLocation): ?>
+                            <option value="<?= (int)$poLocation['id'] ?>">
+                                <?= $poLocation['parent_code'] ? e($poLocation['parent_code']) . ' · ' : '' ?><?= e($poLocation['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <td>
+                    <label for="poNotes" style="display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;
+                                                letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:.3rem">
+                        Notes
+                    </label>
+                    <input type="text" name="receipt_notes" id="poNotes" maxlength="255" class="input"
+                           style="width:100%;font-size:.875rem"
+                           placeholder="Damage, short delivery, anything worth knowing">
+                </td>
+            </tr>
+        </table>
+        <button type="submit" class="btn btn--primary">Receive &amp; Put Into Stock</button>
         <span style="font-size:.8rem;color:var(--color-text-muted);margin-left:.75rem">
-            Only lines with a quantity entered will be updated.
+            Enter what actually arrived, even if it differs from the PO — the difference is
+            recorded and goes to <a href="/purchasing/variances" style="color:var(--color-primary)">Variances</a>
+            for review.
         </span>
     </div>
     <?php endif; ?>
