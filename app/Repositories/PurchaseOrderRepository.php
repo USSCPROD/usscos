@@ -126,7 +126,7 @@ class PurchaseOrderRepository
             SELECT pol.id, pol.po_id, pol.qty_ordered, pol.qty_received, pol.description,
                    pol.qty_received - pol.qty_ordered AS difference,
                    po.po_number, po.status AS po_status,
-                   v.name AS vendor_name,
+                   v.company_name AS vendor_name,
                    p.sku, p.name AS product_name, p.uom_code,
                    (SELECT MAX(t.created_at) FROM inventory_transactions t
                      WHERE t.reference_type = 'purchase_order' AND t.reference_id = po.id
