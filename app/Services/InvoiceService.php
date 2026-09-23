@@ -17,6 +17,7 @@ class InvoiceService extends Service
     private CustomerRepository $customers;
     private SalesOrderRepository $soRepo;
     private PaymentRepository $paymentRepo;
+    private StockService $stock;
 
     public function __construct()
     {
@@ -24,6 +25,7 @@ class InvoiceService extends Service
         $this->customers    = new CustomerRepository();
         $this->soRepo       = new SalesOrderRepository();
         $this->paymentRepo  = new PaymentRepository();
+        $this->stock        = new StockService();
     }
 
     public function create(?int $fromSoId = null): array
@@ -120,6 +122,29 @@ class InvoiceService extends Service
      */
     public function shipAndInvoice(int $soId, int $userId, array $post): int
     {
+        // One transaction for the whole shipment. Creating the invoice, taking the stock
+        // out and recording what has gone are three writes that only make sense together:
+        // a failure between them would bill a customer for paint the system still thinks
+        // is on the shelf, or take stock out for an invoice that does not exist.
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+
+        try {
+            $invoiceId = $this->shipAndInvoiceWithin($soId, $userId, $post);
+            $pdo->commit();
+
+            return $invoiceId;
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /** The body of shipAndInvoice(), which always runs inside its transaction. */
+    private function shipAndInvoiceWithin(int $soId, int $userId, array $post): int
+    {
         $so = $this->soRepo->findWithDetails($soId);
         if (!$so) throw new \RuntimeException('Sales order not found.');
         if (in_array($so['status'], ['invoiced', 'cancelled'])) {
@@ -179,21 +204,35 @@ class InvoiceService extends Service
 
         $lines     = [];
         $shortfall = false;
+        $isPartial = false;   // something on this order already went out earlier
+        $shipped   = [];
 
         foreach ($soLines as $li) {
-            $ordered = (float)($li['qty_ordered'] ?? $li['qty'] ?? 1);
-            $picked  = (float)($li['qty_picked'] ?? 0);
-            $qty     = $wasPicked ? $picked : $ordered;
+            $ordered     = (float)($li['qty_ordered'] ?? $li['qty'] ?? 1);
+            $picked      = (float)($li['qty_picked'] ?? 0);
+            $alreadyGone = (float)($li['qty_shipped'] ?? 0);
 
-            if ($qty < $ordered) {
+            // Only what has not gone yet. Shipping the remainder of a partially shipped
+            // order used to re-invoice the whole picked quantity, because qty_shipped was
+            // never written — so the customer was billed twice for the first shipment,
+            // and stock would now be deducted twice as well.
+            $qty = $wasPicked ? max(0.0, $picked - $alreadyGone) : max(0.0, $ordered - $alreadyGone);
+
+            if ($alreadyGone > 0) {
+                $isPartial = true;
+            }
+            if ($alreadyGone + $qty < $ordered) {
                 $shortfall = true;
             }
 
-            // Nothing picked on this line means nothing shipped, so it does not belong on
-            // the invoice at all. The line stays open on the sales order.
-            if ($wasPicked && $qty <= 0) {
+            // Nothing going out on this line means it does not belong on the invoice at
+            // all — whether it was never picked, or already shipped in full on an earlier
+            // partial shipment. The line stays open on the sales order.
+            if ($qty <= 0) {
                 continue;
             }
+
+            $shipped[] = ['line_id' => (int)$li['id'], 'product_id' => $li['product_id'], 'qty' => $qty];
 
             $unitPrice = (float)$li['unit_price'];
             $discount  = (float)($li['discount_pct'] ?? 0);
@@ -215,10 +254,33 @@ class InvoiceService extends Service
 
         $this->invoices->replaceLineItems($invoiceId, $lines);
 
+        // Take the stock out, and record what has now gone.
+        //
+        // Deducting the same quantities that were just invoiced is the point: the invoice
+        // and the stock movement cannot disagree, because they are the same numbers. A
+        // product recorded at no location, or at less than went out, is still deducted and
+        // goes negative — the paint left the building either way, and a visible negative
+        // is the signal that something needs counting.
+        $this->stock->shipLines($shipped, [
+            'type'           => 'sale',
+            'reference_type' => 'invoice',
+            'reference_id'   => $invoiceId,
+            'reference_num'  => $so['so_number'] ?? null,
+            'user_id'        => $userId,
+            'date'           => $shipDate,
+        ]);
+
+        foreach ($shipped as $s) {
+            $this->soRepo->addShippedQty($s['line_id'], $s['qty']);
+        }
+
         // Totals follow the lines actually invoiced. Uses the same tax rate the order was
         // priced at — `tax_rate_pct` comes from the joined tax_rates row and is a fraction,
         // so 0.07 means 7%.
-        if ($wasPicked && $shortfall) {
+        // Recalculate whenever the invoice does not represent the whole order — a short
+        // pick, or the remainder of an order that was already part shipped. The stored SO
+        // totals are for everything ordered and would overstate either one.
+        if ($shortfall || $isPartial) {
             $taxRatePct = (float)($so['tax_rate_pct'] ?? 0) * 100;
             $this->invoices->updateTotals($invoiceId, $this->calcTotals($lines, $taxRatePct));
         }
@@ -240,7 +302,7 @@ class InvoiceService extends Service
         // Close the sales order — but only if everything went out. A short ship leaves it
         // `partially_shipped` so the remainder can be shipped later, rather than
         // disappearing from the open list with product still owed.
-        $this->soRepo->setStatus($soId, ($wasPicked && $shortfall) ? 'partially_shipped' : 'invoiced');
+        $this->soRepo->setStatus($soId, $shortfall ? 'partially_shipped' : 'invoiced');
 
         return $invoiceId;
     }

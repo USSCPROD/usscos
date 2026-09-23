@@ -221,7 +221,16 @@
       "Bash(sed -i '' 's/\\\\$look\\\\[.suggested_qty.\\\\] - 2/$look[\"suggested_qty\"] + 5/' /tmp/rectest2.php)",
       "Bash(scp -q /tmp/rectest2.php root@159.223.177.58:/tmp/rectest2.php)",
       "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/rendertest.php root@159.223.177.58:/tmp/)",
-      "Bash(php -l app/Services/ReceivingService.php)"
+      "Bash(php -l app/Services/ReceivingService.php)",
+      "Bash(grep -n 'wasPicked && $shortfall' app/Services/InvoiceService.php)",
+      "Bash(php -l app/Services/InvoiceService.php)",
+      "Bash(php -l app/Services/StockService.php)",
+      "Bash(php -l app/Repositories/StockRepository.php)",
+      "Bash(php -l app/Repositories/SalesOrderRepository.php)",
+      "Bash(git commit *)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/shiptest.php root@159.223.177.58:/tmp/)",
+      "Bash(sed -i '' \"s/'open', 'short'/'confirmed', 'short'/\" shiptest.php)",
+      "Bash(scp -q shiptest.php root@159.223.177.58:/tmp/)"
     ]
   }
 }

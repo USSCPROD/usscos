@@ -236,6 +236,22 @@ class SalesOrderRepository
         }
     }
 
+    /**
+     * Record that a quantity has now physically left the building.
+     *
+     * qty_shipped existed since migration 022 and was never written to, which meant a
+     * partially shipped order could be shipped again and would re-invoice — and now
+     * re-deduct — quantities that had already gone. Shipping works from
+     * picked-minus-shipped, so this has to be kept up to date.
+     */
+    public function addShippedQty(int $lineId, float $qty): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE sales_order_line_items SET qty_shipped = qty_shipped + :qty WHERE id = :id"
+        );
+        $stmt->execute([':qty' => $qty, ':id' => $lineId]);
+    }
+
     public function setStatus(int $id, string $status): void
     {
         $stmt = $this->pdo->prepare("UPDATE sales_orders SET status = :status WHERE id = :id");

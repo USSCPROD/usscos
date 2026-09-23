@@ -137,6 +137,160 @@ class StockRepository
         return $total;
     }
 
+    /**
+     * Take stock out for a shipment, working out where it came from.
+     *
+     * Picking does not record a location — the picker scans the product, not the shelf —
+     * so consumption has to decide for itself. It draws from the biggest holding first,
+     * which keeps stock consolidated rather than leaving a trail of ones and twos across
+     * the building, and splits across locations when no single one covers the line.
+     *
+     * If the count says there is not enough, the shortfall still comes out, against the
+     * location that held the most (or the default warehouse when the product is recorded
+     * nowhere at all). The paint physically left the building; refusing to record that
+     * would keep the number tidy and wrong. A negative balance is a visible question.
+     *
+     * @return list<array{location_id:int, qty:float, was_short:bool}> what came from where
+     */
+    public function consume(int $productId, float $qty, array $m = []): array
+    {
+        if ($qty <= 0) {
+            return [];
+        }
+
+        $pdo = Database::connection();
+        $ownTransaction = !$pdo->inTransaction();
+
+        if ($ownTransaction) {
+            $pdo->beginTransaction();
+        }
+
+        try {
+            $holdings = Database::select("
+                SELECT ps.location_id, ps.qty_on_hand
+                FROM product_stock ps
+                JOIN stock_locations l ON l.id = ps.location_id
+                WHERE ps.product_id = ? AND ps.qty_on_hand > 0 AND l.is_active = 1
+                ORDER BY ps.qty_on_hand DESC, ps.location_id
+            ", [$productId]);
+
+            $remaining   = $qty;
+            $allocations = [];
+
+            foreach ($holdings as $h) {
+                if ($remaining <= 0) {
+                    break;
+                }
+
+                $take = min($remaining, (float)$h['qty_on_hand']);
+                $allocations[] = [
+                    'location_id' => (int)$h['location_id'],
+                    'qty'         => $take,
+                    'was_short'   => false,
+                ];
+                $remaining -= $take;
+            }
+
+            // More went out than the system thought we had.
+            if ($remaining > 0.0001) {
+                $fallback = $holdings
+                    ? (int)$holdings[0]['location_id']
+                    : $this->defaultWarehouseId();
+
+                if ($fallback === null) {
+                    throw new \RuntimeException(
+                        'No stock location to ship from — add a warehouse under Admin > Locations.'
+                    );
+                }
+
+                $allocations[] = [
+                    'location_id' => $fallback,
+                    'qty'         => $remaining,
+                    'was_short'   => true,
+                ];
+            }
+
+            foreach ($allocations as $a) {
+                $note = $m['notes'] ?? null;
+
+                if ($a['was_short']) {
+                    $short = 'Shipped ' . rtrim(rtrim(number_format($a['qty'], 2), '0'), '.')
+                           . ' more than the count showed here';
+                    $note = $note ? $note . '. ' . $short : $short;
+                }
+
+                $this->applyMovement([
+                    'product_id'       => $productId,
+                    'qty'              => $a['qty'],
+                    'type'             => $m['type'] ?? 'sale',
+                    'from_location_id' => $a['location_id'],
+                    'reference_type'   => $m['reference_type'] ?? null,
+                    'reference_id'     => $m['reference_id']   ?? null,
+                    'reference_num'    => $m['reference_num']  ?? null,
+                    'notes'            => $note,
+                    'user_id'          => $m['user_id'] ?? null,
+                    'date'             => $m['date']    ?? null,
+                ]);
+            }
+
+            if ($ownTransaction) {
+                $pdo->commit();
+            }
+
+            return $allocations;
+        } catch (\Throwable $e) {
+            if ($ownTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /** The warehouse to fall back on when a product is recorded at no location at all. */
+    public function defaultWarehouseId(): ?int
+    {
+        $row = Database::selectOne("
+            SELECT id FROM stock_locations
+            WHERE is_active = 1 AND location_type = 'warehouse' AND parent_id IS NULL
+            ORDER BY sort_order, id
+            LIMIT 1
+        ");
+
+        return $row === false ? null : (int)$row['id'];
+    }
+
+    /**
+     * Products whose stock is actually counted, out of the given ids.
+     *
+     * Freight, setup charges and discounts sit on orders as line items but have no
+     * physical existence, so shipping one must not move stock.
+     *
+     * @param  list<int> $productIds
+     * @return array<int,bool> keyed by product id
+     */
+    public function stockedFlags(array $productIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $productIds)));
+
+        if (!$ids) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $rows = Database::select(
+            "SELECT id, item_type FROM products WHERE id IN ({$placeholders})",
+            $ids
+        );
+
+        $flags = [];
+        foreach ($rows as $r) {
+            $flags[(int)$r['id']] = in_array($r['item_type'], ['inventory_part', 'inventory_assembly'], true);
+        }
+
+        return $flags;
+    }
+
     /** Where a product is, and how much is at each place. */
     public function stockByLocation(int $productId): array
     {
