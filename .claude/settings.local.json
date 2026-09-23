@@ -195,7 +195,23 @@
       "Bash(git commit -q -m 'Pad the new form cards, add Manage Users to Sales by Employee *)",
       "Bash(git commit -q -m 'Reconcile the roadmap with what was actually built *)",
       "Bash(git commit -q -m 'Pin down the pack hierarchy for inventory scanning *)",
-      "Bash(git commit -q -m 'Match scans to unlinked order lines by item text *)"
+      "Bash(git commit -q -m 'Match scans to unlinked order lines by item text *)",
+      "Bash(curl -s --max-time 20 https://ordersandtraining.usscproducts.com)",
+      "Bash(curl -sI --max-time 15 https://ordersandtraining.usscproducts.com)",
+      "Bash(curl -s --max-time 20 https://usscproducts.com)",
+      "Bash(curl -sI --max-time 15 https://usscproducts.com)",
+      "Bash(ssh -o ConnectTimeout=15 root@159.223.177.58 'echo \"=== server ===\"; uptime | sed \"s/^/  /\" *)",
+      "Bash(git check-ignore *)",
+      "Bash(ssh -o ConnectTimeout=15 root@159.223.177.58 'echo \"  backups: $\\(crontab -l 2>/dev/null | grep -ci backup\\) cron job\\(s\\); $\\(ls /var/backups/*.sql* /root/*.sql* 2>/dev/null | wc -l\\) dump file\\(s\\)\" *)",
+      "Bash(bash -n deploy/backup.sh)",
+      "Bash(git commit -q -m 'Add database backup script *)",
+      "Bash(git commit -q -m 'Verify backups using root socket auth *)",
+      "Bash(grep -oE '\\\\$so\\\\[|\\\\$order\\\\[|\\\\$salesOrder\\\\[' app/Views/sales_orders/show.php)",
+      "Bash(python3 -c \"import reportlab; print\\('reportlab', reportlab.Version\\)\")",
+      "Bash(python3 /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/doc1.py /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad /Users/artdeptmac/Projects/BusinessOS/docs/pdf/USSCOS_Shipping_and_Fulfillment.pdf)",
+      "Bash(python3 /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/doc3.py /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad /Users/artdeptmac/Projects/BusinessOS/docs/pdf/USSCOS_Order_to_Shipment.pdf)",
+      "Bash(git checkout *)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

@@ -25,6 +25,7 @@ use App\Controllers\PurchaseOrderController;
 use App\Controllers\SalesOrderController;
 use App\Controllers\WebhookController;
 use App\Controllers\ShippingController;
+use App\Controllers\ReceivingController;
 use App\Controllers\VendorController;
 
 // -------------------------------------------------------------------------
@@ -167,6 +168,11 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/shipping/{id}/pick/scan', [ShippingController::class, 'scan'])->name('shipping.scan');
     Router::post('/shipping/{id}/pick/line', [ShippingController::class, 'setLine'])->name('shipping.pick.line');
     Router::post('/shipping/{id}/short',     [ShippingController::class, 'short'])->name('shipping.short');
+
+    // Receiving — where stock first enters USSCOS
+    Router::get('/receiving',         [ReceivingController::class, 'index'])->name('receiving');
+    Router::post('/receiving/lookup', [ReceivingController::class, 'lookup'])->name('receiving.lookup');
+    Router::post('/receiving',        [ReceivingController::class, 'store'])->name('receiving.store');
 
     // Sales Orders
     Router::get('/sales-orders',                 [SalesOrderController::class, 'index'])->name('sales_orders');

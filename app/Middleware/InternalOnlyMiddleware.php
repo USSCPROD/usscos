@@ -30,6 +30,7 @@ class InternalOnlyMiddleware
         '/purchase-orders',
         '/purchasing',
         '/inventory',
+        '/receiving',
         '/reports',
     ];
 
