@@ -164,9 +164,20 @@ side, USSCOS is where that happens. Worth knowing: consolidated reporting stops 
 accounting question and becomes a USSCOS feature — and the intercompany sale still has to
 be eliminated from any combined total, or the same paint is counted twice.
 
-**Access needs three states, not two:** TCC-only, USSC-only, and both (upper management).
-The existing `AccessScope` pattern is right — enforce in repositories — but the scope
-becomes a set of permitted entities rather than a single value.
+**Access is a matrix, not three states** (clarified 2026-09-23). Not simply TCC-only /
+USSC-only / both:
+
+- **Certain people see *parts* of both companies** — e.g. purchasing across both, without
+  seeing either company's financials
+- **Only upper management sees everything in both**
+
+So permission is **(entity x area)**, not one entity flag per user. A user might hold
+"USSC: everything, TCC: purchasing only". The `AccessScope` pattern still applies —
+enforce in repositories, never in views — but the scope it returns is a set of
+entity/area pairs rather than a single value.
+
+Worth designing as a matrix from the start. Retrofitting granularity onto a boolean is
+the expensive version.
 
 **TCC's customer list is one row.** Worth knowing before building anything general: TCC
 does not need customer management, quoting, or a CRM. Its side of USSCOS is purchasing,

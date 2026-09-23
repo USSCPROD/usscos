@@ -188,15 +188,30 @@ Needs a FedEx developer account, API credentials, and the account number. The wo
 moderate and self-contained. **It is an efficiency gain, not a blocker** — manual entry
 works on day one.
 
-### Kuebix / freight quotes
+### Kuebix — it does have an API
 
-Currently the clerk gets a quote in Kuebix and retypes it. Automating that depends entirely
-on what Kuebix offers — some TMS platforms have an API, some do not.
+Confirmed 2026-09-23. Two endpoints matter:
 
-**Find out before planning any of it.** If there is no API, the realistic improvement is
-not automation but a proper freight section in USSCOS: quote reference, carrier, cost,
-pallet count and BOL generation, entered once and attached to the order instead of living
-on paper. That is worth having regardless.
+| Purpose | Endpoint |
+|---|---|
+| Retrieve quotes already created for a shipment | `GET /shipments/{shipmentId}/rates/view` |
+| Request a fresh quote | `POST /action/quickRate` |
+
+Quotes return carrier name, total price, fuel surcharge, additional charges, transit days
+and a quote reference. Authentication is an **API username, API key and client ID**.
+
+**Before building anything, ask Kuebix support two questions:** is API access enabled on
+our subscription, and does it cost extra? Neither is answerable from the documentation and
+both decide whether this is worth starting.
+
+Assuming it is enabled, the useful shape is: request or retrieve quotes from the sales
+order, show the options with carrier, price and transit days, let the clerk pick one, and
+store the chosen quote against the order — carrier, cost, reference. That removes the
+retyping and, more usefully, keeps the freight cost attached to the order instead of
+living on paper.
+
+A freight section is worth building **either way** — quote reference, carrier, cost, pallet
+count and BOL. The API makes it quicker to fill in; it is not what makes it valuable.
 
 ---
 
@@ -254,12 +269,14 @@ critical path.
 
 - **The product spreadsheet with `units_per_case`, `pallet_qty` and barcodes** — this is
   the one thing that blocks scanning entirely, and nothing else substitutes for it
-- **A name for the new warehouse**, and whether you want bays/racks inside it or just a
-  building-level count to begin with
-- **Does Kuebix have an API?** One question to them decides whether freight is an
-  integration or a data-entry screen
-- **Will TCC people use USSCOS at go-live, or is this USSC only?** This decides whether
-  entity scoping is now or later
+- ~~A name for the new warehouse~~ — **"730"** (the address), and **yes to bays/racks**,
+  since that is how stock is physically stored
+- ~~Does Kuebix have an API?~~ — **yes**. Still needed: confirmation from Kuebix support
+  that it is enabled on our subscription, and whether it costs extra
+- ~~Will TCC people use USSCOS at go-live?~~ — **yes, partially.** Some users see parts of
+  both companies; upper management sees everything in both. That makes access a
+  **(entity x area) matrix**, not a single entity flag — see
+  [INTERCOMPANY.md](INTERCOMPANY.md). Worth designing as a matrix from the start.
 
 ---
 
