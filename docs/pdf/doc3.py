@@ -56,6 +56,9 @@ def story_fn(S, st):
     S.append(P("Orders arrive from Amazon, are <b>printed</b>, then <b>typed by hand into "
                "QuickBooks</b>, then handed to Hannah. So Amazon orders never exist in USSCOS at "
                "all, and the same details are keyed twice before anyone picks them.", st))
+    S.append(P("These also carry a <b>same-day ship obligation</b>, and nothing in the current "
+               "process marks them as more urgent than anything else in the pile. They are urgent "
+               "because someone recognises the printout.", st))
 
     S.append(P("Route 3 — customer pickup", st, 'h2'))
     S.append(P("Its own pile, no carrier, but the same paper trail.", st))
@@ -92,7 +95,8 @@ def story_fn(S, st):
     S.append(P("How it would work", st, 'h1'))
     S.append(P("Same people, same building. The order stops being paper and the copying stops.", st))
     fut = [[C("#", st, True), C("Step", st, True), C("Who", st, True), C("Change", st, True)]]
-    for r in [("1","Order entered, or pulled in automatically from Amazon","Sales / system","Amazon keying gone"),
+    for r in [("1","Order entered, or pulled in automatically from Amazon","Sales / system","<b>Amazon keying gone</b>"),
+              ("1b","Amazon orders land labelled and flagged urgent, at the top of the queue","System","<b>Same-day protected</b>"),
               ("2","Order appears in the shipping queue the moment it is confirmed","—","<b>No printing, no walking</b>"),
               ("3","Shipping builds a pick list across several orders at once","Hannah","<b>One trip, not many</b>"),
               ("4","Picker scans each item; wrong or excess is refused at the shelf","Picker","<b>Wrong picks stopped</b>"),
@@ -105,6 +109,21 @@ def story_fn(S, st):
               ("11","Backorders release themselves when stock arrives","—","<b>No more checking</b>")]:
         fut.append([C(r[0], st), C(r[1], st), C(r[2], st), C(r[3], st)])
     S.append(table(fut, [0.35*inch, 3.2*inch, 1.05*inch, 1.55*inch], st))
+
+    S.append(P("And the orders that cannot ship", st, 'h2'))
+    S.append(P("Today these are a physical pile that Hannah manages, checking repeatedly whether "
+               "product has arrived. In USSCOS they become a list, worked out from stock rather "
+               "than memory:", st))
+    for b in ["Each order is checked against available stock — on hand, less what is already committed elsewhere.",
+              "The order is marked fillable, partly fillable, or blocked.",
+              "<b>The screen names the product holding it up</b>, because the question actually asked is \"what are we waiting on\".",
+              "<b>A receipt releases the orders it unblocks.</b> Stock arriving is what tells Hannah, instead of Hannah going to look."]:
+        S.append(B(b, st))
+    S.append(Spacer(1, 6))
+    S.append(callout("<b>The same arithmetic answers production.</b> Stock, less what is committed, "
+                     "against what is ordered. Read one way it says which orders cannot ship. Read "
+                     "the other, it says which paint to make — the problem of making stock we do not "
+                     "need while customers wait on stock we do.", st, GREEN, '#f0fdf4'))
 
     S.append(PageBreak())
 
@@ -191,14 +210,19 @@ def story_fn(S, st):
 
     # ---------- QUESTIONS
     S.append(P("Questions this raised", st, 'h1'))
-    for b in ["<b>Are Amazon orders keyed into QuickBooks only, or into USSCOS too?</b> If only QuickBooks, they are invisible here and the pick list would miss them.",
-              "<b>Is there a website order channel as well?</b> usscproducts.com runs a store — do those orders follow the same path?",
-              "<b>Does Amazon shipment confirmation happen by hand today?</b> Late tracking upload affects account standing, and it is the sort of thing automation protects.",
-              "<b>Where do backorders live now?</b> There is one open sales order in the system, so the pile is being tracked somewhere else — and the ERP cannot prioritise against demand it cannot see.",
+    for b in ["<b>Is there a website order channel as well?</b> usscproducts.com runs a store — do those orders follow the same path as Amazon, or a different one?",
+              "<b>Does Amazon shipment confirmation happen by hand today?</b> Late tracking upload affects account standing, and it is exactly what automation protects.",
               "<b>Who packs, and is it the same person who picks?</b> Decides whether pack verification is a separate station or the same screen.",
               "<b>Is there a label printer at the pack bench</b>, or one shared printer?",
-              "<b>How often does a wrong shipment happen now?</b> Even a rough number puts a value on pack verification."]:
+              "<b>How often does a wrong shipment happen now?</b> Even a rough number puts a value on pack verification.",
+              "<b>What is the customer pickup process?</b> No carrier, but it still needs picking, verifying and a record that it left.",
+              "<b>Freight uses a PRO number rather than a tracking number.</b> Does that come from the carrier, from Kuebix, or off the bill of lading?"]:
         S.append(B(b, st))
+    S.append(Spacer(1, 8))
+    S.append(callout("<b>A note on figures from USSCOS.</b> The system is still in testing, so order "
+                     "and stock counts inside it describe test data rather than the business. Live "
+                     "figures in this document come from imported QuickBooks history, which is real.",
+                     st, GREY, '#f9fafb'))
 
 build(sys.argv[2],
       "Order to Shipment",
