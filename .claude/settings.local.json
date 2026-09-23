@@ -255,7 +255,10 @@
       "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/potest.php root@159.223.177.58:/tmp/)",
       "Bash(sed -i '' 's/                   v.name AS vendor_name,/                   v.company_name AS vendor_name,/' app/Repositories/PurchaseOrderRepository.php)",
       "Bash(php -l app/Repositories/PurchaseOrderRepository.php)",
-      "Bash(scp -q /tmp/rendervar.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /tmp/rendervar.php root@159.223.177.58:/tmp/)",
+      "Bash(pdftotext -layout \"/Users/artdeptmac/Desktop/USSCOS/USSCOS_Build_Status_and_Priorities.pdf\" -)",
+      "Bash(python3 doc2.py . USSCOS_Build_Status_and_Priorities.pdf)",
+      "Bash(cp USSCOS_Build_Status_and_Priorities.pdf /Users/artdeptmac/Desktop/USSCOS/USSCOS_Build_Status_and_Priorities.pdf)"
     ]
   }
 }

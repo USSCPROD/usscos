@@ -10,31 +10,85 @@ def C(s, st, b=False): return Paragraph(s, st['cellb' if b else 'cell'])
 def story_fn(S, st):
     S.append(callout(
         "<b>Summary.</b> The sales side of USSCOS is built and working — quoting, orders, invoicing, "
-        "customers, products, reps, artwork. The warehouse side is not: of the seven ways stock moves "
-        "at USSC, one and a half are built. That gap is the whole distance between where this is now "
-        "and something the business can run on.<br/><br/>"
+        "customers, products, reps, artwork. The warehouse side was not: of the seven ways stock moves "
+        "at USSC, one and a half were built.<br/><br/>"
+        "<b>That has changed.</b> Stock now moves both ways. Receiving puts it in, shipping takes it "
+        "out, purchase orders are received against, and every one of those runs through a single path "
+        "that writes the movement and the balance together. Four of the seven are built. Transfers, "
+        "returns and counting remain.<br/><br/>"
         "<b>Accounting is not on the critical path.</b> QuickBooks keeps the books, bills stay in "
         "QuickBooks, and none of it blocks going live.", st))
     S.append(Spacer(1, 10))
 
+    # ------------- DONE SINCE LAST VERSION
+    S.append(P("Completed since the last version of this document", st, 'h1'))
+    S.append(P("All deployed and tested against the live database.", st))
+    new = [[C("Item", st, True), C("What it does now", st, True)]]
+    for r in [
+        ("Receiving", "Scan or type a SKU, confirm the quantity, choose the location. Suggests a quantity from the pack size but never insists on it"),
+        ("Deduct stock on shipment", "Shipping takes stock out of the location holding it, biggest holding first, splitting across locations when needed"),
+        ("Stock on every invoice", "A counter sale or a correction moves stock too, not only a shipment. Editing an invoice moves the difference"),
+        ("Receive against a PO", "Records what actually arrived, never trimmed to match the PO, into a location"),
+        ("Variance queue", "Receipts that disagree with their PO, resolved by updating the PO or explaining the difference"),
+        ("Locations", "Admin screen, warehouses named 1000, 900, 3085 and 730"),
+        ("Customer PO on the job", "The PO document itself is filed on the job binder and stays with the job after invoicing"),
+        ("Pack quantities", "Aerosol, Fat Cans, pails and 2.5 gal jugs — 458 of 891 products now carry real figures"),
+    ]:
+        new.append([C(r[0], st), C(r[1], st)])
+    S.append(table(new, [1.8*inch, 4.8*inch], st))
+
+    S.append(callout(
+        "<b>The design point underneath all of it.</b> Every stock movement goes through one function "
+        "that writes the transaction record and the per-location balance inside a single database "
+        "transaction. The product total is <i>recomputed</i> from the sum of its locations rather than "
+        "incremented, so it cannot drift away from the detail. That is the difference between a count "
+        "that can be trusted and the one being replaced.", st, GREEN, '#f0fdf4'))
+
+    S.append(PageBreak())
+
+    # ------------- PROBLEMS FOUND
+    S.append(P("Problems found and fixed on the way", st, 'h1'))
+    S.append(P("Each of these was live and silent. They are listed because they may have already cost "
+               "money, and because they say something about where else to look.", st))
+    bugs = [[C("What was wrong", st, True), C("What it cost", st, True)]]
+    for r in [
+        ("Shipping the rest of a part-shipped order re-invoiced everything picked",
+         "The customer was billed a second time for the first shipment. Worth checking against real partial shipments in QuickBooks"),
+        ("Receiving against a PO capped the quantity at what was ordered",
+         "620 cases arriving against a PO for 600 silently became 600 — twenty cases gone, no error, no note"),
+        ("PO receipts never touched locations",
+         "Stock received against a PO existed as a total in no building, invisible to the location screens"),
+        ("Invoices could be edited without stock following",
+         "Correcting an invoice from ten to eight billed eight and left ten deducted"),
+        ("A database error on an invoice showed as “Not Found”",
+         "Real faults looked like missing records, so nobody would have reported them as faults"),
+    ]:
+        bugs.append([C(r[0], st), C(r[1], st)])
+    S.append(table(bugs, [3.0*inch, 3.6*inch], st))
+
+    S.append(PageBreak())
+
     # ------------- READY
     S.append(P("Ready to use now", st, 'h1'))
-    S.append(P("Built, deployed and tested against real data.", st))
     ready = [[C("Area", st, True), C("What it does", st, True)]]
     for r in [
         ("Leads and pipeline", "Web forms feed leads, routed by type, converted to customers"),
         ("Quotes", "Built, emailed, converted to orders; status flows back to the lead"),
         ("Sales orders", "Created, edited, packing slips, payment collection"),
-        ("Invoicing", "Ship and invoice, receipt or invoice email, closes the order"),
+        ("Invoicing", "Ship and invoice, receipt or invoice email, closes the order, moves stock"),
         ("Customers", "41,233 records, 360° profile, revenue history, activity timeline, alerts"),
         ("Duplicate prevention", "Adding a customer warns on likely duplicates, including ones the user cannot see"),
         ("Products", "891 records, images, documents, ~100 fields for EDI and Amazon"),
         ("Sales reps", "33 reps, credited revenue, commission rates, logins"),
         ("Reporting", "Sales by rep, sales by employee, A/R aging, all with date ranges"),
         ("Pick and verify", "Scan against the order, refuse wrong items, report short stock"),
-        ("Artwork binder", "Proofs with full revision history and who approved which version"),
+        ("Receiving", "Scan in, suggested pack quantities, into a named location"),
+        ("Stock movement", "Receipts, shipments, invoice corrections and PO receipts, all logged by location"),
+        ("Purchasing", "POs raised and received against, with a variance queue when they disagree"),
+        ("Locations", "Warehouses 1000, 900, 3085, 730, with bays and racks addable"),
+        ("Job binder", "Artwork with revision history and approvals, plus the customer's PO filed on the job"),
         ("Access control", "Reps and distributors restricted to their own customers, enforced in the data layer"),
-        ("Admin", "Users, reps, terms, carriers, tax rates, with safe deactivate and delete"),
+        ("Admin", "Users, reps, terms, carriers, tax rates, locations, with safe deactivate and delete"),
         ("Backups", "Nightly, verified by restoring, copied off-site to DigitalOcean"),
     ]:
         ready.append([C(r[0], st), C(r[1], st)])
@@ -44,29 +98,27 @@ def story_fn(S, st):
     S.append(P("Close to finished", st, 'h1'))
     close = [[C("Item", st, True), C("What remains", st, True), C("Effort", st, True)]]
     for r in [
-        ("Stock locations", "Tables built and both warehouses created. Needs the screens, plus bays and racks for 730", "Small"),
-        ("Job binder", "Artwork done. Production notes, QA checklist and photos follow the same pattern", "Medium"),
+        ("Scan a delivery against its PO", "Receiving and purchasing both work, but separately. The warehouse scan screen does not yet know about POs, so a scanned delivery does not update one", "Small"),
+        ("Locations", "Screens and warehouses done. Needs the bays and racks in 730 entering", "Small"),
+        ("Job binder", "Artwork and documents done. Production notes, QA checklist and photos follow the same pattern", "Medium"),
         ("Shipping queue", "Working. Needs pack verification and the link through to carriers", "Medium"),
         ("Dashboard", "Every figure is a placeholder showing zero. The data exists; nothing is wired to it", "Small"),
     ]:
         close.append([C(r[0], st), C(r[1], st), C(r[2], st)])
-    S.append(table(close, [1.5*inch, 4.2*inch, 0.9*inch], st))
-
-    S.append(PageBreak())
+    S.append(table(close, [1.6*inch, 4.1*inch, 0.9*inch], st))
 
     # ------------- TO BUILD
     S.append(P("Left to build", st, 'h1'))
     S.append(P("Grouped by what they belong to. Effort is relative, not a quote.", st))
-    S.append(P("Inventory — the critical path", st, 'h2'))
+    S.append(P("Inventory — still the critical path", st, 'h2'))
     inv = [[C("Item", st, True), C("Why it matters", st, True), C("Effort", st, True)]]
     for r in [
-        ("Receiving", "How stock first enters the system. Nothing works without it", "Medium"),
-        ("Deduct stock on shipment", "Shipping currently does not move inventory at all", "Small"),
-        ("Transfers between warehouses", "Scan out, in transit, scan in — needed for 730", "Medium"),
+        ("Transfers between warehouses", "Scan out, scan in — needed for 730. A transfer is a record, not a place", "Medium"),
         ("Returns", "Named as a main cause of drift. Nothing exists", "Medium"),
         ("Adjustments and write-offs", "The honest correction path. Without it people work around the system", "Small"),
         ("Cycle counting", "Rolling counts so errors surface in days, not at year end", "Medium"),
         ("Opening physical count", "One full count, entered once the screens above exist", "Operations"),
+        ("Negative stock report", "Negatives are allowed on purpose — they are the signal something needs counting. Nothing lists them yet", "Small"),
     ]:
         inv.append([C(r[0], st), C(r[1], st), C(r[2], st)])
     S.append(table(inv, [1.7*inch, 4.0*inch, 0.9*inch], st))
@@ -75,10 +127,10 @@ def story_fn(S, st):
     shp = [[C("Item", st, True), C("Why it matters", st, True), C("Effort", st, True)]]
     for r in [
         ("Pack verification", "Second scan at the bench catches what picking missed", "Small"),
-        ("Customer PO on the order", "Replaces comparing addresses against printed paperwork", "Small"),
         ("Freight section and BOL", "Carrier, cost, pallets and a generated bill of lading", "Medium"),
         ("FedEx", "Labels and tracking captured rather than typed", "Medium"),
         ("Kuebix quotes", "Removes retyping. Pending confirmation the API is enabled", "Medium"),
+        ("Amazon orders direct", "Straight into USSCOS as same-day priority, instead of being keyed by hand", "Medium"),
     ]:
         shp.append([C(r[0], st), C(r[1], st), C(r[2], st)])
     S.append(table(shp, [1.7*inch, 4.0*inch, 0.9*inch], st))
@@ -87,6 +139,7 @@ def story_fn(S, st):
     dat = [[C("Item", st, True), C("Why it matters", st, True), C("Effort", st, True)]]
     for r in [
         ("Product reimport", "765 SKUs with barcodes and pack quantities replacing the current 891", "Small"),
+        ("Carry pack data through the reimport", "The figures entered so far must survive it or they are lost", "Small"),
         ("QuickBooks bridge", "Reads QuickBooks and talks to USSCOS. Outbound only — no port to open", "Large"),
         ("Capture QuickBooks IDs", "So a rename in QuickBooks never breaks the link again", "Small"),
         ("Two-entity support", "TCC and USSC, with per-area access rather than one flag", "Large"),
@@ -106,7 +159,9 @@ def story_fn(S, st):
     S.append(P("Not stalled for want of effort — listed so they are not mistaken for work in progress.", st))
     blk = [[C("Item", st, True), C("Waiting on", st, True)]]
     for r in [
-        ("Final product file", "Units per case, pallet quantity, barcodes, QuickBooks IDs"),
+        ("Remaining pack quantities", "1 gal, 2-packs, 1.25 gal jugs, 55 gal drums. Aerosol, Fat Cans, pails and 2.5 gal jugs are done"),
+        ("Robo jug boxing decision", "Whether to move from double boxes to singles. The pallet stays 48 jugs either way, so nothing is blocked — but the figures change when it is decided"),
+        ("Final product file", "Barcodes and QuickBooks IDs, plus the pack columns"),
         ("SKU renaming", "Being finalised in QuickBooks"),
         ("Kuebix automation", "Confirmation the API is enabled on the subscription, and its cost"),
         ("FedEx", "Account number and API credentials"),
@@ -116,7 +171,7 @@ def story_fn(S, st):
         ("Distributor list", "Turf Tank, BSN and the others"),
     ]:
         blk.append([C(r[0], st), C(r[1], st)])
-    S.append(table(blk, [2.9*inch, 3.7*inch], st))
+    S.append(table(blk, [2.3*inch, 4.3*inch], st))
 
     # ------------- PRIORITY
     S.append(P("The order I would build it in", st, 'h1'))
@@ -126,27 +181,27 @@ def story_fn(S, st):
                      "current numbers went wrong.", st))
     S.append(Spacer(1, 8))
 
-    ph = [[C("", st, True), C("Phase", st, True), C("Contains", st, True), C("Ends with", st, True)]]
+    ph = [[C("", st, True), C("Phase", st, True), C("Contains", st, True), C("State", st, True)]]
     for r in [
-        ("1", "Stock can move", "Receiving · deduct on shipment · transfers · adjustments",
-         "Every movement has a screen"),
-        ("2", "Stock is right", "Returns · cycle counting · opening physical count",
-         "A count people believe"),
+        ("1", "Stock can move", "Receiving · deduct on shipment · PO receipts · transfers · adjustments",
+         "Part done — transfers and adjustments remain"),
+        ("2", "Stock is right", "Returns · cycle counting · negative stock report · opening physical count",
+         "Not started"),
         ("3", "Product data", "Reimport 765 SKUs with barcodes, pack quantities, QuickBooks IDs",
-         "Scanning works on real products"),
-        ("4", "Shipping finished", "Pack verification · customer PO on the order · freight and BOL",
-         "Orders leave verified"),
-        ("5", "Carriers", "FedEx labels and tracking · Kuebix quotes",
-         "No retyping"),
+         "Waiting on the file"),
+        ("4", "Shipping finished", "Pack verification · freight and BOL · scan a delivery against its PO",
+         "Not started"),
+        ("5", "Carriers", "FedEx labels and tracking · Kuebix quotes · Amazon direct",
+         "Waiting on credentials"),
         ("6", "QuickBooks", "The bridge, both files, items and customers pulled",
-         "Renames stop breaking things"),
+         "Not started"),
         ("7", "Two entities", "TCC and USSC with per-area access",
-         "TCC staff can use it"),
-        ("8", "The rest", "Dashboard · job binder · portals · tiered pricing",
-         "—"),
+         "Not started"),
+        ("8", "The rest", "Dashboard · job binder remainder · portals · tiered pricing",
+         "Not started"),
     ]:
         ph.append([C(r[0], st, True), C(r[1], st, True), C(r[2], st), C(r[3], st)])
-    S.append(table(ph, [0.3*inch, 1.35*inch, 3.1*inch, 1.85*inch], st))
+    S.append(table(ph, [0.3*inch, 1.3*inch, 3.0*inch, 2.0*inch], st))
     S.append(Spacer(1, 8))
     S.append(P("Phases 1 to 4 are what \"functional\" means. Five onwards make it faster and wider, but "
                "the warehouse can run without them.", st, 'note'))
@@ -161,18 +216,25 @@ def story_fn(S, st):
     S.append(P("Questions that need answers", st, 'h1'))
     S.append(P("Grouped by who can answer them. The starred ones change what gets built.", st))
 
+    S.append(P("Answered since the last version", st, 'h2'))
+    for b in ["<b>How does a pallet count?</b> As a quantity of base units, not as its own item — 108 cases × 12 = 1,296 cans for 18 oz aerosol, 75 × 12 = 900 for Fat Cans, 24 pails, 48 jugs. Built that way.",
+              "<b>Is the PO to TCC tied to a job?</b> No. It is replenishment, billed to USSC, and never belongs to a particular sales order.",
+              "<b>Which PO belongs on the job binder?</b> The customer's, as a document. Built."]:
+        S.append(B(b, st))
+
     S.append(P("Operations", st, 'h2'))
-    for b in ["<b>★ Does a pallet count as a quantity of cases, or as its own item?</b> This decides how counting works across pack levels, and the product file cannot be finished without it.",
-              "<b>★ While paint sits at the canning company, is it ours or TCC's?</b> Decides whose inventory it is.",
+    for b in ["<b>★ While paint sits at the canning company, is it ours or TCC's?</b> Decides whose inventory it is.",
+              "<b>★ Who watches the variance queue?</b> It is built, but a queue nobody opens is the same as no queue.",
               "How much paint is lost turning totes into cans? Nobody tracks it, but someone knows.",
               "What bays and racks exist in 730, and how are they labelled?",
               "Is the draft-to-confirmed step happening on every order, or are some invisible to shipping?",
-              "When is stock considered gone — at pick, at load, or at invoice?",
+              "When is stock considered gone — at pick, at load, or at invoice? It currently comes out at invoice.",
               "Who prints labels, and on what printer?"]:
         S.append(B(b, st))
 
     S.append(P("Bookkeeper and accountant", st, 'h2'))
     for b in ["<b>★ Who owns inventory valuation — USSCOS or QuickBooks?</b> Blocks costing stock, though not counting it.",
+              "<b>Have any part-shipped orders been billed twice?</b> The fault is fixed, but any that already happened are in QuickBooks, not here.",
               "After the rename, do historical invoices show the new item names in an export?",
               "Can the export include the QuickBooks ListID column?",
               "How is sales tax set up — one rate per state, or county codes?",
@@ -191,14 +253,15 @@ def story_fn(S, st):
               "Who is the pilot group for the scanners, and when can they spend a day on it?"]:
         S.append(B(b, st))
 
-    S.append(Spacer(1, 12))
+    S.append(Spacer(1, 8))
     S.append(callout(
-        "<b>The single most useful thing right now</b> is the finished product file — units per case, "
-        "pallet quantity, barcodes and QuickBooks IDs. Receiving, transfers, counting and scanning all "
-        "wait on it, and no amount of building substitutes for it.", st, GREEN, '#f0fdf4'))
+        "<b>The single most useful thing right now</b> is still the finished product file — barcodes, "
+        "QuickBooks IDs and the remaining pack quantities. Scanning, transfers and counting all wait on "
+        "it, and no amount of building substitutes for it. The pack figures supplied so far cover 458 "
+        "of 891 products and must be carried through the reimport, or they are lost.", st, GREEN, '#f0fdf4'))
 
 build(sys.argv[2],
       "USSCOS Build Status and Priorities",
-      "What is ready, what is close, what remains &nbsp;·&nbsp; 23 September 2026",
+      "What is ready, what is close, what remains &nbsp;·&nbsp; 23 September 2026 (revised)",
       story_fn)
 print("written:", sys.argv[2])
