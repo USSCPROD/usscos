@@ -165,7 +165,8 @@ What that needs:
   of Hannah checking the pile
 
 This is the same list production needs in order to know what to make, viewed from the
-other end. One calculation, two audiences.
+other end. One calculation, two audiences — see
+[PRODUCTION_PLANNING.md](PRODUCTION_PLANNING.md).
 
 ### A correction worth recording
 
