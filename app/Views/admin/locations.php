@@ -56,7 +56,6 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
                 <tr><td colspan="7" class="table__empty">No locations yet.</td></tr>
             <?php else: ?>
                 <?php foreach ($items as $l): ?>
-                    <?php $isTransit = $l['location_type'] === 'transit'; ?>
                     <tr<?= (int)$l['is_active'] === 0 ? ' style="opacity:.55"' : '' ?>>
                         <td>
                             <?php // Indentation carries the tree; depth is computed in the repository. ?>
@@ -88,21 +87,16 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
                             </span>
                         </td>
                         <td class="text-right" style="white-space:nowrap">
-                            <?php if ($isTransit): ?>
-                                <?php // Created with the warehouse and required by transfers, so not editable here. ?>
-                                <span class="text-xs text-muted" title="Created automatically with its warehouse and used by transfers">automatic</span>
-                            <?php else: ?>
-                                <?php
-                                $actEntity    = 'locations';
-                                $actId        = (int)$l['id'];
-                                $actActive    = (bool)$l['is_active'];
-                                $actEditUrl   = '/admin/locations/' . (int)$l['id'] . '/edit';
-                                $actLabel     = 'location';
-                                $actDeletable = true;
-                                $actRefs      = $refCounts[(int)$l['id']] ?? 0;
-                                include BASE_PATH . '/app/Views/admin/_actions.php';
-                                ?>
-                            <?php endif; ?>
+                            <?php
+                            $actEntity    = 'locations';
+                            $actId        = (int)$l['id'];
+                            $actActive    = (bool)$l['is_active'];
+                            $actEditUrl   = '/admin/locations/' . (int)$l['id'] . '/edit';
+                            $actLabel     = 'location';
+                            $actDeletable = true;
+                            $actRefs      = $refCounts[(int)$l['id']] ?? 0;
+                            include BASE_PATH . '/app/Views/admin/_actions.php';
+                            ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -113,11 +107,11 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
 </div>
 
 <p style="font-size:.78rem;color:#9ca3af;margin:1rem 0 2rem">
-    Each warehouse has an <strong>in transit</strong> location of its own. Stock moves into it
-    when it is scanned out of one building and out of it when scanned in at the other, so a
-    pallet between buildings is somewhere rather than nowhere — and anything sitting in
-    transit too long is a question worth asking. Those entries are created automatically and
-    cannot be edited.
+    Stock moving between buildings is <strong>not</strong> a location. A transfer is its own
+    record — scanned out of one building, scanned in at the other — so it knows where stock
+    came from <em>and where it is going</em>, which a location cannot express. Until it is
+    received it counts at neither end, which is correct: it cannot be sold from either
+    building while it is on a truck.
 </p>
 
 <?php

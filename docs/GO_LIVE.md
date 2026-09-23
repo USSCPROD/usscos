@@ -55,19 +55,21 @@ bin tables at all. With a second warehouse you need:
 
 ### The bit people get wrong: in transit
 
-When a pallet leaves the main warehouse and has not yet arrived at the new one, it is in
-neither. If a transfer is a single instant event, then anything lost, delayed or
-miscounted between buildings silently vanishes and nobody can say where.
+When a pallet leaves 1000 and has not yet arrived at 730, it is in neither. If a transfer
+is a single instant event, then anything lost, delayed or miscounted between buildings
+silently vanishes and nobody can say where.
 
-So a transfer is **two events, not one**:
+So a transfer is **two events, not one** — scanned out, then scanned in.
 
-```
-scan out of Warehouse A   →   IN TRANSIT   →   scan in at Warehouse B
-```
+**A transfer is its own record, not a location** (corrected 2026-09-23). An early version
+created an "in transit" location per warehouse. That was wrong: a location can only say
+stock *left* 1000, not that it is *going to* 730 — and "what is on its way to 730" is the
+question people actually ask. A transfer record holds from, to, quantity, who scanned it
+out, who scanned it in, and when.
 
-Anything sitting in transit for longer than a day is a question worth asking, and that
-becomes a report. This is exactly the kind of gap that produces "we don't understand how
-it can be so off".
+In transit is then simply a transfer scanned out but not yet scanned in. Stock in that
+state counts at neither building, which is correct — it cannot be sold from either while
+it is on a truck. Anything sitting there too long becomes a report.
 
 ### Returns are not optional
 
