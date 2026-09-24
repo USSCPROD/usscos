@@ -21,6 +21,7 @@ use App\Controllers\ProductController;
 use App\Controllers\JobBinderController;
 use App\Controllers\ProfileController;
 use App\Controllers\InventoryController;
+use App\Controllers\AdjustmentController;
 use App\Controllers\PurchaseOrderController;
 use App\Controllers\SalesOrderController;
 use App\Controllers\WebhookController;
@@ -225,6 +226,10 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
 
     // Inventory
     Router::get('/inventory',                    [InventoryController::class, 'index'])->name('inventory');
+    // Literal paths before /inventory/{id}, or the id route swallows them.
+    Router::get('/inventory/adjustments',        [AdjustmentController::class, 'index'])->name('inventory.adjustments');
+    Router::post('/inventory/adjustments',       [AdjustmentController::class, 'store'])->name('inventory.adjustments.store');
+    Router::post('/inventory/adjustments/lookup',[AdjustmentController::class, 'lookup'])->name('inventory.adjustments.lookup');
     Router::get('/inventory/{id}',               [InventoryController::class, 'show'])->name('inventory.show');
     Router::post('/inventory/{id}/adjust',       [InventoryController::class, 'adjust'])->name('inventory.adjust');
 

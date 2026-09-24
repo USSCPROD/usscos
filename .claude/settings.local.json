@@ -274,7 +274,11 @@
       "Bash(curl -sL -m 90 -o ga_q3.pdf -w \"Q3 %{http_code} %{size_download} %{content_type}\\\\n\" \"https://dor.georgia.gov/document/document/general-rate-chart-effective-july-1-2026-through-september-30-2026pdf/download\")",
       "Bash(curl -sL -m 90 -o ga_q4.pdf -w \"Q4 %{http_code} %{size_download} %{content_type}\\\\n\" \"https://dor.georgia.gov/document/document/httpsdorgeorgiagovdocumentdocumentgeneral-rate-chart-effective-october-1-2026/download\")",
       "Bash(sed -i '' 's/COUNT\\(\\\\*\\) rows FROM/COUNT\\(*\\) rate_rows FROM/; s/\\\\$r\\\\[.rows.\\\\]/$r[\"rate_rows\"]/' /tmp/gatest.php)",
-      "Bash(scp -q /tmp/gatest.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /tmp/gatest.php root@159.223.177.58:/tmp/)",
+      "Bash(php -l app/Views/inventory/adjustments.php)",
+      "Bash(php -l app/Services/AdjustmentService.php)",
+      "Bash(php -l app/Controllers/AdjustmentController.php)",
+      "Bash(php -l app/Views/inventory/index.php)"
     ]
   }
 }

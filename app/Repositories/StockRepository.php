@@ -67,16 +67,17 @@ class StockRepository
 
             $stmt = $pdo->prepare("
                 INSERT INTO inventory_transactions
-                    (product_id, from_location_id, to_location_id, transaction_type,
+                    (product_id, from_location_id, to_location_id, transaction_type, reason_code,
                      reference_type, reference_id, reference_num,
                      transaction_date, qty, qty_expected, qty_on_hand_after, notes, created_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
                 $productId,
                 $from,
                 $to,
                 $m['type'],
+                $m['reason_code']    ?? null,
                 $m['reference_type'] ?? null,
                 $m['reference_id']   ?? null,
                 $m['reference_num']  ?? null,
@@ -383,6 +384,99 @@ class StockRepository
         }
 
         return $flags;
+    }
+
+    /**
+     * Correct the stock at one location by a signed amount.
+     *
+     * Runs through applyMovement like everything else, so an adjustment is logged and the
+     * balance moves together. A positive delta goes in, a negative one comes out — the
+     * direction is the sign, because "add 5" and "remove 5" are the same event.
+     *
+     * @return int the transaction id
+     */
+    public function adjustAt(int $productId, int $locationId, float $delta, array $m = []): int
+    {
+        if (abs($delta) < 0.0001) {
+            throw new \RuntimeException('That would not change anything.');
+        }
+
+        return $this->applyMovement([
+            'product_id'       => $productId,
+            'qty'              => abs($delta),
+            'type'             => 'adjustment',
+            'reason_code'      => $m['reason_code'] ?? null,
+            'from_location_id' => $delta < 0 ? $locationId : null,
+            'to_location_id'   => $delta > 0 ? $locationId : null,
+            'reference_num'    => $m['reference_num'] ?? null,
+            'notes'            => $m['notes'] ?? null,
+            'user_id'          => $m['user_id'] ?? null,
+        ]);
+    }
+
+    /** What the system currently thinks is at one location. */
+    public function qtyAt(int $productId, int $locationId): float
+    {
+        $row = Database::selectOne(
+            "SELECT qty_on_hand FROM product_stock WHERE product_id = ? AND location_id = ?",
+            [$productId, $locationId]
+        );
+
+        return $row === false ? 0.0 : (float)$row['qty_on_hand'];
+    }
+
+    /** Record that this product was physically counted here, and by whom. */
+    public function markCounted(int $productId, int $locationId, ?int $userId): void
+    {
+        Database::statement("
+            INSERT INTO product_stock (product_id, location_id, qty_on_hand, counted_at, counted_by)
+            VALUES (?, ?, 0, NOW(), ?)
+            ON DUPLICATE KEY UPDATE counted_at = NOW(), counted_by = VALUES(counted_by)
+        ", [$productId, $locationId, $userId]);
+    }
+
+    /**
+     * Stock sitting below zero.
+     *
+     * Negatives are allowed deliberately — refusing them pushes people to work around the
+     * system — but a negative that nobody looks at is just a wrong number. This is the
+     * worklist that turns it back into a question.
+     */
+    public function negativeStock(): array
+    {
+        return Database::select("
+            SELECT ps.product_id, ps.qty_on_hand, ps.counted_at,
+                   p.sku, p.name AS product_name,
+                   l.id AS location_id, l.code AS location_code, l.name AS location_name,
+                   (SELECT MAX(t.created_at) FROM inventory_transactions t
+                     WHERE t.product_id = ps.product_id
+                       AND (t.from_location_id = ps.location_id OR t.to_location_id = ps.location_id)
+                   ) AS last_movement
+            FROM product_stock ps
+            JOIN products p        ON p.id = ps.product_id
+            JOIN stock_locations l ON l.id = ps.location_id
+            WHERE ps.qty_on_hand < 0
+            ORDER BY ps.qty_on_hand
+        ");
+    }
+
+    /** Recent adjustments, with their reasons, for the running list. */
+    public function recentAdjustments(int $limit = 25): array
+    {
+        return Database::select("
+            SELECT t.id, t.qty, t.reason_code, t.notes, t.created_at, t.qty_on_hand_after,
+                   p.sku, p.name AS product_name,
+                   COALESCE(lf.code, lt.code) AS location_code,
+                   TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS user_name
+            FROM inventory_transactions t
+            JOIN products p ON p.id = t.product_id
+            LEFT JOIN stock_locations lf ON lf.id = t.from_location_id
+            LEFT JOIN stock_locations lt ON lt.id = t.to_location_id
+            LEFT JOIN users u ON u.id = t.created_by
+            WHERE t.transaction_type = 'adjustment'
+            ORDER BY t.id DESC
+            LIMIT {$limit}
+        ");
     }
 
     /** Where a product is, and how much is at each place. */
