@@ -227,6 +227,37 @@ class InvoiceRepository
         return (int)$this->pdo->lastInsertId();
     }
 
+    /**
+     * Record how this invoice was taxed, and why.
+     *
+     * Separate from insert() because the rate can only be worked out once the lines exist,
+     * and because what is stored here must never be recomputed afterwards: the Georgia
+     * return is filed by jurisdiction, and a rate change next quarter must not rewrite
+     * what last quarter's invoices said.
+     */
+    public function setTaxDetail(int $invoiceId, array $tax): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE invoices SET
+                tax_rate_id               = :rate_id,
+                tax_rate_applied          = :rate,
+                taxable_subtotal          = :base,
+                tax_source                = :source,
+                tax_reason                = :reason,
+                marketplace_tax_collected = :market
+            WHERE id = :id
+        ");
+        $stmt->execute([
+            ':rate_id' => $tax['tax_rate_id'] ?? null,
+            ':rate'    => $tax['rate']        ?? 0,
+            ':base'    => $tax['base']        ?? 0,
+            ':source'  => $tax['source']      ?? 'none',
+            ':reason'  => $tax['reason']      ?? null,
+            ':market'  => $tax['marketplace_tax'] ?? 0,
+            ':id'      => $invoiceId,
+        ]);
+    }
+
     public function replaceLineItems(int $invoiceId, array $lines): void
     {
         $del = $this->pdo->prepare("DELETE FROM invoice_line_items WHERE invoice_id = :id");

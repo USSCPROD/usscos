@@ -18,6 +18,7 @@ class InvoiceService extends Service
     private SalesOrderRepository $soRepo;
     private PaymentRepository $paymentRepo;
     private StockService $stock;
+    private TaxService $tax;
 
     public function __construct()
     {
@@ -26,6 +27,7 @@ class InvoiceService extends Service
         $this->soRepo       = new SalesOrderRepository();
         $this->paymentRepo  = new PaymentRepository();
         $this->stock        = new StockService();
+        $this->tax          = new TaxService();
     }
 
     public function create(?int $fromSoId = null): array
@@ -111,6 +113,15 @@ class InvoiceService extends Service
         ]);
 
         $this->invoices->replaceLineItems($invoiceId, $lines);
+
+        // Tax comes from the delivery address, not from whatever was typed on the form.
+        $this->applyTax($invoiceId, $lines, [
+            'customer_id'  => (int)$post['customer_id'],
+            'ship_state'   => $post['ship_state'] ?? null,
+            'ship_zip'     => $post['ship_zip']   ?? null,
+            'invoice_date' => $post['invoice_date'] ?? null,
+            'marketplace_tax_collected' => (float)($post['marketplace_tax_collected'] ?? 0),
+        ], $post['channel'] ?? null);
 
         // An invoice written directly — a counter sale, a correction — is still goods
         // leaving the building, so it moves stock exactly as a shipment does.
@@ -234,7 +245,6 @@ class InvoiceService extends Service
 
         $lines     = [];
         $shortfall = false;
-        $isPartial = false;   // something on this order already went out earlier
         $shipped   = [];
 
         foreach ($soLines as $li) {
@@ -248,9 +258,6 @@ class InvoiceService extends Service
             // and stock would now be deducted twice as well.
             $qty = $wasPicked ? max(0.0, $picked - $alreadyGone) : max(0.0, $ordered - $alreadyGone);
 
-            if ($alreadyGone > 0) {
-                $isPartial = true;
-            }
             if ($alreadyGone + $qty < $ordered) {
                 $shortfall = true;
             }
@@ -304,16 +311,17 @@ class InvoiceService extends Service
             $this->soRepo->addShippedQty($s['line_id'], $s['qty']);
         }
 
-        // Totals follow the lines actually invoiced. Uses the same tax rate the order was
-        // priced at — `tax_rate_pct` comes from the joined tax_rates row and is a fraction,
-        // so 0.07 means 7%.
-        // Recalculate whenever the invoice does not represent the whole order — a short
-        // pick, or the remainder of an order that was already part shipped. The stored SO
-        // totals are for everything ordered and would overstate either one.
-        if ($shortfall || $isPartial) {
-            $taxRatePct = (float)($so['tax_rate_pct'] ?? 0) * 100;
-            $this->invoices->updateTotals($invoiceId, $this->calcTotals($lines, $taxRatePct));
-        }
+        // Totals and tax both follow the lines actually invoiced, and the tax follows the
+        // delivery address rather than the rate the order happened to be priced at. On a
+        // short pick or the remainder of a part shipment the stored order totals are for
+        // everything ordered and would overstate what is being billed.
+        $this->applyTax($invoiceId, $lines, [
+            'customer_id'  => (int)$so['customer_id'],
+            'ship_state'   => $so['ship_state'] ?? null,
+            'ship_zip'     => $so['ship_zip']   ?? null,
+            'invoice_date' => $invoiceDate,
+            'marketplace_tax_collected' => (float)($so['marketplace_tax_collected'] ?? 0),
+        ], $so['channel'] ?? null);
 
         // Apply prepayment if the SO was already paid
         $isPrepaid = ($so['status'] ?? '') === 'paid' && !empty($so['payment_amount']);
@@ -335,6 +343,64 @@ class InvoiceService extends Service
         $this->soRepo->setStatus($soId, $shortfall ? 'partially_shipped' : 'invoiced');
 
         return $invoiceId;
+    }
+
+    /**
+     * Work out the tax on an invoice from its delivery address, and freeze it.
+     *
+     * Called wherever an invoice's lines change, because the tax follows the lines. The
+     * rate, the base and the reason are all stored: the Georgia return is filed by
+     * jurisdiction, and "how did we arrive at this figure" has to be answerable a year
+     * later without recalculating against rates that have since moved.
+     *
+     * @param  list<array<string,mixed>> $lines
+     * @return array{subtotal:float, discount:float, tax:float, total:float}
+     */
+    private function applyTax(int $invoiceId, array $lines, array $invoice, ?string $channel = null): array
+    {
+        $customer = Database::selectOne(
+            'SELECT tax_exempt, resale_number FROM customers WHERE id = ?',
+            [(int)$invoice['customer_id']]
+        ) ?: [];
+
+        $decision = $this->tax->resolve(
+            ['state' => $invoice['ship_state'] ?? null, 'zip' => $invoice['ship_zip'] ?? null],
+            $customer,
+            $channel,
+            $invoice['invoice_date'] ?? null
+        );
+
+        $base = $this->tax->taxableBase($lines);
+        $tax  = $decision['source'] === 'usscos' ? $this->tax->taxOn($base, $decision['rate']) : 0.0;
+
+        $subtotal = 0.0;
+        $discount = 0.0;
+        foreach ($lines as $l) {
+            $gross     = (float)$l['qty'] * (float)$l['unit_price'];
+            $subtotal += $gross;
+            $discount += $gross * ((float)($l['discount_pct'] ?? 0) / 100);
+        }
+
+        $totals = [
+            'subtotal' => round($subtotal, 2),
+            'discount' => round($discount, 2),
+            'tax'      => $tax,
+            'total'    => round($subtotal - $discount + $tax, 2),
+        ];
+
+        $this->invoices->updateTotals($invoiceId, $totals);
+        $this->invoices->setTaxDetail($invoiceId, [
+            'tax_rate_id'     => $decision['tax_rate_id'],
+            'rate'            => $decision['rate'],
+            'base'            => $decision['source'] === 'usscos' ? $base : 0,
+            'source'          => $decision['source'],
+            'reason'          => $decision['reason'],
+            // Amazon's money passing through, recorded so the deposit reconciles and the
+            // return can report and deduct it. Never added to tax_amount.
+            'marketplace_tax' => (float)($invoice['marketplace_tax_collected'] ?? 0),
+        ]);
+
+        return $totals;
     }
 
     public function edit(int|string $id): array
@@ -394,10 +460,13 @@ class InvoiceService extends Service
 
         // Line items — only for unpaid invoices
         if (!$isPaid) {
-            $lines  = $this->parseLines($post);
-            $totals = $this->calcTotals($lines, (float)($post['tax_rate_pct'] ?? 0));
+            $lines = $this->parseLines($post);
             $this->invoices->replaceLineItems((int)$id, $lines);
-            $this->invoices->updateTotals((int)$id, $totals);
+
+            // Re-resolved rather than kept: the delivery address may have been corrected
+            // on this very save, and the tax has to follow it.
+            $fresh = $this->invoices->findWithDetails((int)$id);
+            $this->applyTax((int)$id, $lines, $fresh ?? $invoice);
 
             // Keep stock in step with the corrected invoice. Only the difference moves:
             // ten down to eight puts two back, and a line added takes it out.

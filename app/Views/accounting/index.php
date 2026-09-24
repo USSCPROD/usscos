@@ -107,6 +107,13 @@ $acHead = 'padding:.7rem 1rem;border-bottom:1px solid #e5e7eb;font-size:.72rem;f
                 </tr>
                 <tr style="border-bottom:1px solid #f3f4f6">
                     <td style="padding:.6rem 1rem">
+                        <a href="/accounting/tax" style="color:#0A3D91;font-weight:500;font-size:.9rem;text-decoration:none">Sales Tax</a>
+                        <div style="font-size:.75rem;color:#9ca3af">What we owe by jurisdiction, and where we are selling</div>
+                    </td>
+                    <td style="padding:.6rem 1rem;text-align:right;white-space:nowrap;font-size:.85rem;color:#6b7280"></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="padding:.6rem 1rem">
                         <a href="/accounting/employees" style="color:#0A3D91;font-weight:500;font-size:.9rem;text-decoration:none">Sales by Employee</a>
                         <div style="font-size:.75rem;color:#9ca3af">Who keyed each order in — workload, not commission</div>
                     </td>
