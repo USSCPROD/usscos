@@ -33,6 +33,9 @@ def story_fn(S, st):
         ("Locations", "Admin screen, warehouses named 1000, 900, 3085 and 730"),
         ("Customer PO on the job", "The PO document itself is filed on the job binder and stays with the job after invoicing"),
         ("Pack quantities", "Aerosol, Fat Cans, pails and 2.5 gal jugs — 458 of 891 products now carry real figures"),
+        ("Sales tax engine", "Tax calculated here, from the ship-to address. Rate, county, base and reason frozen onto each invoice"),
+        ("GA and NC rate tables", "All 259 counties and 1,605 ZIPs, from the state revenue departments"),
+        ("Tax reporting", "Liability by county, Amazon's collections kept separate, and a sales-by-state nexus watch"),
     ]:
         new.append([C(r[0], st), C(r[1], st)])
     S.append(table(new, [1.8*inch, 4.8*inch], st))
@@ -62,6 +65,12 @@ def story_fn(S, st):
          "Correcting an invoice from ten to eight billed eight and left ten deducted"),
         ("A database error on an invoice showed as “Not Found”",
          "Real faults looked like missing records, so nobody would have reported them as faults"),
+        ("North Carolina was taxed at 8.25 percent statewide",
+         "That is Mecklenburg's rate. Most NC counties are 6.75 or 7 percent, so customers would have been overcharged — caught by an Amazon packing slip"),
+        ("Every Georgia ZIP pointed at a rate not yet in effect",
+         "Caught in my own work before anyone used it. It would have quietly started working on 1 October, which is the worst way for a fault to behave"),
+        ("One county stood in for a whole state",
+         "With no default marked, the lowest-numbered county — Appling, 8 percent — was returned as the rate for the whole of Georgia"),
     ]:
         bugs.append([C(r[0], st), C(r[1], st)])
     S.append(table(bugs, [3.0*inch, 3.6*inch], st))
@@ -103,6 +112,7 @@ def story_fn(S, st):
         ("Job binder", "Artwork and documents done. Production notes, QA checklist and photos follow the same pattern", "Medium"),
         ("Shipping queue", "Working. Needs pack verification and the link through to carriers", "Medium"),
         ("Dashboard", "Every figure is a placeholder showing zero. The data exists; nothing is wired to it", "Small"),
+        ("Sales tax", "Engine and both states' rates are in. Needs real invoices checked against what QuickBooks charged before it is trusted", "Small"),
     ]:
         close.append([C(r[0], st), C(r[1], st), C(r[2], st)])
     S.append(table(close, [1.6*inch, 4.1*inch, 0.9*inch], st))
@@ -140,6 +150,8 @@ def story_fn(S, st):
     for r in [
         ("Product reimport", "765 SKUs with barcodes and pack quantities replacing the current 891", "Small"),
         ("Carry pack data through the reimport", "The figures entered so far must survive it or they are lost", "Small"),
+        ("Quarterly tax rate refresh", "Georgia republishes its rate chart EVERY QUARTER, and ten counties change on 1 October. Somebody or something must load the new chart four times a year or the rates go quietly stale", "Small"),
+        ("Atlanta city-limit addresses", "In Fulton, DeKalb and Clayton the rate depends on the city and a ZIP cannot settle it. Those deliveries are flagged for a person today", "Medium"),
         ("QuickBooks bridge", "Reads QuickBooks and talks to USSCOS. Outbound only — no port to open", "Large"),
         ("Capture QuickBooks IDs", "So a rename in QuickBooks never breaks the link again", "Small"),
         ("Two-entity support", "TCC and USSC, with per-area access rather than one flag", "Large"),
@@ -195,6 +207,8 @@ def story_fn(S, st):
          "Waiting on credentials"),
         ("6", "QuickBooks", "The bridge, both files, items and customers pulled",
          "Not started"),
+        ("6b", "Tax upkeep", "Quarterly GA rate refresh · Atlanta city-limit addresses",
+         "Rates loaded, upkeep not"),
         ("7", "Two entities", "TCC and USSC with per-area access",
          "Not started"),
         ("8", "The rest", "Dashboard · job binder remainder · portals · tiered pricing",
@@ -219,7 +233,10 @@ def story_fn(S, st):
     S.append(P("Answered since the last version", st, 'h2'))
     for b in ["<b>How does a pallet count?</b> As a quantity of base units, not as its own item — 108 cases × 12 = 1,296 cans for 18 oz aerosol, 75 × 12 = 900 for Fat Cans, 24 pails, 48 jugs. Built that way.",
               "<b>Is the PO to TCC tied to a job?</b> No. It is replenishment, billed to USSC, and never belongs to a particular sales order.",
-              "<b>Which PO belongs on the job binder?</b> The customer's, as a document. Built."]:
+              "<b>Which PO belongs on the job binder?</b> The customer's, as a document. Built.",
+              "<b>Should we use Stripe for tax lookups?</b> No — priced per calculation and built to sit under Stripe payments. Two states is a rate table we own, and it is built.",
+              "<b>Do we charge tax outside GA and NC on web sales?</b> No, only where we have nexus. Sales by state are now tracked so a threshold is seen coming.",
+              "<b>Should Amazon's tax be stored?</b> Yes, as a memo figure that never touches what we owe. Built."]:
         S.append(B(b, st))
 
     S.append(P("Operations", st, 'h2'))
@@ -234,7 +251,9 @@ def story_fn(S, st):
 
     S.append(P("Bookkeeper and accountant", st, 'h2'))
     for b in ["<b>★ Who owns inventory valuation — USSCOS or QuickBooks?</b> Blocks costing stock, though not counting it.",
+              "<b>★ Do our rates match QuickBooks?</b> Check a handful of real GA and NC invoices against what QuickBooks charged. The tables come from the states, but that is the comparison that proves it.",
               "<b>Have any part-shipped orders been billed twice?</b> The fault is fixed, but any that already happened are in QuickBooks, not here.",
+              "<b>Where did the 8.25 percent NC rate come from?</b> It is Mecklenburg's. Worth knowing whether it was ever charged outside USSCOS.",
               "After the rename, do historical invoices show the new item names in an export?",
               "Can the export include the QuickBooks ListID column?",
               "How is sales tax set up — one rate per state, or county codes?",
@@ -262,6 +281,6 @@ def story_fn(S, st):
 
 build(sys.argv[2],
       "USSCOS Build Status and Priorities",
-      "What is ready, what is close, what remains &nbsp;·&nbsp; 23 September 2026 (revised)",
+      "What is ready, what is close, what remains &nbsp;·&nbsp; 24 September 2026",
       story_fn)
 print("written:", sys.argv[2])
