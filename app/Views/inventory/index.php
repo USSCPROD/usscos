@@ -27,6 +27,7 @@ function invQtyColor(mixed $qty, mixed $reorder): string {
         <p class="page-subtitle"><?= number_format($p['total']) ?> active products</p>
     </div>
     <div class="page-header__right">
+        <a href="/inventory/counts" class="btn btn--secondary" style="margin-right:.4rem">Counts</a>
         <a href="/inventory/returns" class="btn btn--secondary" style="margin-right:.4rem">Returns</a>
         <a href="/inventory/transfers" class="btn btn--secondary" style="margin-right:.4rem">Transfers</a>
         <a href="/inventory/adjustments" class="btn btn--secondary">Adjustments</a>

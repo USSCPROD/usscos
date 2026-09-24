@@ -24,6 +24,7 @@ use App\Controllers\InventoryController;
 use App\Controllers\AdjustmentController;
 use App\Controllers\TransferController;
 use App\Controllers\ReturnController;
+use App\Controllers\CountController;
 use App\Controllers\PurchaseOrderController;
 use App\Controllers\SalesOrderController;
 use App\Controllers\WebhookController;
@@ -248,6 +249,14 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/inventory/returns/{id}/credited',[ReturnController::class, 'creditIssued'])->name('inventory.returns.credited');
     Router::post('/inventory/returns/{id}/cancel',[ReturnController::class, 'cancel'])->name('inventory.returns.cancel');
     Router::post('/inventory/returns/{id}/line/{lineId}/remove',[ReturnController::class, 'removeLine'])->name('inventory.returns.line.remove');
+    Router::get('/inventory/counts',              [CountController::class, 'index'])->name('inventory.counts');
+    Router::post('/inventory/counts',             [CountController::class, 'store'])->name('inventory.counts.store');
+    Router::get('/inventory/counts/{id}',         [CountController::class, 'show'])->name('inventory.counts.show');
+    Router::post('/inventory/counts/{id}/record', [CountController::class, 'record'])->name('inventory.counts.record');
+    Router::post('/inventory/counts/{id}/submit', [CountController::class, 'submit'])->name('inventory.counts.submit');
+    Router::post('/inventory/counts/{id}/reopen', [CountController::class, 'reopen'])->name('inventory.counts.reopen');
+    Router::post('/inventory/counts/{id}/apply',  [CountController::class, 'apply'])->name('inventory.counts.apply');
+    Router::post('/inventory/counts/{id}/cancel', [CountController::class, 'cancel'])->name('inventory.counts.cancel');
     Router::get('/inventory/{id}',               [InventoryController::class, 'show'])->name('inventory.show');
     Router::post('/inventory/{id}/adjust',       [InventoryController::class, 'adjust'])->name('inventory.adjust');
 
