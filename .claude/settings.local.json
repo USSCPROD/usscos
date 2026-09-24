@@ -269,7 +269,10 @@
       "WebSearch",
       "WebFetch(domain:www.ncdor.gov)",
       "Bash(curl -s -m 60 -o zcta_county.txt -w \"%{http_code} %{size_download}\\\\n\" \"https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/tab20_zcta520_county20_natl.txt\")",
-      "Bash(python3 gen_nc.py)"
+      "Bash(python3 gen_nc.py)",
+      "WebFetch(domain:dor.georgia.gov)",
+      "Bash(curl -sL -m 90 -o ga_q3.pdf -w \"Q3 %{http_code} %{size_download} %{content_type}\\\\n\" \"https://dor.georgia.gov/document/document/general-rate-chart-effective-july-1-2026-through-september-30-2026pdf/download\")",
+      "Bash(curl -sL -m 90 -o ga_q4.pdf -w \"Q4 %{http_code} %{size_download} %{content_type}\\\\n\" \"https://dor.georgia.gov/document/document/httpsdorgeorgiagovdocumentdocumentgeneral-rate-chart-effective-october-1-2026/download\")"
     ]
   }
 }
