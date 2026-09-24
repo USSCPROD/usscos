@@ -23,6 +23,7 @@ use App\Controllers\ProfileController;
 use App\Controllers\InventoryController;
 use App\Controllers\AdjustmentController;
 use App\Controllers\TransferController;
+use App\Controllers\ReturnController;
 use App\Controllers\PurchaseOrderController;
 use App\Controllers\SalesOrderController;
 use App\Controllers\WebhookController;
@@ -239,6 +240,14 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/inventory/transfers/{id}/close',[TransferController::class, 'close'])->name('inventory.transfers.close');
     Router::post('/inventory/transfers/{id}/cancel',[TransferController::class, 'cancel'])->name('inventory.transfers.cancel');
     Router::post('/inventory/transfers/{id}/line/{lineId}/remove',[TransferController::class, 'removeLine'])->name('inventory.transfers.line.remove');
+    Router::get('/inventory/returns',             [ReturnController::class, 'index'])->name('inventory.returns');
+    Router::post('/inventory/returns',            [ReturnController::class, 'store'])->name('inventory.returns.store');
+    Router::get('/inventory/returns/{id}',        [ReturnController::class, 'show'])->name('inventory.returns.show');
+    Router::post('/inventory/returns/{id}/line',  [ReturnController::class, 'addLine'])->name('inventory.returns.line');
+    Router::post('/inventory/returns/{id}/receive',[ReturnController::class, 'receive'])->name('inventory.returns.receive');
+    Router::post('/inventory/returns/{id}/credited',[ReturnController::class, 'creditIssued'])->name('inventory.returns.credited');
+    Router::post('/inventory/returns/{id}/cancel',[ReturnController::class, 'cancel'])->name('inventory.returns.cancel');
+    Router::post('/inventory/returns/{id}/line/{lineId}/remove',[ReturnController::class, 'removeLine'])->name('inventory.returns.line.remove');
     Router::get('/inventory/{id}',               [InventoryController::class, 'show'])->name('inventory.show');
     Router::post('/inventory/{id}/adjust',       [InventoryController::class, 'adjust'])->name('inventory.adjust');
 

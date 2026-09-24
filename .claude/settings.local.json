@@ -288,7 +288,12 @@
       "Bash(php -l app/Views/inventory/transfer_show.php)",
       "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/trtest.php root@159.223.177.58:/tmp/)",
       "Bash(scp -q /tmp/rtr.php root@159.223.177.58:/tmp/)",
-      "Bash(scp -q /tmp/rtr2.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /tmp/rtr2.php root@159.223.177.58:/tmp/)",
+      "Bash(php -l app/Controllers/ReturnController.php)",
+      "Bash(php -l app/Services/ReturnService.php)",
+      "Bash(php -l app/Repositories/ReturnRepository.php)",
+      "Bash(php -l app/Views/inventory/returns.php)",
+      "Bash(php -l app/Views/inventory/return_show.php)"
     ]
   }
 }
