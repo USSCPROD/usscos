@@ -12,10 +12,14 @@ def story_fn(S, st):
         "<b>Summary.</b> The sales side of USSCOS is built and working — quoting, orders, invoicing, "
         "customers, products, reps, artwork. The warehouse side was not: of the seven ways stock moves "
         "at USSC, one and a half were built.<br/><br/>"
-        "<b>That has changed.</b> Stock now moves both ways. Receiving puts it in, shipping takes it "
-        "out, purchase orders are received against, and every one of those runs through a single path "
-        "that writes the movement and the balance together. Four of the seven are built. Transfers, "
-        "returns and counting remain.<br/><br/>"
+        "<b>All seven are now built.</b> Receiving, shipment, purchase-order receipts, transfers, "
+        "returns, adjustments and counting — every one through a single path that writes the movement "
+        "and the per-location balance together, inside one database transaction. The product total is "
+        "recomputed from its locations rather than incremented, so it cannot drift from the detail."
+        "<br/><br/>"
+        "<b>What is left is not software.</b> The counting screens exist; somebody now has to walk the "
+        "buildings. And the product file — barcodes and pack quantities — still gates scanning."
+        "<br/><br/>"
         "<b>Accounting is not on the critical path.</b> QuickBooks keeps the books, bills stay in "
         "QuickBooks, and none of it blocks going live.", st))
     S.append(Spacer(1, 10))
@@ -36,6 +40,10 @@ def story_fn(S, st):
         ("Sales tax engine", "Tax calculated here, from the ship-to address. Rate, county, base and reason frozen onto each invoice"),
         ("GA and NC rate tables", "All 259 counties and 1,605 ZIPs, from the state revenue departments"),
         ("Tax reporting", "Liability by county, Amazon's collections kept separate, and a sales-by-state nexus watch"),
+        ("Adjustments", "The honest correction path, with a required reason code, plus the negative-stock worklist"),
+        ("Transfers", "Scanned out of one building and into the other. In between it counts at neither, which is correct"),
+        ("Returns", "Only resellable goods go back on the shelf. Credit priced from the original invoice and its frozen tax rate"),
+        ("Cycle counting", "Blind counts — the expected figure is never sent to the counter — reviewed, then applied as adjustments"),
     ]:
         new.append([C(r[0], st), C(r[1], st)])
     S.append(table(new, [1.8*inch, 4.8*inch], st))
@@ -71,6 +79,8 @@ def story_fn(S, st):
          "Caught in my own work before anyone used it. It would have quietly started working on 1 October, which is the worst way for a fault to behave"),
         ("One county stood in for a whole state",
          "With no default marked, the lowest-numbered county — Appling, 8 percent — was returned as the rate for the whole of Georgia"),
+        ("Nothing tells a credit memo from an invoice",
+         "invoice_type has a credit_memo value that nothing filters on, so a credit raised today would be counted as revenue by Sales by Rep, A/R aging and customer lifetime value"),
     ]:
         bugs.append([C(r[0], st), C(r[1], st)])
     S.append(table(bugs, [3.0*inch, 3.6*inch], st))
@@ -123,12 +133,9 @@ def story_fn(S, st):
     S.append(P("Inventory — still the critical path", st, 'h2'))
     inv = [[C("Item", st, True), C("Why it matters", st, True), C("Effort", st, True)]]
     for r in [
-        ("Transfers between warehouses", "Scan out, scan in — needed for 730. A transfer is a record, not a place", "Medium"),
-        ("Returns", "Named as a main cause of drift. Nothing exists", "Medium"),
-        ("Adjustments and write-offs", "The honest correction path. Without it people work around the system", "Small"),
-        ("Cycle counting", "Rolling counts so errors surface in days, not at year end", "Medium"),
-        ("Opening physical count", "One full count, entered once the screens above exist", "Operations"),
-        ("Negative stock report", "Negatives are allowed on purpose — they are the signal something needs counting. Nothing lists them yet", "Small"),
+        ("Opening physical count", "One full count. The screens exist and a full count is the same machinery as a cycle count — this is people walking buildings, not code", "Operations"),
+        ("Bays and racks in 730", "Locations work, but 730 has no internal detail yet, so everything there counts as one place", "Operations"),
+        ("Scan a delivery against its PO", "Receiving and purchasing each work, but separately — a scanned delivery does not update a PO", "Small"),
     ]:
         inv.append([C(r[0], st), C(r[1], st), C(r[2], st)])
     S.append(table(inv, [1.7*inch, 4.0*inch, 0.9*inch], st))
@@ -151,6 +158,7 @@ def story_fn(S, st):
         ("Product reimport", "765 SKUs with barcodes and pack quantities replacing the current 891", "Small"),
         ("Carry pack data through the reimport", "The figures entered so far must survive it or they are lost", "Small"),
         ("Quarterly tax rate refresh", "Georgia republishes its rate chart EVERY QUARTER, and ten counties change on 1 October. Somebody or something must load the new chart four times a year or the rates go quietly stale", "Small"),
+        ("Credit memos in reporting", "Returns calculate what is owed but cannot raise a credit, because no report distinguishes a credit memo from an invoice — one raised today would be counted as revenue everywhere", "Medium"),
         ("Atlanta city-limit addresses", "In Fulton, DeKalb and Clayton the rate depends on the city and a ZIP cannot settle it. Those deliveries are flagged for a person today", "Medium"),
         ("QuickBooks bridge", "Reads QuickBooks and talks to USSCOS. Outbound only — no port to open", "Large"),
         ("Capture QuickBooks IDs", "So a rename in QuickBooks never breaks the link again", "Small"),
@@ -196,9 +204,9 @@ def story_fn(S, st):
     ph = [[C("", st, True), C("Phase", st, True), C("Contains", st, True), C("State", st, True)]]
     for r in [
         ("1", "Stock can move", "Receiving · deduct on shipment · PO receipts · transfers · adjustments",
-         "Part done — transfers and adjustments remain"),
-        ("2", "Stock is right", "Returns · cycle counting · negative stock report · opening physical count",
-         "Not started"),
+         "Done"),
+        ("2", "Stock is right", "Returns · cycle counting · negative stock list · opening physical count",
+         "Built — the count itself is operations"),
         ("3", "Product data", "Reimport 765 SKUs with barcodes, pack quantities, QuickBooks IDs",
          "Waiting on the file"),
         ("4", "Shipping finished", "Pack verification · freight and BOL · scan a delivery against its PO",
@@ -242,6 +250,8 @@ def story_fn(S, st):
     S.append(P("Operations", st, 'h2'))
     for b in ["<b>★ While paint sits at the canning company, is it ours or TCC's?</b> Decides whose inventory it is.",
               "<b>★ Who watches the variance queue?</b> It is built, but a queue nobody opens is the same as no queue.",
+              "<b>★ When is the opening count, and who does it?</b> Everything else is ready for it. Until it happens the figures are a starting point, not a count.",
+              "How often should a cycle count run, and over what — highest value, fastest moving, or simply everything in turn?",
               "How much paint is lost turning totes into cans? Nobody tracks it, but someone knows.",
               "What bays and racks exist in 730, and how are they labelled?",
               "Is the draft-to-confirmed step happening on every order, or are some invisible to shipping?",
