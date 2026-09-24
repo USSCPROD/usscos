@@ -278,7 +278,9 @@
       "Bash(php -l app/Views/inventory/adjustments.php)",
       "Bash(php -l app/Services/AdjustmentService.php)",
       "Bash(php -l app/Controllers/AdjustmentController.php)",
-      "Bash(php -l app/Views/inventory/index.php)"
+      "Bash(php -l app/Views/inventory/index.php)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/adjtest.php root@159.223.177.58:/tmp/)",
+      "Bash(scp -q adjtest.php root@159.223.177.58:/tmp/)"
     ]
   }
 }
