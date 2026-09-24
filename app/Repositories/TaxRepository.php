@@ -39,30 +39,49 @@ class TaxRepository
             return null;
         }
 
+        // Joined on the COUNTY, not on a rate row's id. A ZIP's county does not change
+        // every quarter but its rate does, so binding a ZIP to one dated row meant the
+        // mapping silently stopped resolving the moment a new quarter was loaded.
+        //
+        // The shortest name wins, which picks the plain county over its city variants —
+        // "GA - Fulton" ahead of "GA - Fulton (Atlanta)". Those are flagged for a person
+        // rather than chosen automatically, because an address alone cannot settle them.
         $row = Database::selectOne("
             SELECT tr.*, z.is_ambiguous
             FROM tax_zip_jurisdictions z
-            JOIN tax_rates tr ON tr.id = z.tax_rate_id
+            JOIN tax_rates tr
+              ON tr.state_code = z.state_code
+             AND tr.county     = z.county
+             AND tr.is_active  = 1
+             AND tr.effective_from <= ?
+             AND (tr.effective_to IS NULL OR tr.effective_to >= ?)
             WHERE z.zip = ?
-              AND tr.is_active = 1
-              AND tr.effective_from <= ?
-              AND (tr.effective_to IS NULL OR tr.effective_to >= ?)
+            ORDER BY LENGTH(tr.name), tr.id
             LIMIT 1
-        ", [$zip, $onDate, $onDate]);
+        ", [$onDate, $onDate, $zip]);
 
         return $row === false ? null : $row;
     }
 
-    /** The fallback rate for a state when no ZIP mapping exists yet. */
+    /**
+     * The fallback rate for a state, and only one explicitly marked as such.
+     *
+     * This used to order by is_state_default and then by id, so with nothing marked it
+     * returned whichever county had the lowest id and presented it as the rate for the
+     * whole state. Neither Georgia nor North Carolina has a meaningful statewide rate, so
+     * returning nothing is the honest answer — an address that will not resolve should
+     * say so rather than be charged something plausible.
+     */
     public function stateDefault(string $stateCode, string $onDate): ?array
     {
         $row = Database::selectOne("
             SELECT * FROM tax_rates
             WHERE state_code = ?
+              AND is_state_default = 1
               AND is_active = 1
               AND effective_from <= ?
               AND (effective_to IS NULL OR effective_to >= ?)
-            ORDER BY is_state_default DESC, id
+            ORDER BY id
             LIMIT 1
         ", [strtoupper(trim($stateCode)), $onDate, $onDate]);
 

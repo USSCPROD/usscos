@@ -87,7 +87,14 @@ class TaxService
         }
 
         if ($j === null) {
-            return $none('none', 'No rate on file for ' . $state . ' — add the jurisdiction before invoicing');
+            // No tax rather than a guess, and said loudly. This shows on the invoice and
+            // on the tax report, so it gets fixed instead of quietly under-collecting.
+            $unresolved = $none('none',
+                'Could not determine the tax jurisdiction for ' . $state . ' ' .
+                ($shipTo['zip'] ?? '(no ZIP)') . ' — no tax charged. Map this ZIP before invoicing.');
+            $unresolved['needs_review'] = true;
+
+            return $unresolved;
         }
 
         $reason = $fromZip
