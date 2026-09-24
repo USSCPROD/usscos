@@ -110,6 +110,27 @@ Two things to say at the start:
 
 ---
 
+## Counting — new, and only he can answer it
+
+*Added 24 September 2026, once the counting screens were built.*
+
+53. We can now count stock properly — blind, so the counter isn't shown what the system
+    expects. **When could we do a full count of each building, and who would do it?**
+54. After that, how often should we be counting things — and should it be the expensive
+    stock, the fast-moving stock, or just everything in turn?
+55. **Who should own a count?** Somebody has to look at "we thought 40, we counted 37" and
+    decide what it means.
+56. When a delivery from TCC doesn't match the PO, who should be told?
+57. Who should be allowed to correct a stock figure? It's the one action that changes the
+    count with nothing physical happening.
+58. What bays and racks are in 730, and how are they labelled? Right now the whole building
+    is one place as far as the system is concerned.
+59. When a transfer between buildings arrives short, who chases it?
+60. Is there a rule about returned paint going back on the shelf — anything opened is
+    scrap, say — or is it a judgement each time?
+
+---
+
 ## Close — usually the best part
 
 48. What goes wrong most often in all of this?

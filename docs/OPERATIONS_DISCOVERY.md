@@ -174,6 +174,32 @@ invoice are the handover.
 
 ---
 
+## Now the counting screens exist — decisions only operations can make
+
+Added 24 September 2026. Every way stock moves is built and tested; these are the
+questions that decide whether the numbers coming out of it mean anything.
+
+- **When is the opening physical count, and who does it?** Everything else is ready for
+  it. Until it happens the figures in USSCOS are a starting point rather than a count, and
+  the count belongs *after* the movement screens exist — counting first means the count is
+  out of date before anyone can use it.
+- **How often should a cycle count run, and over what?** Highest value, fastest moving, or
+  simply everything in turn. This is a policy decision, not a technical one.
+- **Who owns the count?** Somebody has to be the person who looks at a variance and decides
+  what it means. A count nobody reviews corrects nothing.
+- **Who watches the receipt variance queue?** When a delivery disagrees with its PO it goes
+  on a list. A queue nobody opens is the same as no queue.
+- **Who is allowed to adjust stock?** Adjusting is the only screen that changes the count
+  with nothing physical happening, so it is restricted — but to whom, exactly?
+- **What bays and racks exist in 730, and how are they labelled?** Locations work, but 730
+  has no internal detail yet, so everything there counts as one place.
+- **When a transfer arrives short, who chases it?** The system records it as short and keeps
+  the difference visible, but somebody has to go and ask the driver.
+- **Should a returned pail ever go back on the shelf?** The system lets the receiver decide
+  per item. Is there a rule — anything opened is scrap, say — or is it always a judgement?
+
+---
+
 ## Also worth asking, since they will know
 
 - What goes wrong most often in this process?
