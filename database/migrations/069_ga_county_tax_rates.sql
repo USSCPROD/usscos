@@ -29,10 +29,18 @@
 --
 -- NOTE no semicolons in these comments. See the note in 054.
 
+-- A rate is only meaningful with its dates, so the same jurisdiction legitimately appears
+-- once per quarter. The unique key on name alone made that impossible - it is the pair
+-- that must be unique.
+ALTER TABLE tax_rates DROP INDEX name;
+ALTER TABLE tax_rates ADD UNIQUE KEY uq_tax_rate_name_period (name, effective_from);
+
+-- The original hand-entered Forsyth row, superseded by the DOR chart. Deactivated rather
+-- than deleted because customers and orders may still point at it.
 UPDATE tax_rates
 SET is_active = 0,
     source_note = 'Superseded by the per-county GA rates from the DOR chart'
-WHERE state_code = 'GA' AND county = 'Forsyth' AND name NOT LIKE 'GA - %';
+WHERE name = 'GA - Forsyth County';
 
 
 -- Current quarter, to 30 September 2026.
