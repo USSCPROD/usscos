@@ -90,7 +90,10 @@ class TaxRepository
             WHERE i.tax_source = 'usscos'
               AND i.status <> 'void'
               AND i.invoice_date BETWEEN ? AND ?
-            GROUP BY tr.state_code, tr.county, tr.name, i.tax_rate_applied
+            GROUP BY COALESCE(tr.state_code, i.ship_state, '—'),
+                     COALESCE(tr.county, '(no county recorded)'),
+                     COALESCE(tr.name, 'Unassigned'),
+                     i.tax_rate_applied
             ORDER BY state_code, county
         ", [$from, $to]);
     }
@@ -112,7 +115,7 @@ class TaxRepository
             WHERE i.tax_source = 'marketplace'
               AND i.status <> 'void'
               AND i.invoice_date BETWEEN ? AND ?
-            GROUP BY i.ship_state
+            GROUP BY COALESCE(i.ship_state, '—')
             ORDER BY sales DESC
         ", [$from, $to]);
     }
@@ -137,7 +140,7 @@ class TaxRepository
             LEFT JOIN tax_nexus_states n ON n.state_code = i.ship_state
             WHERE i.status <> 'void'
               AND i.invoice_date BETWEEN ? AND ?
-            GROUP BY i.ship_state
+            GROUP BY COALESCE(NULLIF(i.ship_state, ''), '—')
             ORDER BY total_sales DESC
         ", [$from, $to]);
     }

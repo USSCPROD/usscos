@@ -263,7 +263,8 @@
       "Bash(php -l app/Views/accounting/tax.php)",
       "Bash(php -l app/Views/accounting/index.php)",
       "Bash(php -l app/Services/TaxService.php)",
-      "Bash(php -l app/Repositories/TaxRepository.php)"
+      "Bash(php -l app/Repositories/TaxRepository.php)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/taxtest.php root@159.223.177.58:/tmp/)"
     ]
   }
 }
