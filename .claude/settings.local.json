@@ -324,7 +324,8 @@
       "Bash(php -l app/Views/invoices/index.php)",
       "Bash(grep -n 'private.*repo\\\\|$this->repo' app/Controllers/InvoiceController.php)",
       "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/reviewtest.php root@159.223.177.58:/tmp/)",
-      "Bash(scp -q /tmp/rrev.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /tmp/rrev.php root@159.223.177.58:/tmp/)",
+      "Bash(python3 doc4.py . USSCOS_Order_Process_For_Review.pdf)"
     ]
   }
 }
