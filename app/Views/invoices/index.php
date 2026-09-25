@@ -145,7 +145,13 @@ $statusBadge = [
                 <?php else: ?>
                     <?php foreach ($pag['data'] as $inv): ?>
                         <tr class="table__row--clickable" onclick="window.location='/invoices/<?= (int)$inv['id'] ?>'">
-                            <td class="font-mono"><?= e($inv['invoice_number']) ?></td>
+                            <td class="font-mono">
+                                <?= e($inv['invoice_number']) ?>
+                                <?php if (($inv['invoice_type'] ?? 'invoice') === 'credit_memo'): ?>
+                                    <?php // A negative total should read as a credit, not as a broken invoice. ?>
+                                    <span class="badge badge--info" style="margin-left:.35rem;font-family:inherit">Credit</span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <a href="/customers/<?= (int)$inv['customer_id'] ?>" class="link" onclick="event.stopPropagation()">
                                     <?= e($inv['company_name']) ?>

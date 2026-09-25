@@ -327,7 +327,8 @@
       "Bash(scp -q /tmp/rrev.php root@159.223.177.58:/tmp/)",
       "Bash(python3 doc4.py . USSCOS_Order_Process_For_Review.pdf)",
       "Bash(php -l app/Views/dashboard/index.php)",
-      "Bash(php -l app/Services/DashboardService.php)"
+      "Bash(php -l app/Services/DashboardService.php)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/credittest.php root@159.223.177.58:/tmp/)"
     ]
   }
 }

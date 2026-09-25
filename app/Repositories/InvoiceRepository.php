@@ -58,7 +58,7 @@ class InvoiceRepository
         $total = (int)$countStmt->fetchColumn();
 
         $sql = "
-            SELECT i.id, i.invoice_number, i.invoice_date, i.due_date, i.status,
+            SELECT i.id, i.invoice_number, i.invoice_date, i.due_date, i.status, i.invoice_type,
                    i.total_amount, i.balance_due, i.aging_days, i.po_number,
                    c.id AS customer_id, c.company_name
             FROM invoices i

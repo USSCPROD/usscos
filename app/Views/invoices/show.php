@@ -530,6 +530,19 @@ function invReadBox(): string {
 </form>
 <?php endif; ?>
 
+<?php if (($inv['invoice_type'] ?? 'invoice') === 'credit_memo'): ?>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:.9rem 1.1rem;margin:1.25rem 0;font-size:.9rem">
+        <strong>This is a credit memo.</strong>
+        Its totals are negative on purpose — that is what makes it reduce revenue and A/R
+        wherever they are reported.
+        <?php if (!empty($inv['credits_invoice_id'])): ?>
+            It credits
+            <a href="/invoices/<?= (int)$inv['credits_invoice_id'] ?>" style="color:#1d4ed8;font-weight:600">
+                invoice #<?= (int)$inv['credits_invoice_id'] ?></a>.
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
+
 <!-- Shipment tracking — outside the invoice form, because nested forms do not work -->
 <?php
 $trackLabel = ['parcel' => 'Tracking', 'pro' => 'PRO number', 'bol' => 'BOL', 'other' => 'Reference'];
