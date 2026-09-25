@@ -19,16 +19,16 @@ function kpiTrend(float $pct): string {
 
     <div class="kpi-card">
         <div class="kpi-card__header">
-            <span class="kpi-card__label">Cash Balance</span>
+            <span class="kpi-card__label">Sales (YTD)</span>
             <div class="kpi-card__icon kpi-card__icon--green">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
         </div>
-        <div class="kpi-card__value"><?= isset($kpis['cash_balance']) ? '$' . number_format((float)$kpis['cash_balance'], 0) : '$0' ?></div>
+        <div class="kpi-card__value">$<?= number_format((float)($kpis['sales_ytd'] ?? 0), 0) ?></div>
         <div class="kpi-card__meta">
-            <?= kpiTrend($kpis['cash_balance_trend'] ?? 0) ?>
+            <span class="kpi-card__trend kpi-card__trend--neutral">invoiced this year</span>
             <span>vs last month</span>
         </div>
     </div>
@@ -44,23 +44,28 @@ function kpiTrend(float $pct): string {
         </div>
         <div class="kpi-card__value"><?= isset($kpis['sales_mtd']) ? '$' . number_format((float)$kpis['sales_mtd'], 0) : '$0' ?></div>
         <div class="kpi-card__meta">
-            <?= kpiTrend($kpis['sales_trend'] ?? 0) ?>
+            <?= kpiTrend((float)($kpis['sales_trend'] ?? 0)) ?>
+            <span style="margin-left:.4rem;color:var(--color-text-tertiary);font-size:.78rem">
+                vs same days last month
+            </span>
             <span>vs last month</span>
         </div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-card__header">
-            <span class="kpi-card__label">Gross Profit</span>
+            <span class="kpi-card__label">Overdue</span>
             <div class="kpi-card__icon kpi-card__icon--purple">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                 </svg>
             </div>
         </div>
-        <div class="kpi-card__value"><?= isset($kpis['gross_profit']) ? '$' . number_format((float)$kpis['gross_profit'], 0) : '$0' ?></div>
+        <div class="kpi-card__value">$<?= number_format((float)($kpis['overdue'] ?? 0), 0) ?></div>
         <div class="kpi-card__meta">
-            <span class="kpi-card__trend kpi-card__trend--neutral"><?= number_format((float)($kpis['gross_margin'] ?? 0), 1) ?>% margin</span>
+            <span class="kpi-card__trend <?= (int)($kpis['overdue_count'] ?? 0) > 0 ? 'kpi-card__trend--down' : 'kpi-card__trend--neutral' ?>">
+                <?= (int)($kpis['overdue_count'] ?? 0) ?> past due
+            </span>
         </div>
     </div>
 
@@ -75,22 +80,23 @@ function kpiTrend(float $pct): string {
         </div>
         <div class="kpi-card__value"><?= isset($kpis['open_invoices']) ? '$' . number_format((float)$kpis['open_invoices'], 0) : '$0' ?></div>
         <div class="kpi-card__meta">
-            <span><?= (int)($kpis['open_invoices_count'] ?? 0) ?> invoices</span>
+            <span><?= number_format((int)($kpis['open_invoices_count'] ?? 0)) ?> unpaid</span>
         </div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-card__header">
-            <span class="kpi-card__label">Inventory Value</span>
+            <span class="kpi-card__label">Stock on Hand</span>
             <div class="kpi-card__icon kpi-card__icon--teal">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                 </svg>
             </div>
         </div>
-        <div class="kpi-card__value"><?= isset($kpis['inventory_value']) ? '$' . number_format((float)$kpis['inventory_value'], 0) : '$0' ?></div>
+        <?php // Units, not dollars — who owns inventory valuation is still open with the accountant. ?>
+        <div class="kpi-card__value"><?= number_format((float)($kpis['stock_units'] ?? 0), 0) ?></div>
         <div class="kpi-card__meta">
-            <span><?= (int)($kpis['inventory_items'] ?? 0) ?> items</span>
+            <span><?= number_format((int)($kpis['stock_products'] ?? 0)) ?> products in a location</span>
         </div>
     </div>
 
@@ -105,7 +111,7 @@ function kpiTrend(float $pct): string {
         </div>
         <div class="kpi-card__value"><?= isset($kpis['open_pos']) ? '$' . number_format((float)$kpis['open_pos'], 0) : '$0' ?></div>
         <div class="kpi-card__meta">
-            <span><?= (int)($kpis['open_pos_count'] ?? 0) ?> pending</span>
+            <span><?= number_format((int)($kpis['open_pos_count'] ?? 0)) ?> awaiting delivery</span>
         </div>
     </div>
 
