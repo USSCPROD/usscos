@@ -578,6 +578,7 @@ class InvoiceService extends Service
         return [
             'invoice'          => $invoice,
             'customer_po'      => $customerPo,
+            'tracking'         => (new ShipmentNotificationService())->forInvoice((int)$id),
             'line_items'       => $lineItems,
             'payments'         => $this->paymentRepo->getByInvoice((int)$id),
             'ship_via_options' => $this->invoices->getShipViaOptions(),

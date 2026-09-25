@@ -530,6 +530,114 @@ function invReadBox(): string {
 </form>
 <?php endif; ?>
 
+<!-- Shipment tracking — outside the invoice form, because nested forms do not work -->
+<?php
+$trackLabel = ['parcel' => 'Tracking', 'pro' => 'PRO number', 'bol' => 'BOL', 'other' => 'Reference'];
+$emailState = $inv['shipment_email_status'] ?? null;
+?>
+<div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:1.25rem 0 2rem">
+    <div style="padding:.7rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            Shipment tracking
+        </span>
+        <?php if (!empty($inv['shipment_email_sent_at'])): ?>
+            <span style="font-size:.78rem;color:#16a34a">
+                ✓ Customer emailed <?= date('j M Y, g:ia', strtotime($inv['shipment_email_sent_at'])) ?>
+                <?= !empty($inv['shipment_email_to']) ? ' · ' . e($inv['shipment_email_to']) : '' ?>
+            </span>
+        <?php elseif ($emailState === 'suppressed'): ?>
+            <span style="font-size:.78rem;color:#b45309">
+                Not emailed — shipment emails are off
+            </span>
+        <?php elseif ($emailState !== null && $emailState !== 'sent'): ?>
+            <span style="font-size:.78rem;color:#b91c1c">Not emailed — <?= e($emailState) ?></span>
+        <?php endif; ?>
+    </div>
+
+    <?php if (!empty($tracking)): ?>
+        <table style="width:100%;border-collapse:collapse">
+            <?php foreach ($tracking as $t): ?>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="padding:.55rem 1rem;font-size:.8rem;color:#6b7280;width:11rem">
+                        <?= e($trackLabel[$t['tracking_type']] ?? 'Tracking') ?>
+                        <?= $t['carrier'] ? ' · ' . e($t['carrier']) : '' ?>
+                    </td>
+                    <td style="padding:.55rem 1rem;font-family:monospace;font-size:.92rem">
+                        <?php if (!empty($t['url'])): ?>
+                            <a href="<?= e($t['url']) ?>" target="_blank" rel="noopener"
+                               style="color:#0A3D91;font-weight:600;text-decoration:none"><?= e($t['tracking_number']) ?></a>
+                        <?php else: ?>
+                            <?= e($t['tracking_number']) ?>
+                        <?php endif; ?>
+                    </td>
+                    <td style="padding:.55rem 1rem;text-align:right;width:5rem">
+                        <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/tracking/<?= (int)$t['id'] ?>/remove" style="margin:0">
+                            <?= csrf_field() ?>
+                            <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;
+                                                         color:#9ca3af;font-size:.75rem;text-decoration:underline">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php else: ?>
+        <div style="padding:1.1rem 1rem;color:#9ca3af;font-size:.88rem">
+            No tracking numbers yet. They are normally entered at the bench when the order
+            ships — this is for a second carton or a correction.
+        </div>
+    <?php endif; ?>
+
+    <div style="padding:.8rem 1rem;border-top:1px solid #f3f4f6;background:#f8fafc">
+        <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/tracking">
+            <?= csrf_field() ?>
+            <table style="width:100%;border-collapse:separate;border-spacing:.5rem 0;margin:0 -.5rem">
+                <tr>
+                    <td>
+                        <input type="text" name="tracking_number" placeholder="Tracking or PRO number"
+                               style="width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:monospace;
+                                      border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box">
+                    </td>
+                    <td style="width:12rem">
+                        <select name="tracking_type" style="width:100%;padding:.5rem .65rem;font-size:.9rem;
+                                                            border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box">
+                            <option value="parcel">Parcel tracking</option>
+                            <option value="pro">Freight PRO</option>
+                            <option value="bol">Bill of lading</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </td>
+                    <td style="width:12rem">
+                        <select name="ship_via_id" style="width:100%;padding:.5rem .65rem;font-size:.9rem;
+                                                          border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box">
+                            <option value="">Carrier —</option>
+                            <?php foreach ($ship_via_options as $sv): ?>
+                                <option value="<?= (int)$sv['id'] ?>"
+                                        <?= ($inv['ship_via'] ?? '') === $sv['name'] ? 'selected' : '' ?>>
+                                    <?= e($sv['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                    <td style="width:7rem">
+                        <button type="submit" class="btn btn--secondary btn--sm" style="width:100%">Add</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+        <?php if (!empty($tracking)): ?>
+            <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/tracking/send" style="margin-top:.6rem">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn--secondary btn--sm">
+                    <?= !empty($inv['shipment_email_sent_at']) ? 'Send again' : 'Email the customer their tracking' ?>
+                </button>
+                <span style="font-size:.75rem;color:#9ca3af;margin-left:.6rem">
+                    Normally sent automatically when the order ships.
+                </span>
+            </form>
+        <?php endif; ?>
+    </div>
+</div>
+
 <?php if ($canEditLines): ?>
 <script>
 (function(){

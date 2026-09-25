@@ -209,6 +209,9 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/invoices/{id}/print',        [InvoiceController::class, 'printView'])->name('invoices.print');
     Router::get('/invoices/{id}/packing-slip', [InvoiceController::class, 'packingSlip'])->name('invoices.packing_slip');
     Router::post('/invoices/{id}/email',       [InvoiceController::class, 'email'])->name('invoices.email');
+    Router::post('/invoices/{id}/tracking',    [InvoiceController::class, 'addTracking'])->name('invoices.tracking.add');
+    Router::post('/invoices/{id}/tracking/send',[InvoiceController::class, 'sendTracking'])->name('invoices.tracking.send');
+    Router::post('/invoices/{id}/tracking/{trackingId}/remove',[InvoiceController::class, 'removeTracking'])->name('invoices.tracking.remove');
 
     // Vendors
     Router::get('/vendors',                [VendorController::class, 'index'])->name('vendors');

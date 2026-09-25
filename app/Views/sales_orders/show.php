@@ -128,9 +128,26 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
                     style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.95rem;box-sizing:border-box">
             </div>
             <div style="margin-bottom:14px">
-                <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">Tracking Number</label>
-                <input type="text" name="tracking_number" placeholder="e.g. 1Z999AA10123456784"
+                <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">
+                    Tracking / PRO Number
+                </label>
+                <textarea name="tracking_number" rows="2"
+                    placeholder="One per carton — paste several, separated by spaces or new lines"
+                    style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.95rem;box-sizing:border-box;resize:vertical"></textarea>
+                <div style="font-size:.75rem;color:#9ca3af;margin-top:4px">
+                    Entered here rather than typed onto the invoice afterwards — it is already
+                    known at the bench, and the customer is emailed from it.
+                </div>
+            </div>
+            <div style="margin-bottom:14px">
+                <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">Number Type</label>
+                <select name="tracking_type"
                     style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:.95rem;box-sizing:border-box">
+                    <option value="parcel">Parcel tracking (FedEx, UPS, USPS)</option>
+                    <option value="pro">Freight PRO number</option>
+                    <option value="bol">Bill of lading</option>
+                    <option value="other">Other</option>
+                </select>
             </div>
             <div style="margin-bottom:18px">
                 <label style="display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:4px">Ship Via</label>

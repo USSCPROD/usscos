@@ -206,7 +206,31 @@ class SalesOrderController extends Controller
             return $response->redirect('/sales-orders/' . (int)$id);
         }
 
-        Session::flash('success', 'Order shipped — invoice created.');
+        // Tracking is known at the bench, so it is captured here rather than typed onto the
+        // invoice afterwards by somebody else. Several numbers can be pasted at once — a
+        // parcel shipment is often four cartons.
+        $notify   = new \App\Services\ShipmentNotificationService();
+        $tracking = trim((string)($_POST['tracking_number'] ?? ''));
+        $message  = 'Order shipped — invoice created.';
+
+        if ($tracking !== '') {
+            $via   = $notify->shipViaByName($_POST['ship_via'] ?? null);
+            $type  = (string)($_POST['tracking_type'] ?? 'parcel');
+            $added = $notify->addTracking($invoiceId, $tracking, $via['id'] ?? null, $type);
+
+            if ($added !== []) {
+                $message .= ' ' . count($added) . ' tracking number'
+                          . (count($added) === 1 ? '' : 's') . ' recorded.';
+            }
+
+            // Announcing the shipment must never undo it: notify() records every outcome
+            // on the invoice and returns rather than throwing.
+            $result   = $notify->notify($invoiceId);
+            $message .= ' ' . $result['message'];
+        }
+
+        Session::flash('success', $message);
+
         return $response->redirect('/invoices/' . $invoiceId);
     }
 

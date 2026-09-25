@@ -105,6 +105,46 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /** Add a tracking number to an invoice after the fact — a second carton, or a correction. */
+    public function addTracking(Request $request, Response $response, string $id = '0'): Response
+    {
+        $notify = new \App\Services\ShipmentNotificationService();
+        $raw    = trim((string)$request->post('tracking_number', ''));
+
+        if ($raw === '') {
+            Session::flash('error', 'Enter a tracking or PRO number.');
+
+            return $response->redirect('/invoices/' . (int)$id);
+        }
+
+        $viaId = ($request->post('ship_via_id', '') !== '') ? (int)$request->post('ship_via_id') : null;
+        $added = $notify->addTracking((int)$id, $raw, $viaId, (string)$request->post('tracking_type', 'parcel'));
+
+        Session::flash($added === [] ? 'error' : 'success', $added === []
+            ? 'Nothing added — those numbers are already on this invoice.'
+            : count($added) . ' tracking number' . (count($added) === 1 ? '' : 's') . ' added.');
+
+        return $response->redirect('/invoices/' . (int)$id);
+    }
+
+    /** Send, or resend, the shipment email. */
+    public function sendTracking(Request $request, Response $response, string $id = '0'): Response
+    {
+        $result = (new \App\Services\ShipmentNotificationService())->notify((int)$id, true);
+
+        Session::flash($result['status'] === 'sent' ? 'success' : 'error', $result['message']);
+
+        return $response->redirect('/invoices/' . (int)$id);
+    }
+
+    public function removeTracking(Request $request, Response $response, string $id = '0', string $trackingId = '0'): Response
+    {
+        (new \App\Services\ShipmentNotificationService())->remove((int)$trackingId);
+        Session::flash('success', 'Tracking number removed.');
+
+        return $response->redirect('/invoices/' . (int)$id);
+    }
+
     public function packingSlip(Request $request, Response $response, string $id = '0'): Response
     {
         try {
