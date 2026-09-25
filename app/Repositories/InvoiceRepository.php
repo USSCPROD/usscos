@@ -229,6 +229,15 @@ class InvoiceRepository
         return (int)($row['n'] ?? 0);
     }
 
+    /** A shipped invoice is not finished — it waits for the bookkeeper. */
+    public function markAwaitingReview(int $id): void
+    {
+        Database::statement(
+            "UPDATE invoices SET review_status = 'pending' WHERE id = ? AND review_status <> 'approved'",
+            [$id]
+        );
+    }
+
     public function markReviewed(int $id, ?int $userId): void
     {
         Database::statement("

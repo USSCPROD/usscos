@@ -337,6 +337,15 @@ class InvoiceService extends Service
             }
         }
 
+        // A shipped invoice waits for the bookkeeper before the customer hears anything.
+        // Handling and freight are added after the box is on the truck, and emailing a
+        // figure the customer is then billed differently for costs an afternoon on the
+        // phone. Approving it in the review queue is what sends the tracking.
+        //
+        // Set here rather than in the controller so that anything which ships an order
+        // queues it — a rule that lives in one caller is a rule with a hole in it.
+        $this->invoices->markAwaitingReview($invoiceId);
+
         // Close the sales order — but only if everything went out. A short ship leaves it
         // `partially_shipped` so the remainder can be shipped later, rather than
         // disappearing from the open list with product still owed.

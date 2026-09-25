@@ -225,15 +225,7 @@ class SalesOrderController extends Controller
 
         }
 
-        // Queued, not announced. The invoice is not finished at the moment the box goes on
-        // the truck — handling fees are added afterwards — and emailing a figure the
-        // customer is then billed differently for costs an afternoon on the phone.
-        // Approving it in the review queue is what sends the tracking.
-        \App\Core\Database::statement(
-            "UPDATE invoices SET review_status = 'pending' WHERE id = ?",
-            [$invoiceId]
-        );
-
+        // The queueing itself happens in shipAndInvoice(), so that every caller gets it.
         $message .= ' Queued for review before the customer is told.';
 
         Session::flash('success', $message);
