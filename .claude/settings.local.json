@@ -314,7 +314,11 @@
       "Bash(php -l app/Services/FedExClient.php)",
       "Bash(php -l app/Services/FedExShippingService.php)",
       "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/fxlabel.php root@159.223.177.58:/tmp/)",
-      "Bash(scp -q /tmp/fxaddr.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /tmp/fxaddr.php root@159.223.177.58:/tmp/)",
+      "Bash(git rebase *)",
+      "Bash(git reset *)",
+      "Bash(php -l app/Services/CartonizerService.php)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/cartontest.php root@159.223.177.58:/tmp/)"
     ]
   }
 }
