@@ -45,7 +45,7 @@ class ReturnRepository
                    TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS received_by_name
             FROM stock_returns r
             JOIN customers c ON c.id = r.customer_id
-            LEFT JOIN invoices i ON i.id = r.invoice_id
+            LEFT JOIN invoices i  ON i.id = r.invoice_id
             LEFT JOIN users u    ON u.id = r.received_by
             WHERE r.id = ?
         ", [$id]);
@@ -102,6 +102,16 @@ class ReturnRepository
     public function setCreditStatus(int $id, string $status): void
     {
         Database::statement("UPDATE stock_returns SET credit_status = ? WHERE id = ?", [$status, $id]);
+    }
+
+    /** Link a return to the credit memo raised for it, and mark it credited. */
+    public function attachCredit(int $returnId, int $creditInvoiceId): void
+    {
+        Database::statement("
+            UPDATE stock_returns
+            SET credit_invoice_id = ?, credit_status = 'issued'
+            WHERE id = ?
+        ", [$creditInvoiceId, $returnId]);
     }
 
     public function setStatus(int $id, string $status): void

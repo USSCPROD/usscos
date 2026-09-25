@@ -195,10 +195,18 @@ foreach ($lines as $l) {
             Tax is credited at <?= rtrim(rtrim(number_format((float)($return['tax_rate_applied'] ?? 0) * 100, 3), '0'), '.') ?>%,
             the rate the original invoice was charged at.
         </p>
-        <form method="POST" action="/inventory/returns/<?= (int)$return['id'] ?>/credited">
+        <form method="POST" action="/inventory/returns/<?= (int)$return['id'] ?>/credit" style="display:inline">
             <?= csrf_field() ?>
-            <button type="submit" class="btn btn--secondary btn--sm">Mark as Credited</button>
+            <button type="submit" class="btn btn--primary btn--sm">Raise Credit Memo</button>
         </form>
+        <form method="POST" action="/inventory/returns/<?= (int)$return['id'] ?>/credited" style="display:inline;margin-left:.4rem">
+            <?= csrf_field() ?>
+            <button type="submit" class="btn btn--secondary btn--sm">Credited in QuickBooks</button>
+        </form>
+        <div style="font-size:.75rem;color:#a16207;margin-top:.5rem">
+            Raising it here creates the credit memo in USSCOS. Use the second button only if
+            the credit was issued in QuickBooks instead.
+        </div>
     </div>
 <?php endif; ?>
 

@@ -621,6 +621,131 @@ class InvoiceService extends Service
         return (new ShipmentNotificationService())->notify($id, true);
     }
 
+    /**
+     * Raise a credit memo for a booked-in return.
+     *
+     * Stored with NEGATIVE line totals and negative header totals. That is what makes the
+     * fifteen existing money queries correct without being touched — and the ones written
+     * next year by somebody who has never heard of this decision. Special-casing the type
+     * in each query fixes today and leaves a trap for tomorrow.
+     *
+     * Quantities and unit prices stay positive: a credit for two pails is two pails at
+     * their price, which is how it reads on paper. Only the totals carry the sign.
+     *
+     * @throws \RuntimeException with a message intended for the bookkeeper
+     */
+    public function createCreditFromReturn(int $returnId, ?int $userId): int
+    {
+        $returns = new \App\Repositories\ReturnRepository();
+        $return  = $returns->find($returnId);
+
+        if ($return === null) {
+            throw new \RuntimeException('That return no longer exists.');
+        }
+        if ($return['status'] !== 'received') {
+            throw new \RuntimeException('Book the return in before crediting it.');
+        }
+        if (!empty($return['credit_invoice_id'])) {
+            throw new \RuntimeException('A credit has already been raised for this return.');
+        }
+
+        $lines = array_values(array_filter(
+            $returns->lines($returnId),
+            fn($l) => (float)$l['unit_price'] > 0 && (float)$l['qty'] > 0
+        ));
+
+        if ($lines === []) {
+            throw new \RuntimeException('Nothing on this return has a price — there is nothing to credit.');
+        }
+
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+
+        try {
+            $original = !empty($return['invoice_id'])
+                ? $this->invoices->findWithDetails((int)$return['invoice_id'])
+                : null;
+
+            $creditLines = [];
+            $goods       = 0.0;
+
+            foreach ($lines as $l) {
+                $lineTotal = round((float)$l['qty'] * (float)$l['unit_price'], 2);
+                $goods    += $lineTotal;
+
+                $creditLines[] = [
+                    'product_id'      => $l['product_id'],
+                    'quickbooks_item' => null,
+                    'description'     => 'Returned: ' . $l['product_name'],
+                    'qty'             => (float)$l['qty'],
+                    'uom_id'          => null,
+                    'unit_price'      => (float)$l['unit_price'],
+                    'discount_pct'    => 0,
+                    'is_taxable'      => 0,
+                    // Negative, so SUM(line_total) nets correctly everywhere.
+                    'line_total'      => -$lineTotal,
+                ];
+            }
+
+            // Tax comes back at the rate frozen on the original invoice, never today's —
+            // the customer is owed what they were actually charged.
+            $taxRate = ($original && ($original['tax_source'] ?? '') === 'usscos')
+                ? (float)($original['tax_rate_applied'] ?? 0)
+                : 0.0;
+            $tax     = round($goods * $taxRate, 2);
+            $total   = round($goods + $tax, 2);
+
+            $creditId = $this->invoices->insert([
+                ':customer_id'        => (int)$return['customer_id'],
+                ':sales_order_id'     => null,
+                ':invoice_number'     => $this->invoices->nextInvoiceNumber(),
+                ':invoice_type'       => 'credit_memo',
+                ':credits_invoice_id' => $return['invoice_id'] ? (int)$return['invoice_id'] : null,
+                ':po_number'          => $original['po_number'] ?? null,
+                ':invoice_date'       => date('Y-m-d'),
+                ':due_date'           => date('Y-m-d'),
+                ':payment_term_id'    => null,
+                ':ship_date'          => null,
+                ':tracking_number'    => null,
+                ':ship_via'           => null,
+                ':ship_address_1'     => null,
+                ':ship_address_2'     => null,
+                ':ship_city'          => null,
+                ':ship_state'         => null,
+                ':ship_zip'           => null,
+                ':subtotal'           => -$goods,
+                ':discount_amount'    => 0,
+                ':tax_amount'         => -$tax,
+                ':total_amount'       => -$total,
+                ':balance_due'        => -$total,
+                ':memo'               => 'Credit for return ' . $return['return_number']
+                                       . ($original ? ' against invoice ' . $original['invoice_number'] : ''),
+                ':internal_notes'     => null,
+                ':created_by'         => $userId,
+                ':rep_id'             => $original['rep_id'] ?? null,
+            ]);
+
+            $this->invoices->replaceLineItems($creditId, $creditLines);
+
+            // A credit memo needs no shipping review and must not sit in that queue.
+            Database::statement(
+                "UPDATE invoices SET review_status = 'not_required', tax_rate_applied = ?, tax_source = ? WHERE id = ?",
+                [$taxRate, $taxRate > 0 ? 'usscos' : 'none', $creditId]
+            );
+
+            $returns->attachCredit($returnId, $creditId);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        return $creditId;
+    }
+
     public function setStatus(int $id, string $status): void
     {
         $this->invoices->setStatus($id, $status);

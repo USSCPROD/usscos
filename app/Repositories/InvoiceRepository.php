@@ -185,15 +185,24 @@ class InvoiceRepository
                 discount_amount = :discount,
                 tax_amount      = :tax,
                 total_amount    = :total,
-                balance_due     = GREATEST(0, :total2 - amount_paid)
+                -- A credit memo's balance is negative on purpose: it is owed to the
+                -- customer and nets against what they owe us. Clamping it at zero, as an
+                -- invoice's balance is clamped, would erase it from A/R.
+                balance_due     = CASE
+                                      WHEN :total2 < 0 THEN :total3 - amount_paid
+                                      ELSE GREATEST(0, :total4 - amount_paid)
+                                  END
             WHERE id = :id
         ");
         $stmt->execute([
             ':subtotal' => $totals['subtotal'],
             ':discount' => $totals['discount'],
             ':tax'      => $totals['tax'],
+            // Named parameters may appear only once per query — see CLAUDE.md.
             ':total'    => $totals['total'],
             ':total2'   => $totals['total'],
+            ':total3'   => $totals['total'],
+            ':total4'   => $totals['total'],
             ':id'       => $id,
         ]);
     }
@@ -256,21 +265,25 @@ class InvoiceRepository
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO invoices
-                (customer_id, sales_order_id, invoice_number, po_number, invoice_type, status,
+                (customer_id, sales_order_id, invoice_number, po_number, invoice_type, credits_invoice_id, status,
                  invoice_date, due_date, payment_term_id,
                  subtotal, discount_amount, tax_amount, total_amount, balance_due,
                  ship_date, ship_via, tracking_number, ship_address_1, ship_address_2,
                  ship_city, ship_state, ship_zip,
                  memo, internal_notes, created_by, rep_id)
             VALUES
-                (:customer_id, :sales_order_id, :invoice_number, :po_number, 'invoice', 'draft',
+                (:customer_id, :sales_order_id, :invoice_number, :po_number, :invoice_type, :credits_invoice_id, 'draft',
                  :invoice_date, :due_date, :payment_term_id,
                  :subtotal, :discount_amount, :tax_amount, :total_amount, :balance_due,
                  :ship_date, :ship_via, :tracking_number, :ship_address_1, :ship_address_2,
                  :ship_city, :ship_state, :ship_zip,
                  :memo, :internal_notes, :created_by, :rep_id)
         ");
+        // Defaulted rather than required, so the existing callers are untouched.
+        $data += [':invoice_type' => 'invoice', ':credits_invoice_id' => null];
+
         $stmt->execute($data);
+
         return (int)$this->pdo->lastInsertId();
     }
 

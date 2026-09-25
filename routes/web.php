@@ -256,6 +256,7 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/inventory/returns/{id}/line',  [ReturnController::class, 'addLine'])->name('inventory.returns.line');
     Router::post('/inventory/returns/{id}/receive',[ReturnController::class, 'receive'])->name('inventory.returns.receive');
     Router::post('/inventory/returns/{id}/credited',[ReturnController::class, 'creditIssued'])->name('inventory.returns.credited');
+    Router::post('/inventory/returns/{id}/credit', [ReturnController::class, 'raiseCredit'])->name('inventory.returns.credit');
     Router::post('/inventory/returns/{id}/cancel',[ReturnController::class, 'cancel'])->name('inventory.returns.cancel');
     Router::post('/inventory/returns/{id}/line/{lineId}/remove',[ReturnController::class, 'removeLine'])->name('inventory.returns.line.remove');
     Router::get('/inventory/counts',              [CountController::class, 'index'])->name('inventory.counts');

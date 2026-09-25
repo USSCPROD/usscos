@@ -112,6 +112,23 @@ class ReturnController extends Controller
         return $response->redirect('/inventory/returns/' . (int)$id);
     }
 
+    /** Raise the credit memo in USSCOS rather than the bookkeeper doing it in QuickBooks. */
+    public function raiseCredit(Request $request, Response $response, string $id = '0'): Response
+    {
+        try {
+            $creditId = (new \App\Services\InvoiceService())
+                ->createCreditFromReturn((int)$id, \App\Core\Auth::id());
+
+            Session::flash('success', 'Credit memo raised.');
+
+            return $response->redirect('/invoices/' . $creditId);
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+
+            return $response->redirect('/inventory/returns/' . (int)$id);
+        }
+    }
+
     public function cancel(Request $request, Response $response, string $id = '0'): Response
     {
         try {
