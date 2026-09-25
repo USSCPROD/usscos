@@ -336,6 +336,48 @@ class AdminController extends Controller
     // Tax Rates
     // -------------------------------------------------------------------------
 
+    /**
+     * The quality checks USSC performs, defined by whoever owns quality.
+     *
+     * Deliberately empty to begin with. An invented checklist would be followed, and what
+     * gets checked before a job ships is not something to guess at.
+     */
+    public function qaChecks(Request $request, Response $response): Response
+    {
+        return $this->view('admin.qa_checks', [
+            'title'  => 'Quality Checks',
+            'checks' => (new \App\Services\JobBinderService())->allChecks(),
+        ]);
+    }
+
+    public function storeQaCheck(Request $request, Response $response): Response
+    {
+        try {
+            (new \App\Services\JobBinderService())->addCheck($_POST);
+            Session::flash('success', 'Check added.');
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        return $response->redirect('/admin/qa-checks');
+    }
+
+    /** Retired, never deleted — results already recorded against it are evidence. */
+    public function retireQaCheck(Request $request, Response $response, string $id = '0'): Response
+    {
+        $binder = new \App\Services\JobBinderService();
+
+        if ($request->post('restore') !== null) {
+            $binder->restoreCheck((int)$id);
+            Session::flash('success', 'Check back in use.');
+        } else {
+            $binder->retireCheck((int)$id);
+            Session::flash('success', 'Check retired. Past results are kept.');
+        }
+
+        return $response->redirect('/admin/qa-checks');
+    }
+
     public function taxRates(Request $request, Response $response): Response
     {
         return $this->view('admin.tax_rates', [

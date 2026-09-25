@@ -10,6 +10,7 @@ use App\Core\Response;
 use App\Core\Session;
 use App\Services\ArtworkService;
 use App\Services\JobDocumentService;
+use App\Services\JobBinderService;
 
 /**
  * The Digital Job Binder — everything about a job, hung off its sales order.
@@ -24,12 +25,40 @@ class JobBinderController extends Controller
 {
     private ArtworkService $artwork;
     private JobDocumentService $documents;
+    private JobBinderService $binder;
 
     public function __construct()
     {
         parent::__construct();
         $this->artwork   = new ArtworkService();
         $this->documents = new JobDocumentService();
+        $this->binder    = new JobBinderService();
+    }
+
+    /** A note on the job — what happened, for whoever asks in eight months. */
+    public function storeNote(Request $request, Response $response, string $id = '0'): Response
+    {
+        try {
+            $this->binder->addNote((int)$id, $_POST);
+            Session::flash('success', 'Note added to the job.');
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        return $response->redirect('/sales-orders/' . (int)$id . '#notes');
+    }
+
+    /** One QA answer. */
+    public function storeQa(Request $request, Response $response, string $id = '0'): Response
+    {
+        try {
+            $this->binder->recordResult((int)$id, $_POST);
+            Session::flash('success', 'Recorded.');
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        return $response->redirect('/sales-orders/' . (int)$id . '#qa');
     }
 
     /** File a document against the job — a customer PO, a BOL, a signed proof. */

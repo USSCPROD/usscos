@@ -164,6 +164,8 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     // Shipping
     // Digital Job Binder — artwork, hung off the sales order
     Router::post('/sales-orders/{id}/documents',                      [JobBinderController::class, 'storeDocument'])->name('binder.document.store');
+    Router::post('/sales-orders/{id}/notes',                          [JobBinderController::class, 'storeNote'])->name('binder.note.store');
+    Router::post('/sales-orders/{id}/qa',                             [JobBinderController::class, 'storeQa'])->name('binder.qa.store');
     Router::post('/sales-orders/{id}/documents/{documentId}/remove',  [JobBinderController::class, 'removeDocument'])->name('binder.document.remove');
     Router::post('/sales-orders/{id}/artwork',                        [JobBinderController::class, 'storeArtwork'])->name('binder.artwork.store');
     Router::post('/sales-orders/{id}/artwork/{artworkId}/revision',   [JobBinderController::class, 'storeRevision'])->name('binder.artwork.revision');
@@ -304,6 +306,9 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/admin/payment-terms/{id}/edit',            [AdminController::class, 'paymentTermsEdit'])->name('admin.payment_terms.edit');
     Router::post('/admin/payment-terms/{id}/edit',           [AdminController::class, 'paymentTermsUpdate'])->name('admin.payment_terms.update');
 
+    Router::get('/admin/qa-checks',            [AdminController::class, 'qaChecks'])->name('admin.qa_checks');
+    Router::post('/admin/qa-checks',           [AdminController::class, 'storeQaCheck'])->name('admin.qa_checks.store');
+    Router::post('/admin/qa-checks/{id}/retire',[AdminController::class, 'retireQaCheck'])->name('admin.qa_checks.retire');
     Router::get('/admin/tax-rates',                          [AdminController::class, 'taxRates'])->name('admin.tax_rates');
     Router::get('/admin/tax-rates/create',                   [AdminController::class, 'taxRatesCreate'])->name('admin.tax_rates.create');
     Router::post('/admin/tax-rates',                         [AdminController::class, 'taxRatesStore'])->name('admin.tax_rates.store');

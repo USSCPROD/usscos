@@ -53,12 +53,17 @@ class SalesOrderController extends Controller
 
         $artwork   = new ArtworkService();
         $documents = new JobDocumentService();
+        $binder    = new \App\Services\JobBinderService();
 
         return $this->view('sales_orders.show', [
             'title'         => 'Sales Order #' . $data['so']['so_number'],
             'artwork'       => $artwork->forSalesOrder((int)$id),
             'artworkCounts' => $artwork->counts((int)$id),
             'jobDocuments'  => $documents->forSalesOrder((int)$id),
+            'jobNotes'      => $binder->notes((int)$id),
+            'qaChecklist'   => $binder->checklist((int)$id),
+            'qaSummary'     => $binder->qaSummary((int)$id),
+            'noteTypes'     => \App\Services\JobBinderService::NOTE_TYPES,
             ...$data,
         ]);
     }

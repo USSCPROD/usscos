@@ -898,6 +898,161 @@ $jbInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;bo
     </div>
 </div>
 
+<!-- What happened on the job -->
+<div id="notes" style="margin-top:1.5rem">
+    <div style="display:block;border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">
+        <span style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            Job notes
+        </span>
+        <?php if (!empty($jobNotes)): ?>
+            <span style="font-size:.78rem;color:#9ca3af">&nbsp;— <?= count($jobNotes) ?></span>
+        <?php endif; ?>
+    </div>
+
+    <div class="card" style="padding:1.1rem 1.25rem;margin-bottom:1rem;background:#f8fafc">
+        <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/notes">
+            <?= csrf_field() ?>
+            <table style="width:100%;border-collapse:separate;border-spacing:.5rem 0;margin:0 -.5rem">
+                <tr>
+                    <td style="width:11rem;vertical-align:top">
+                        <select name="note_type" style="<?= $jbInp ?>">
+                            <?php foreach ($noteTypes as $ntKey => $ntLabel): ?>
+                                <option value="<?= e($ntKey) ?>"><?= e($ntLabel) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                    <td>
+                        <textarea name="body" rows="2" required
+                                  placeholder="What happened? e.g. colour mixed twice, second batch used for the last 3 cases"
+                                  style="<?= $jbInp ?>;resize:vertical"></textarea>
+                    </td>
+                    <td style="width:8rem;vertical-align:top">
+                        <button type="submit" class="btn btn--primary" style="width:100%">Add Note</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+        <div style="font-size:.75rem;color:#9ca3af;margin-top:.6rem">
+            Notes cannot be edited or deleted once saved. A job history that can be quietly
+            changed is not a history.
+        </div>
+    </div>
+
+    <?php if (empty($jobNotes)): ?>
+        <p style="color:#9ca3af;font-size:.9rem;margin:0 0 1rem">
+            Nothing recorded yet.
+        </p>
+    <?php else: ?>
+        <?php foreach ($jobNotes as $jn): ?>
+            <?php
+            $ntColour = [
+                'production' => ['#eff6ff', '#bfdbfe', '#1d4ed8'],
+                'quality'    => ['#fffbeb', '#fcd34d', '#92400e'],
+                'customer'   => ['#f0fdf4', '#bbf7d0', '#166534'],
+                'general'    => ['#f8f9fb', '#e5e7eb', '#6b7280'],
+            ][$jn['note_type']] ?? ['#f8f9fb', '#e5e7eb', '#6b7280'];
+            ?>
+            <div style="border-left:3px solid <?= $ntColour[1] ?>;background:#fff;border:1px solid #e5e7eb;
+                        border-left-width:3px;border-radius:0 6px 6px 0;padding:.75rem 1rem;margin-bottom:.6rem">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.3rem">
+                    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+                                 padding:.1rem .45rem;border-radius:3px;
+                                 background:<?= $ntColour[0] ?>;color:<?= $ntColour[2] ?>">
+                        <?= e($noteTypes[$jn['note_type']] ?? $jn['note_type']) ?>
+                    </span>
+                    <span style="font-size:.76rem;color:#9ca3af">
+                        <?= e($jn['author'] ?: 'Unknown') ?> · <?= date('j M Y, g:ia', strtotime($jn['created_at'])) ?>
+                    </span>
+                </div>
+                <div style="font-size:.92rem;white-space:pre-wrap"><?= e($jn['body']) ?></div>
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</div>
+
+<!-- Quality checks -->
+<div id="qa" style="margin-top:1.5rem">
+    <div style="display:block;border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">
+        <span style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            Quality checks
+        </span>
+        <?php if (($qaSummary['total'] ?? 0) > 0): ?>
+            <span style="font-size:.78rem;color:<?= ($qaSummary['failed'] ?? 0) > 0 ? '#b91c1c' : '#9ca3af' ?>">
+                &nbsp;— <?= (int)$qaSummary['answered'] ?> of <?= (int)$qaSummary['total'] ?> answered<?php
+                    if (($qaSummary['failed'] ?? 0) > 0): ?>, <strong><?= (int)$qaSummary['failed'] ?> failed</strong><?php endif; ?>
+            </span>
+        <?php endif; ?>
+    </div>
+
+    <?php if (empty($qaChecklist)): ?>
+        <div class="alert" style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;padding:.9rem 1.1rem;font-size:.88rem">
+            <strong>No quality checks have been set up yet.</strong>
+            Nothing has been invented here on purpose — a plausible checklist would get
+            followed, and what USSC actually checks before a job ships is not something to
+            guess at. Whoever owns quality adds the real checks under
+            <a href="/admin/qa-checks" style="color:#92400e;font-weight:600">Admin &rsaquo; Quality Checks</a>.
+        </div>
+    <?php else: ?>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+            <?php foreach ($qaChecklist as $qc): ?>
+                <?php
+                $answered = $qc['result'] !== null;
+                $failed   = $qc['result'] === 'fail';
+                $bg       = $failed ? '#fef2f2' : ($answered ? '#fff' : '#fcfcfd');
+                ?>
+                <div style="border-bottom:1px solid #f3f4f6;padding:.85rem 1rem;background:<?= $bg ?>">
+                    <table style="width:100%;border-collapse:collapse">
+                        <tr>
+                            <td style="vertical-align:top">
+                                <div style="font-size:.93rem;font-weight:<?= $answered ? '400' : '600' ?>">
+                                    <?= e($qc['label']) ?>
+                                    <?php if ((int)$qc['is_required'] === 1 && !$answered): ?>
+                                        <span style="color:#b45309;font-size:.78rem">· required</span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($qc['help'])): ?>
+                                    <div style="font-size:.79rem;color:#9ca3af"><?= e($qc['help']) ?></div>
+                                <?php endif; ?>
+                                <?php if ($answered): ?>
+                                    <div style="font-size:.78rem;color:#6b7280;margin-top:.25rem">
+                                        <?= e(ucfirst(str_replace('_', ' ', $qc['result']))) ?>
+                                        <?= $qc['checked_by_name'] ? '· ' . e($qc['checked_by_name']) : '' ?>
+                                        · <?= date('j M, g:ia', strtotime($qc['checked_at'])) ?>
+                                        <?php if (!empty($qc['note'])): ?>
+                                            <div style="color:<?= $failed ? '#b91c1c' : '#6b7280' ?>"><?= e($qc['note']) ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td style="width:22rem;vertical-align:top;text-align:right">
+                                <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/qa" style="margin:0">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="qa_check_id" value="<?= (int)$qc['id'] ?>">
+                                    <input type="text" name="note" maxlength="500"
+                                           value="<?= e($qc['note'] ?? '') ?>"
+                                           placeholder="Note — required on a fail"
+                                           style="<?= $jbInp ?>;margin-bottom:.4rem">
+                                    <button type="submit" name="result" value="pass" class="btn btn--sm"
+                                            style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534">Pass</button>
+                                    <button type="submit" name="result" value="fail" class="btn btn--sm"
+                                            style="background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c">Fail</button>
+                                    <button type="submit" name="result" value="not_applicable" class="btn btn--sm btn--secondary">N/A</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <?php if (($qaSummary['outstanding'] ?? 0) > 0): ?>
+            <p style="font-size:.8rem;color:#b45309;margin:.7rem 0 0">
+                <?= (int)$qaSummary['outstanding'] ?> required check<?= (int)$qaSummary['outstanding'] === 1 ? '' : 's' ?>
+                still unanswered.
+            </p>
+        <?php endif; ?>
+    <?php endif; ?>
+</div>
+
 <!-- Artwork -->
 <div id="artwork" style="margin-top:1.5rem">
     <div style="display:block;border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">
