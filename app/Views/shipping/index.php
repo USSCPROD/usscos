@@ -157,14 +157,33 @@ if ($activeTab === 'all') {
                                 'short'       => ['#fffbeb', '#fcd34d', '#92400e', 'Short'],
                             ][$pickState] ?? null;
                             ?>
+                            <?php
+                            // Pack state matters as much as pick state: an order that is
+                            // picked but unverified is the one about to go out wrong.
+                            $packState = $o['pack_status'] ?? 'not_started';
+                            $packBadge = [
+                                'in_progress' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Packing'],
+                                'verified'    => ['#f0fdf4', '#bbf7d0', '#166534', 'Verified'],
+                                'mismatch'    => ['#fef2f2', '#fca5a5', '#b91c1c', 'Mismatch'],
+                            ][$packState] ?? null;
+                            ?>
                             <?php if ($pickBadge): ?>
                                 <span style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;
                                              background:<?= $pickBadge[0] ?>;border:1px solid <?= $pickBadge[1] ?>;color:<?= $pickBadge[2] ?>">
                                     <?= $pickBadge[3] ?>
                                 </span>
                             <?php endif; ?>
+                            <?php if ($packBadge): ?>
+                                <span style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;
+                                             background:<?= $packBadge[0] ?>;border:1px solid <?= $packBadge[1] ?>;color:<?= $packBadge[2] ?>">
+                                    <?= $packBadge[3] ?>
+                                </span>
+                            <?php endif; ?>
                             <a href="/shipping/<?= (int)$o['id'] ?>/pick"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#fff;background:#0A3D91;text-decoration:none;margin-right:.4rem">Pick</a>
+                            <a href="/shipping/<?= (int)$o['id'] ?>/pack"
+                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
+                               onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Pack</a>
                             <a href="/sales-orders/<?= (int)$o['id'] ?>/packing-slip" target="_blank"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #d1d5db;border-radius:5px;color:#374151;text-decoration:none"
                                onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Packing Slip</a>

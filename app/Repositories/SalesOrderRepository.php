@@ -311,7 +311,7 @@ class SalesOrderRepository
     {
         return $this->pdo->query("
             SELECT so.id, so.so_number, so.order_date, so.requested_ship_date, so.status,
-                   so.pick_status, so.pick_note,
+                   so.pick_status, so.pick_note, so.pack_status,
                    so.po_number, so.total_amount, so.ship_via_id,
                    so.ship_address_1, so.ship_city, so.ship_state, so.ship_zip,
                    c.id AS customer_id, c.company_name, c.phone,
@@ -334,6 +334,7 @@ class SalesOrderRepository
         $stmt = $this->pdo->prepare("
             SELECT li.id, li.product_id, li.description, li.quickbooks_item,
                    li.qty_ordered, li.qty_picked, li.qty_shipped, li.pick_note,
+                   li.qty_packed, li.pack_note,
                    p.sku, p.name AS product_name, p.gtin12, p.gtin14,
                    p.units_per_case, p.uom_code
             FROM sales_order_line_items li
@@ -430,6 +431,73 @@ class SalesOrderRepository
         $stmt->execute([$status, $userId, $status, $salesOrderId]);
 
         return $status;
+    }
+
+    public function setPacked(int $lineId, float $qty, ?string $note = null): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE sales_order_line_items SET qty_packed = ?, pack_note = ? WHERE id = ?"
+        );
+        $stmt->execute([max(0, $qty), $note, $lineId]);
+    }
+
+    /**
+     * Recalculate the order's pack status from its lines.
+     *
+     * Compared against what was PICKED, not what was ordered. A deliberate short pick is
+     * not a packing error — four of ten picked means four in the box is correct — and
+     * comparing against the order would flag every short ship and teach people to ignore
+     * the warning.
+     *
+     * `verified` requires every picked line to be matched exactly. Anything else in
+     * progress stays in progress; the mismatch state is only set deliberately, by somebody
+     * finishing a box that does not match.
+     */
+    public function refreshPackStatus(int $salesOrderId, ?int $userId = null): string
+    {
+        $lines = $this->getPickLines($salesOrderId);
+
+        $anyPacked = false;
+        $allMatch  = true;
+        $anyPicked = false;
+
+        foreach ($lines as $l) {
+            $picked = (float)$l['qty_picked'];
+            $packed = (float)$l['qty_packed'];
+
+            if ($packed > 0) { $anyPacked = true; }
+            if ($picked > 0) { $anyPicked = true; }
+
+            if (abs($packed - $picked) > 0.0001) { $allMatch = false; }
+        }
+
+        $status = match (true) {
+            $anyPicked && $allMatch && $anyPacked => 'verified',
+            $anyPacked                           => 'in_progress',
+            default                              => 'not_started',
+        };
+
+        $stmt = $this->pdo->prepare(
+            "UPDATE sales_orders
+             SET pack_status = ?,
+                 packed_by = COALESCE(?, packed_by),
+                 packed_at = CASE WHEN ? = 'verified' THEN NOW() ELSE packed_at END
+             WHERE id = ?"
+        );
+        $stmt->execute([$status, $userId, $status, $salesOrderId]);
+
+        return $status;
+    }
+
+    /** Somebody sealed a box that did not match the pick, and said why. */
+    public function recordPackMismatch(int $salesOrderId, string $note, ?int $userId = null): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE sales_orders
+             SET pack_status = 'mismatch', pack_note = ?, packed_by = COALESCE(?, packed_by), packed_at = NOW()
+             WHERE id = ?"
+        );
+        $stmt->execute([$note, $userId, $salesOrderId]);
     }
 
     /** Record what the shipping team says is missing, against the whole order. */

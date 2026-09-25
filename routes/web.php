@@ -174,6 +174,10 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/shipping/{id}/pick',       [ShippingController::class, 'pick'])->name('shipping.pick');
     Router::post('/shipping/{id}/pick/scan', [ShippingController::class, 'scan'])->name('shipping.scan');
     Router::post('/shipping/{id}/pick/line', [ShippingController::class, 'setLine'])->name('shipping.pick.line');
+    Router::get('/shipping/{id}/pack',        [ShippingController::class, 'pack'])->name('shipping.pack');
+    Router::post('/shipping/{id}/pack/scan',  [ShippingController::class, 'packScan'])->name('shipping.pack.scan');
+    Router::post('/shipping/{id}/pack/line',  [ShippingController::class, 'packSetLine'])->name('shipping.pack.line');
+    Router::post('/shipping/{id}/pack/mismatch',[ShippingController::class, 'packMismatch'])->name('shipping.pack.mismatch');
     Router::post('/shipping/{id}/short',     [ShippingController::class, 'short'])->name('shipping.short');
 
     // Receiving — where stock first enters USSCOS

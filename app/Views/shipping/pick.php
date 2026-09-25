@@ -102,6 +102,15 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
     </table>
 </div>
 
+<?php if ($totalPicked > 0 && $totalPicked >= $totalOrdered): ?>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem 1.1rem;margin-bottom:1.25rem">
+        <strong style="color:#166534">Everything picked.</strong>
+        <span style="color:#166534">Now verify the box against the pick before it is sealed.</span>
+        <a href="/shipping/<?= (int)$order['id'] ?>/pack" class="btn btn--primary"
+           style="margin-left:.6rem;padding:.5rem 1.1rem">Pack &amp; Verify</a>
+    </div>
+<?php endif; ?>
+
 <!-- Short stock -->
 <div class="card" style="padding:1.25rem;max-width:100%">
     <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.6rem">
