@@ -36,6 +36,15 @@ $statusBadge = [
         <p class="page-subtitle"><?= number_format($total) ?> invoices &nbsp;·&nbsp; $<?= number_format((float)($stats['total_ar'] ?? 0), 2) ?> outstanding AR</p>
     </div>
     <div class="page-header__right">
+        <?php if (!empty($awaitingReview)): ?>
+            <a href="/invoices/review" class="btn btn--secondary" style="margin-right:.4rem">
+                Awaiting Review
+                <span style="display:inline-block;margin-left:.35rem;padding:0 .4rem;border-radius:9px;
+                             background:#b45309;color:#fff;font-size:.75rem;font-weight:700">
+                    <?= (int)$awaitingReview ?>
+                </span>
+            </a>
+        <?php endif; ?>
         <a href="/invoices/create" class="btn btn--primary">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             New Invoice

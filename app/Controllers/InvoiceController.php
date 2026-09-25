@@ -84,7 +84,8 @@ class InvoiceController extends Controller
         $data = $this->service->list($page, $perPage, $search, $status, $sort);
 
         return $this->view('invoices.index', [
-            'title' => 'Invoices',
+            'title'          => 'Invoices',
+            'awaitingReview' => $this->service->countAwaitingReview(),
             ...$data,
         ]);
     }
@@ -103,6 +104,37 @@ class InvoiceController extends Controller
             'title' => 'Invoice #' . $data['invoice']['invoice_number'],
             ...$data,
         ]);
+    }
+
+    /**
+     * Invoices that have shipped and are waiting on the bookkeeper.
+     *
+     * The customer has not been told anything yet — approving is what sends the tracking.
+     */
+    public function reviewQueue(Request $request, Response $response): Response
+    {
+        return $this->view('invoices.review', [
+            'title'    => 'Awaiting Review',
+            'invoices' => $this->service->awaitingReview(),
+        ]);
+    }
+
+    /**
+     * Approve a shipped invoice, which is what sends the customer their tracking.
+     *
+     * One action with the send as its consequence, rather than two things to remember in
+     * the right order.
+     */
+    public function approve(Request $request, Response $response, string $id = '0'): Response
+    {
+        $result = $this->service->approve((int)$id, Auth::id());
+
+        Session::flash(
+            in_array($result['status'], ['sent', 'suppressed'], true) ? 'success' : 'error',
+            'Approved. ' . $result['message']
+        );
+
+        return $response->redirect('/invoices/review');
     }
 
     /** Add a tracking number to an invoice after the fact — a second carton, or a correction. */

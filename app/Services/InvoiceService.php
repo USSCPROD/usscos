@@ -588,6 +588,30 @@ class InvoiceService extends Service
         ];
     }
 
+    /** Shipped invoices waiting on the bookkeeper. */
+    public function awaitingReview(): array
+    {
+        return $this->invoices->awaitingReview();
+    }
+
+    public function countAwaitingReview(): int
+    {
+        return $this->invoices->countAwaitingReview();
+    }
+
+    /**
+     * Approve a shipped invoice and tell the customer.
+     *
+     * The send is the consequence of approving rather than a separate step, so there is
+     * only one thing to remember.
+     */
+    public function approve(int $id, ?int $userId): array
+    {
+        $this->invoices->markReviewed($id, $userId);
+
+        return (new ShipmentNotificationService())->notify($id, true);
+    }
+
     public function setStatus(int $id, string $status): void
     {
         $this->invoices->setStatus($id, $status);

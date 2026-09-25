@@ -198,6 +198,44 @@ class InvoiceRepository
         ]);
     }
 
+    /**
+     * Invoices that shipped and are waiting on the bookkeeper.
+     *
+     * Ordered oldest first, because the customer has been waiting for their tracking since
+     * the box went on the truck.
+     */
+    public function awaitingReview(): array
+    {
+        return Database::select("
+            SELECT i.id, i.invoice_number, i.invoice_date, i.ship_date, i.po_number,
+                   i.subtotal, i.total_amount, i.tracking_number, i.shipment_email_status,
+                   c.company_name, c.email AS customer_email,
+                   so.so_number,
+                   (SELECT COUNT(*) FROM shipment_tracking t WHERE t.invoice_id = i.id) AS tracking_count
+            FROM invoices i
+            JOIN customers c ON c.id = i.customer_id
+            LEFT JOIN sales_orders so ON so.id = i.sales_order_id
+            WHERE i.review_status = 'pending' AND i.status <> 'void'
+            ORDER BY i.ship_date, i.id
+        ");
+    }
+
+    public function countAwaitingReview(): int
+    {
+        $row = Database::selectOne(
+            "SELECT COUNT(*) AS n FROM invoices WHERE review_status = 'pending' AND status <> 'void'"
+        );
+
+        return (int)($row['n'] ?? 0);
+    }
+
+    public function markReviewed(int $id, ?int $userId): void
+    {
+        Database::statement("
+            UPDATE invoices SET review_status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?
+        ", [$userId, $id]);
+    }
+
     public function nextInvoiceNumber(): string
     {
         $stmt = $this->pdo->query("SELECT MAX(CAST(invoice_number AS UNSIGNED)) FROM invoices");

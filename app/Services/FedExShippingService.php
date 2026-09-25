@@ -206,28 +206,29 @@ class FedExShippingService
             return ['ok' => false, 'message' => 'FedEx returned a shipment with no tracking number.'];
         }
 
-        // Straight into the path that already exists: rows on the invoice, a link per
-        // carrier, and the customer emailed — subject to the shipment-email gate.
+        // Straight into the path that already exists: rows on the invoice and a link per
+        // carrier. The customer is NOT told here — the invoice goes to the review queue,
+        // and approving it there is what sends the tracking.
         $via = $this->notify->shipViaByName('FedEx');
         $this->notify->addTracking($invoiceId, implode(' ', $numbers), $via['id'] ?? null, 'parcel');
 
         Database::statement(
-            "UPDATE invoices SET ship_via = COALESCE(NULLIF(ship_via, ''), 'FedEx') WHERE id = ?",
+            "UPDATE invoices
+             SET ship_via = COALESCE(NULLIF(ship_via, ''), 'FedEx'),
+                 review_status = CASE WHEN review_status = 'approved' THEN review_status ELSE 'pending' END
+             WHERE id = ?",
             [$invoiceId]
         );
-
-        $emailed = $this->notify->notify($invoiceId);
 
         return [
             'ok'         => true,
             'tracking'   => $numbers,
             'label_path' => $labelPath,
             'message'    => sprintf(
-                '%s label%s created%s. %s',
+                '%s label%s created%s. Queued for review before the customer is told.',
                 count($numbers),
                 count($numbers) === 1 ? '' : 's',
-                $this->isSandbox() ? ' (sandbox — not valid for shipping)' : '',
-                $emailed['message']
+                $this->isSandbox() ? ' (sandbox — not valid for shipping)' : ''
             ),
         ];
     }

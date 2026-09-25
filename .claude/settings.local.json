@@ -318,7 +318,11 @@
       "Bash(git rebase *)",
       "Bash(git reset *)",
       "Bash(php -l app/Services/CartonizerService.php)",
-      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/cartontest.php root@159.223.177.58:/tmp/)"
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/cartontest.php root@159.223.177.58:/tmp/)",
+      "Bash(php -l app/Repositories/InvoiceRepository.php)",
+      "Bash(php -l app/Views/invoices/review.php)",
+      "Bash(php -l app/Views/invoices/index.php)",
+      "Bash(grep -n 'private.*repo\\\\|$this->repo' app/Controllers/InvoiceController.php)"
     ]
   }
 }

@@ -203,7 +203,9 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/invoices',             [InvoiceController::class, 'index'])->name('invoices');
     Router::get('/invoices/create',      [InvoiceController::class, 'create'])->name('invoices.create');
     Router::post('/invoices',            [InvoiceController::class, 'store'])->name('invoices.store');
+    Router::get('/invoices/review',      [InvoiceController::class, 'reviewQueue'])->name('invoices.review');
     Router::get('/invoices/{id}',        [InvoiceController::class, 'show'])->name('invoices.show');
+    Router::post('/invoices/{id}/approve',[InvoiceController::class, 'approve'])->name('invoices.approve');
     Router::get('/invoices/{id}/edit',    [InvoiceController::class,  'edit'])->name('invoices.edit');
     Router::post('/invoices/{id}/edit',   [InvoiceController::class,  'update'])->name('invoices.update');
     Router::get('/invoices/{id}/print',        [InvoiceController::class, 'printView'])->name('invoices.print');
