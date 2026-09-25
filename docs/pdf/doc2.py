@@ -17,9 +17,12 @@ def story_fn(S, st):
         "and the per-location balance together, inside one database transaction. The product total is "
         "recomputed from its locations rather than incremented, so it cannot drift from the detail."
         "<br/><br/>"
-        "<b>What is left is not software.</b> The counting screens exist; somebody now has to walk the "
-        "buildings. And the product file — barcodes and pack quantities — still gates scanning."
-        "<br/><br/>"
+        "<b>Shipping is built too</b> — pack verification, FedEx labels with the tracking number "
+        "captured automatically, and an invoice review queue so the customer is told only once the "
+        "invoice is finished.<br/><br/>"
+        "<b>What is left is mostly not software.</b> The screens exist; what they now need is people "
+        "to walk the buildings and count, a product file with weights and barcodes, and the process "
+        "signed off by those who work it.<br/><br/>"
         "<b>Accounting is not on the critical path.</b> QuickBooks keeps the books, bills stay in "
         "QuickBooks, and none of it blocks going live.", st))
     S.append(Spacer(1, 10))
@@ -44,6 +47,14 @@ def story_fn(S, st):
         ("Transfers", "Scanned out of one building and into the other. In between it counts at neither, which is correct"),
         ("Returns", "Only resellable goods go back on the shelf. Credit priced from the original invoice and its frozen tax rate"),
         ("Cycle counting", "Blind counts — the expected figure is never sent to the counter — reviewed, then applied as adjustments"),
+        ("Pack verification", "A second scan at the bench, checked against the pick rather than the order. Refuses anything not on the order"),
+        ("Shipment tracking", "Several numbers per shipment, each a carrier link, searchable, and kept on the invoice"),
+        ("Invoice review queue", "A shipped invoice waits for handling to be added. Approving it is what emails the customer"),
+        ("FedEx", "Labels created and the tracking number captured with nobody retyping it. Proven against sandbox"),
+        ("Box rules", "One aerosol case is a single box, two go in a double, three go as a double plus a single. One pail is a parcel, two are freight"),
+        ("Dashboard", "Real figures, and only the ones USSCOS can actually know. The queues from every module surface here"),
+        ("Credit memos", "Raised from a return. Negative totals, so every existing report nets them correctly"),
+        ("Job binder", "Artwork, the customer PO, append-only job notes, and a quality checklist USSC defines itself"),
     ]:
         new.append([C(r[0], st), C(r[1], st)])
     S.append(table(new, [1.8*inch, 4.8*inch], st))
@@ -79,8 +90,12 @@ def story_fn(S, st):
          "Caught in my own work before anyone used it. It would have quietly started working on 1 October, which is the worst way for a fault to behave"),
         ("One county stood in for a whole state",
          "With no default marked, the lowest-numbered county — Appling, 8 percent — was returned as the rate for the whole of Georgia"),
-        ("Nothing tells a credit memo from an invoice",
-         "invoice_type has a credit_memo value that nothing filters on, so a credit raised today would be counted as revenue by Sales by Rep, A/R aging and customer lifetime value"),
+        ("Nothing told a credit memo from an invoice",
+         "invoice_type has a credit_memo value that nothing filtered on, so a credit would have counted as revenue in Sales by Rep, A/R aging and customer lifetime value. Fixed by giving credits negative totals, so all fifteen money queries net correctly untouched"),
+        ("Shipping queued invoices from the wrong place",
+         "The rule lived in one controller, so anything else that shipped an order would have skipped the review queue and never told the customer"),
+        ("FedEx sandbox answers every address check with a fake",
+         "It placed 1000 McFarland 400 Blvd in Chile. Address validation now reports that it proved nothing, rather than a verdict nobody should believe"),
     ]:
         bugs.append([C(r[0], st), C(r[1], st)])
     S.append(table(bugs, [3.0*inch, 3.6*inch], st))
@@ -119,10 +134,9 @@ def story_fn(S, st):
     for r in [
         ("Scan a delivery against its PO", "Receiving and purchasing both work, but separately. The warehouse scan screen does not yet know about POs, so a scanned delivery does not update one", "Small"),
         ("Locations", "Screens and warehouses done. Needs the bays and racks in 730 entering", "Small"),
-        ("Job binder", "Artwork and documents done. Production notes, QA checklist and photos follow the same pattern", "Medium"),
-        ("Shipping queue", "Working. Needs pack verification and the link through to carriers", "Medium"),
-        ("Dashboard", "Every figure is a placeholder showing zero. The data exists; nothing is wired to it", "Small"),
+        ("FedEx production", "Works against sandbox. FedEx must certify the Ship API before real labels print, and package weights are still missing", "Small"),
         ("Sales tax", "Engine and both states' rates are in. Needs real invoices checked against what QuickBooks charged before it is trusted", "Small"),
+        ("Quality checklist", "The screen is built and deliberately empty — USSC adds the checks it actually performs", "Operations"),
     ]:
         close.append([C(r[0], st), C(r[1], st), C(r[2], st)])
     S.append(table(close, [1.6*inch, 4.1*inch, 0.9*inch], st))
@@ -143,9 +157,9 @@ def story_fn(S, st):
     S.append(P("Shipping and carriers", st, 'h2'))
     shp = [[C("Item", st, True), C("Why it matters", st, True), C("Effort", st, True)]]
     for r in [
-        ("Pack verification", "Second scan at the bench catches what picking missed", "Small"),
-        ("Freight section and BOL", "Carrier, cost, pallets and a generated bill of lading", "Medium"),
-        ("FedEx", "Labels and tracking captured rather than typed", "Medium"),
+        ("Freight section and BOL", "Carrier, cost, pallets and a generated bill of lading. Freight PRO numbers are hand-entered today", "Medium"),
+        ("Automatic handling fee", "Calculated rather than typed, so the review queue becomes a one-click check instead of data entry", "Small"),
+        ("Tracking status", "Delivered or in transit on the invoice. The second FedEx project is created and its keys are in", "Small"),
         ("Kuebix quotes", "Removes retyping. Pending confirmation the API is enabled", "Medium"),
         ("Amazon orders direct", "Straight into USSCOS as same-day priority, instead of being keyed by hand", "Medium"),
     ]:
@@ -158,7 +172,7 @@ def story_fn(S, st):
         ("Product reimport", "765 SKUs with barcodes and pack quantities replacing the current 891", "Small"),
         ("Carry pack data through the reimport", "The figures entered so far must survive it or they are lost", "Small"),
         ("Quarterly tax rate refresh", "Georgia republishes its rate chart EVERY QUARTER, and ten counties change on 1 October. Somebody or something must load the new chart four times a year or the rates go quietly stale", "Small"),
-        ("Credit memos in reporting", "Returns calculate what is owed but cannot raise a credit, because no report distinguishes a credit memo from an invoice — one raised today would be counted as revenue everywhere", "Medium"),
+        ("Historical A/R", "Imported invoices carry no payments, so $1.6m reads as overdue that is not. Either import the payments or close the period", "Small"),
         ("Atlanta city-limit addresses", "In Fulton, DeKalb and Clayton the rate depends on the city and a ZIP cannot settle it. Those deliveries are flagged for a person today", "Medium"),
         ("QuickBooks bridge", "Reads QuickBooks and talks to USSCOS. Outbound only — no port to open", "Large"),
         ("Capture QuickBooks IDs", "So a rename in QuickBooks never breaks the link again", "Small"),
@@ -181,7 +195,11 @@ def story_fn(S, st):
     for r in [
         ("Remaining pack quantities", "1 gal, 2-packs, 1.25 gal jugs, 55 gal drums. Aerosol, Fat Cans, pails and 2.5 gal jugs are done"),
         ("Robo jug boxing decision", "Whether to move from double boxes to singles. The pallet stays 48 jugs either way, so nothing is blocked — but the figures change when it is decided"),
-        ("Final product file", "Barcodes and QuickBooks IDs, plus the pack columns"),
+        ("Process sign-off", "The step-by-step handed to sales, shipping, bookkeeping and operations to approve or mark up"),
+        ("Box measurements", "Outside dimensions and empty weight of the aerosol single and double boxes — four numbers each"),
+        ("Final product file", "Barcodes, QuickBooks IDs, case weights, and the pack columns"),
+        ("Hazmat class", "Aerosol is regulated and FedEx will refuse production labels without it declared"),
+        ("FedEx certification", "FedEx must certify the Ship API before production labels can print"),
         ("SKU renaming", "Being finalised in QuickBooks"),
         ("Kuebix automation", "Confirmation the API is enabled on the subscription, and its cost"),
         ("FedEx", "Account number and API credentials"),
@@ -210,9 +228,9 @@ def story_fn(S, st):
         ("3", "Product data", "Reimport 765 SKUs with barcodes, pack quantities, QuickBooks IDs",
          "Waiting on the file"),
         ("4", "Shipping finished", "Pack verification · freight and BOL · scan a delivery against its PO",
-         "Not started"),
+         "Pack verification done — paused for sign-off"),
         ("5", "Carriers", "FedEx labels and tracking · Kuebix quotes · Amazon direct",
-         "Waiting on credentials"),
+         "FedEx proven in sandbox"),
         ("6", "QuickBooks", "The bridge, both files, items and customers pulled",
          "Not started"),
         ("6b", "Tax upkeep", "Quarterly GA rate refresh · Atlanta city-limit addresses",
@@ -291,6 +309,6 @@ def story_fn(S, st):
 
 build(sys.argv[2],
       "USSCOS Build Status and Priorities",
-      "What is ready, what is close, what remains &nbsp;·&nbsp; 24 September 2026",
+      "What is ready, what is close, what remains &nbsp;·&nbsp; 25 September 2026",
       story_fn)
 print("written:", sys.argv[2])
