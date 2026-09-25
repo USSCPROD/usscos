@@ -253,7 +253,7 @@ def story_fn(S, st):
               "<b>★ When is the opening count, and who does it?</b> Everything else is ready for it. Until it happens the figures are a starting point, not a count.",
               "How often should a cycle count run, and over what — highest value, fastest moving, or simply everything in turn?",
               "How much paint is lost turning totes into cans? Nobody tracks it, but someone knows.",
-              "What bays and racks exist in 730, and how are they labelled?",
+              "What bays and racks exist in 730, and how are they labeled?",
               "Is the draft-to-confirmed step happening on every order, or are some invisible to shipping?",
               "When is stock considered gone — at pick, at load, or at invoice? It currently comes out at invoice.",
               "Who prints labels, and on what printer?"]:

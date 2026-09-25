@@ -80,7 +80,7 @@ class CountService
         $match = $this->stock->resolveScan($code);
 
         if ($match === null) {
-            throw new \RuntimeException('Not recognised: ' . $code);
+            throw new \RuntimeException('Not recognized: ' . $code);
         }
 
         $product = $match['product'];
@@ -209,7 +209,7 @@ class CountService
             throw new \RuntimeException('That count no longer exists.');
         }
         if ($count['status'] === 'applied') {
-            throw new \RuntimeException('An applied count cannot be cancelled — adjust the stock instead.');
+            throw new \RuntimeException('An applied count cannot be canceled — adjust the stock instead.');
         }
 
         $this->repo->setStatus($countId, 'cancelled');

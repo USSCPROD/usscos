@@ -36,7 +36,7 @@ question at each step.
 ## Stage 1 — Raising the PO
 
 - Who decides paint is needed, and what triggers it? A low stock level, a customer order,
-  a production schedule, or someone's judgement?
+  a production schedule, or someone's judgment?
 - Who raises the PO, and what is on it — product, quantity, price, wanted-by date?
 - Does TCC confirm or acknowledge it before producing?
 - Can one PO cover several products or batches, or is it one PO per batch?
@@ -82,7 +82,7 @@ This is the part I understand least, and it is where the model is most likely to
 - **Is it counted on arrival, or trusted from the paperwork?**
 - Where is it put, and does location need recording? (One warehouse, or bays and racks?)
 - What happens when the count is wrong — who is told, and what is corrected?
-- Is anything labelled or relabelled at this point?
+- Is anything labeled or relabelled at this point?
 
 ## Stage 6 — When the shipping company is used instead
 
@@ -191,12 +191,12 @@ questions that decide whether the numbers coming out of it mean anything.
   on a list. A queue nobody opens is the same as no queue.
 - **Who is allowed to adjust stock?** Adjusting is the only screen that changes the count
   with nothing physical happening, so it is restricted — but to whom, exactly?
-- **What bays and racks exist in 730, and how are they labelled?** Locations work, but 730
+- **What bays and racks exist in 730, and how are they labeled?** Locations work, but 730
   has no internal detail yet, so everything there counts as one place.
 - **When a transfer arrives short, who chases it?** The system records it as short and keeps
   the difference visible, but somebody has to go and ask the driver.
 - **Should a returned pail ever go back on the shelf?** The system lets the receiver decide
-  per item. Is there a rule — anything opened is scrap, say — or is it always a judgement?
+  per item. Is there a rule — anything opened is scrap, say — or is it always a judgment?
 
 ---
 

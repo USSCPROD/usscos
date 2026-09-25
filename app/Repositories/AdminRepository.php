@@ -259,7 +259,7 @@ class AdminRepository
             return null;
         }
 
-        // Database::selectOne returns false, not null, for a missing row — normalise it so
+        // Database::selectOne returns false, not null, for a missing row — normalize it so
         // callers can rely on the ?array contract.
         $row = Database::selectOne(
             "SELECT id, is_active, {$cfg['name_col']} AS display_name FROM {$cfg['table']} WHERE id = ?",

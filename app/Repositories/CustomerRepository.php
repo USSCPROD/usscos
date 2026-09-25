@@ -119,7 +119,7 @@ class CustomerRepository extends Repository
         $params  = [];
 
         if ($name !== '') {
-            // Compare on a normalised form so punctuation and common suffixes don't hide a match.
+            // Compare on a normalized form so punctuation and common suffixes don't hide a match.
             $clauses[] = "REPLACE(REPLACE(REPLACE(REPLACE(LOWER(c.company_name), '.', ''), ',', ''), '-', ''), ' ', '') LIKE ?";
             $params[]  = '%' . str_replace(' ', '', $name) . '%';
 

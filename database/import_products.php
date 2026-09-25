@@ -98,14 +98,14 @@ say();
 // Spreadsheet header → products column mapping
 // ---------------------------------------------------------------------------
 
-/** Normalise a header cell so both sheet layouts map with one table. */
+/** Normalize a header cell so both sheet layouts map with one table. */
 function normHeader(?string $h): string {
     $h = strtolower(trim((string)$h));
     $h = str_replace(['(', ')', '#', '.', '/', '—', '–'], ' ', $h);
     return preg_replace('/\s+/', ' ', $h) ?? '';
 }
 
-// normalised header => products column
+// normalized header => products column
 $MAP = [
     'sku'                      => 'sku',
     'product name'             => 'name',

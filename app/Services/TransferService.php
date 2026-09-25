@@ -64,7 +64,7 @@ class TransferService
         $match = $this->stock->resolveScan($code);
 
         if ($match === null) {
-            throw new \RuntimeException('Not recognised: ' . $code);
+            throw new \RuntimeException('Not recognized: ' . $code);
         }
 
         $product = $match['product'];
@@ -148,7 +148,7 @@ class TransferService
         $match = $this->stock->resolveScan($code);
 
         if ($match === null) {
-            throw new \RuntimeException('Not recognised: ' . $code);
+            throw new \RuntimeException('Not recognized: ' . $code);
         }
 
         $product = $match['product'];
@@ -227,7 +227,7 @@ class TransferService
 
     public function cancel(int $transferId): void
     {
-        $this->require($transferId, 'draft', 'A transfer that has left cannot be cancelled — receive it instead.');
+        $this->require($transferId, 'draft', 'A transfer that has left cannot be canceled — receive it instead.');
         $this->repo->setStatus($transferId, 'cancelled');
     }
 

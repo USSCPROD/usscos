@@ -5,7 +5,7 @@
 -- payments are pushed across daily by a Windows-side script that reads an API endpoint
 -- here and writes through QODBC. See docs/QUICKBOOKS_SYNC.md.
 --
--- The design goal is that a lost acknowledgement can never cause a duplicate in
+-- The design goal is that a lost acknowledgment can never cause a duplicate in
 -- QuickBooks:
 --   qb_exported_at  when the Windows side confirmed a successful write
 --   qb_txn_id       the TxnID QuickBooks assigned — the definitive proof it landed

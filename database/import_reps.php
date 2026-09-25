@@ -20,7 +20,7 @@
  *   --csv=/path/map.csv   read a pre-extracted `invoice_number,qb_rep` CSV instead of the
  *                         workbook — useful for re-running without the original export
  *
- * Re-runnable. Reps must already exist in `sales_reps` (migration 048) — an unrecognised
+ * Re-runnable. Reps must already exist in `sales_reps` (migration 048) — an unrecognized
  * QuickBooks name is reported, never silently created, so a typo in the report can't
  * quietly invent a rep.
  */

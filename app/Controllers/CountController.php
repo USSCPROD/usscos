@@ -135,7 +135,7 @@ class CountController extends Controller
     {
         try {
             $this->counts->cancel((int)$id);
-            Session::flash('success', 'Count cancelled.');
+            Session::flash('success', 'Count canceled.');
         } catch (\RuntimeException $e) {
             Session::flash('error', $e->getMessage());
         }

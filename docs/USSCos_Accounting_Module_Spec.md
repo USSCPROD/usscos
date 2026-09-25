@@ -133,7 +133,7 @@ This section is written as entity definitions engineering can translate directly
 - `id`, `name`, `customer_type` (distributor/retailer/direct), `billing_address`, `shipping_address`, `payment_terms`, `tax_exempt` (bool), `resale_certificate_number` (nullable), `default_tax_jurisdiction_id`
 
 **`sales_orders`**
-- `id`, `customer_id`, `order_date`, `customer_po_number`, `status` (open/fulfilled/cancelled), `ship_date`, `subtotal`, `tax_amount`, `total_amount`
+- `id`, `customer_id`, `order_date`, `customer_po_number`, `status` (open/fulfilled/canceled), `ship_date`, `subtotal`, `tax_amount`, `total_amount`
 
 **`sales_order_line_items`**
 - `id`, `sales_order_id`, `inventory_item_id`, `quantity`, `unit_price`, `line_total`
@@ -145,7 +145,7 @@ This section is written as entity definitions engineering can translate directly
 - `id`, `invoice_id`, `inventory_item_id`, `quantity`, `unit_price`, `line_total`, `tax_jurisdiction_id`
 
 **`online_orders`**
-- `id`, `order_number`, `channel` (website/marketplace), `customer_id` (nullable for guest checkout), `order_date`, `status` (paid/shipped/refunded/cancelled), `subtotal`, `tax_amount`, `shipping_amount`, `total_amount`, `payment_processor` (e.g. Stripe), `processor_transaction_id`, `processor_fee_amount`, `tax_jurisdiction_id`
+- `id`, `order_number`, `channel` (website/marketplace), `customer_id` (nullable for guest checkout), `order_date`, `status` (paid/shipped/refunded/canceled), `subtotal`, `tax_amount`, `shipping_amount`, `total_amount`, `payment_processor` (e.g. Stripe), `processor_transaction_id`, `processor_fee_amount`, `tax_jurisdiction_id`
 
 **`online_order_line_items`**
 - `id`, `online_order_id`, `inventory_item_id`, `quantity`, `unit_price`, `line_total`
@@ -164,7 +164,7 @@ This section is written as entity definitions engineering can translate directly
 - `id`, `name`, `contact_info`, `payment_terms`, `default_expense_account_id`
 
 **`purchase_orders`**
-- `id`, `vendor_id`, `po_number`, `order_date`, `expected_date`, `status` (open/received/closed/cancelled), `total_amount`
+- `id`, `vendor_id`, `po_number`, `order_date`, `expected_date`, `status` (open/received/closed/canceled), `total_amount`
 
 **`purchase_order_line_items`**
 - `id`, `purchase_order_id`, `inventory_item_id` (nullable — null for non-inventory purchases like a service), `description`, `quantity`, `unit_cost`, `line_total`, `gl_account_id` (used when the line isn't inventory, e.g. a supply purchase hitting an expense account directly)

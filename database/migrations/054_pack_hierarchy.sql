@@ -24,7 +24,7 @@
 -- stop being trusted.
 --
 -- Values are deliberately NOT populated here. SKUs and product names are being
--- renamed in QuickBooks, and the catalogue will be re-imported from the final
+-- renamed in QuickBooks, and the catalog will be re-imported from the final
 -- spreadsheet — populating now would be overwritten.
 --
 -- NOTE no semicolons in these comments. database/migrate.php splits on semicolons and,

@@ -71,7 +71,7 @@ def story_fn(S, st):
         "drops in the racks, which the pilot will answer.", st, GREEN, '#f0fdf4')) 
     S.append(P("Barcode coverage is the real constraint", st, 'h2'))
     S.append(P("From the current product file: <b>UPC on 38% of items, case barcodes on 49%</b>. So "
-               "scanning covers about half the catalogue and typing the SKU is the normal path for the "
+               "scanning covers about half the catalog and typing the SKU is the normal path for the "
                "rest, not an exception. Both are supported. Worth setting that expectation before the "
                "devices arrive, and worth adding barcodes to the fastest-moving items first rather than "
                "trying to reach all 765.", st))

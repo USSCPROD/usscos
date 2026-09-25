@@ -78,7 +78,7 @@ class ShippingController extends Controller
             return $response->json([
                 'ok'      => false,
                 'status'  => 'unknown',
-                'message' => 'Not recognised: ' . $code,
+                'message' => 'Not recognized: ' . $code,
             ]);
         }
 
@@ -165,7 +165,7 @@ class ShippingController extends Controller
             return $response->json([
                 'ok'      => false,
                 'status'  => 'unknown',
-                'message' => 'Not recognised: ' . $code,
+                'message' => 'Not recognized: ' . $code,
             ]);
         }
 

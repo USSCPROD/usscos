@@ -109,7 +109,7 @@ one number viewed at different resolutions rather than several numbers that disa
   that is precisely the sort of step that gets skipped.
 
 **Recommended: quantity of cases**, with `Contains` defining the relationship. But it is a
-real business decision about how the warehouse thinks, not just a data-modelling one — so
+real business decision about how the warehouse thinks, not just a data-modeling one — so
 worth agreeing rather than assuming.
 
 ---
@@ -117,7 +117,7 @@ worth agreeing rather than assuming.
 ## Two notes, no action needed
 
 **Barcode coverage is about half.** GTIN-12 on 296 of 765 (38%), GTIN-14 on 379 (49%). MPN
-is 93%. So barcode scanning covers roughly half the catalogue and **typing the SKU is the
+is 93%. So barcode scanning covers roughly half the catalog and **typing the SKU is the
 primary path for the rest**, not a fallback. USSCOS already supports both. Worth setting
 expectations before the scanners arrive — and worth prioritising barcodes on the
 fastest-moving items rather than trying to fill all 765.
@@ -141,7 +141,7 @@ Importing numbers nobody trusts as the starting point defeats the purpose of the
 | `Contains Qty` | number | Pack SKUs only — e.g. 108 |
 
 And decide whether the pack-level SKUs from the **Single Cans-Case-Pallets** sheet are
-joining the main catalogue. If they are, they need the full column set like any other item.
+joining the main catalog. If they are, they need the full column set like any other item.
 
 ---
 

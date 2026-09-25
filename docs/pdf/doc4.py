@@ -162,7 +162,7 @@ def story_fn(S, st):
     S.append(P("A customer returns something", st, 'h2'))
     for b in ["Book the return in against the original invoice.",
               "Say what condition each item came back in. <b>Only resellable goods go back on a "
-              "shelf</b> — that judgement belongs to whoever is holding the pail.",
+              "shelf</b> — that judgment belongs to whoever is holding the pail.",
               "The credit is worked out from what they actually paid, including tax at the rate "
               "on the original invoice, and goes on a list for the bookkeeper.",
               "TO COME: raising the credit in USSCOS rather than QuickBooks."]:
@@ -214,8 +214,8 @@ def story_fn(S, st):
         ("Who looks at a count that disagrees with the system and decides what it means?", "Operations"),
         ("Who watches the queue of deliveries that did not match their PO?", "Purchasing"),
         ("Who is allowed to correct a stock figure by hand?", "Management"),
-        ("Is there a rule about returned paint going back on the shelf, or is it a judgement each time?", "Shipping manager"),
-        ("What bays and racks are in 730, and how are they labelled?", "Operations"),
+        ("Is there a rule about returned paint going back on the shelf, or is it a judgment each time?", "Shipping manager"),
+        ("What bays and racks are in 730, and how are they labeled?", "Operations"),
         ("Do our sales tax rates match what QuickBooks charges today?", "Bookkeeping"),
         ("Is the draft-to-confirmed step happening on every order?", "Sales"),
     ]:

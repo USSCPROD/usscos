@@ -351,7 +351,7 @@ class FedExShippingService
                 $dpv        => 'Address confirmed deliverable by FedEx' . ($class !== 'unknown' ? ' (' . $class . ')' : '') . '.',
                 $matched    => 'Address matched, but not confirmed as a delivery point — worth a second look.',
                 $wellFormed => 'Address looks well formed but FedEx cannot match it — check it before shipping.',
-                default     => 'FedEx does not recognise that address — check it before shipping.',
+                default     => 'FedEx does not recognize that address — check it before shipping.',
             },
         ];
     }

@@ -4,7 +4,7 @@
 -- Artwork and the customer's PO are already on the binder. These are the other two things
 -- people currently keep in their heads, on a sticky note, or not at all:
 --
---   NOTES    what happened - the colour was mixed twice, the customer rang about the
+--   NOTES    what happened - the color was mixed twice, the customer rang about the
 --            shade, the second run used a different batch. Append-only, because a job
 --            history that can be quietly edited is not a history.
 --

@@ -923,7 +923,7 @@ $jbInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;bo
                     </td>
                     <td>
                         <textarea name="body" rows="2" required
-                                  placeholder="What happened? e.g. colour mixed twice, second batch used for the last 3 cases"
+                                  placeholder="What happened? e.g. color mixed twice, second batch used for the last 3 cases"
                                   style="<?= $jbInp ?>;resize:vertical"></textarea>
                     </td>
                     <td style="width:8rem;vertical-align:top">

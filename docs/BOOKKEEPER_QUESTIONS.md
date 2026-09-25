@@ -14,7 +14,7 @@ Write answers inline so this file becomes the record.
 
 ## 1. Walk me through a normal day
 
-Ask them to narrate it rather than summarise. The goal is to find the steps nobody has
+Ask them to narrate it rather than summarize. The goal is to find the steps nobody has
 written down.
 
 - What do you open first, and what do you do in it?

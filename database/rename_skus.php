@@ -12,7 +12,7 @@
  * clean.
  *
  * A rename is only proposed when a database SKU absent from the workbook has exactly one
- * workbook counterpart with an identical product name AND colour. Anything less certain is
+ * workbook counterpart with an identical product name AND color. Anything less certain is
  * reported, never applied.
  *
  * Usage (from the app root on the server):
@@ -73,7 +73,7 @@ $pdo = new PDO(
 function say(string $m = ''): void { echo $m . PHP_EOL; }
 function rule(): void { say(str_repeat('-', 74)); }
 
-/** Normalise text so trivial punctuation differences don't block a match. */
+/** Normalize text so trivial punctuation differences don't block a match. */
 function norm(?string $s): string {
     $s = strtolower(trim((string)$s));
     $s = preg_replace('/[^a-z0-9]+/', ' ', $s) ?? '';
@@ -151,7 +151,7 @@ if ($mapFile !== null) {
     say('  Comparing against: ' . basename($file));
     say();
 
-    // ---- read the workbook: SKU => [name, colour]
+    // ---- read the workbook: SKU => [name, color]
     $reader = IOFactory::createReader(pathinfo($file, PATHINFO_EXTENSION) === 'xlsx' ? 'Xlsx' : 'Xls');
     $reader->setReadDataOnly(true);
     $book = $reader->load($file);
@@ -207,7 +207,7 @@ if ($mapFile !== null) {
     $onlyWb = array_diff_key($wb, $db);
     $onlyDb = array_diff_key($db, $wb);
 
-    // index workbook-only rows by name+colour
+    // index workbook-only rows by name+color
     $byKey = [];
     foreach ($onlyWb as $up => $w) {
         $byKey[$w['name'] . '|' . $w['color']][] = $up;
@@ -219,7 +219,7 @@ if ($mapFile !== null) {
             $renames[] = [
                 'old' => $d['sku'],
                 'new' => $wb[$cands[0]]['sku'],
-                'why' => 'name + colour match',
+                'why' => 'name + color match',
                 'id'  => $d['id'],
             ];
         } elseif (count($cands) > 1) {
@@ -253,7 +253,7 @@ $renames = array_values($renames);
 
 // 2. Never let two products claim the SAME new SKU. This happens when the database
 //    holds duplicate rows for one product (e.g. "ROBOCON BLK-2.5" alongside
-//    "ROBOCON-BLK-2.5") — both match the same workbook row on name + colour.
+//    "ROBOCON-BLK-2.5") — both match the same workbook row on name + color.
 //    `products.sku` is not uniquely indexed, so applying these would silently create
 //    duplicates rather than erroring. Report instead, with reference counts so the
 //    caller can see which row carries the history.
@@ -333,7 +333,7 @@ if ($contested) {
 }
 
 if ($ambiguous) {
-    say('  AMBIGUOUS — several workbook SKUs share this name and colour.');
+    say('  AMBIGUOUS — several workbook SKUs share this name and color.');
     say('  Nothing will be changed for these. Resolve by hand, then re-run with --map=');
     foreach ($ambiguous as $a) {
         say(sprintf('    %-24s →  %s', $a['old'], implode('  or  ', $a['cands'])));
@@ -343,7 +343,7 @@ if ($ambiguous) {
 
 if ($noMatch) {
     say('  NO MATCH IN WORKBOOK — left untouched. Discontinued, or renamed in a way');
-    say('  name + colour cannot detect. Deactivate rather than delete anything with history.');
+    say('  name + color cannot detect. Deactivate rather than delete anything with history.');
     foreach ($noMatch as $n) {
         $refs = refCounts($pdo, (int)$n['id'], $REFS);
         $used = $refs ? 'IN USE [' . implode(', ', array_map(fn($t,$c)=>"$t:$c", array_keys($refs), $refs)) . ']' : 'unused';

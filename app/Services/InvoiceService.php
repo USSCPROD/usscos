@@ -238,7 +238,7 @@ class InvoiceService extends Service
         // only 4 of 10 cases still bills the customer for 10, and the scan-to-verify step
         // catches the error while the invoice repeats it.
         //
-        // Orders that never went through picking keep the old behaviour and invoice the
+        // Orders that never went through picking keep the old behavior and invoice the
         // ordered quantity, so nothing that bypasses the shipping station changes.
         $soLines  = $this->soRepo->getLineItems($soId);
         $wasPicked = in_array($so['pick_status'] ?? 'not_started', ['in_progress', 'ready', 'short'], true);

@@ -10,7 +10,7 @@ BLUE   = colors.HexColor('#0A3D91')
 GREEN  = colors.HexColor('#166534')
 AMBER  = colors.HexColor('#92400e')
 RED    = colors.HexColor('#b91c1c')
-GREY   = colors.HexColor('#6b7280')
+GRAY   = colors.HexColor('#6b7280')
 LIGHT  = colors.HexColor('#f8f9fb')
 BORDER = colors.HexColor('#d1d5db')
 
@@ -20,7 +20,7 @@ def styles():
         'title':   ParagraphStyle('t', parent=s['Title'], fontSize=24, leading=28,
                                   textColor=NAVY, spaceAfter=4, alignment=0),
         'sub':     ParagraphStyle('sub', parent=s['Normal'], fontSize=11, leading=15,
-                                  textColor=GREY, spaceAfter=18),
+                                  textColor=GRAY, spaceAfter=18),
         'h1':      ParagraphStyle('h1', parent=s['Heading1'], fontSize=15, leading=19,
                                   textColor=NAVY, spaceBefore=18, spaceAfter=8),
         'h2':      ParagraphStyle('h2', parent=s['Heading2'], fontSize=11.5, leading=15,
@@ -30,7 +30,7 @@ def styles():
         'bullet':  ParagraphStyle('bu', parent=s['Normal'], fontSize=9.6, leading=13.5,
                                   leftIndent=14, bulletIndent=4, spaceAfter=3),
         'note':    ParagraphStyle('n', parent=s['Normal'], fontSize=9, leading=13,
-                                  textColor=GREY, spaceAfter=7),
+                                  textColor=GRAY, spaceAfter=7),
         'cell':    ParagraphStyle('c', parent=s['Normal'], fontSize=8.6, leading=11.5),
         'cellb':   ParagraphStyle('cb', parent=s['Normal'], fontSize=8.6, leading=11.5,
                                   fontName='Helvetica-Bold'),
@@ -58,12 +58,12 @@ def table(data, widths, st, header=True, zebra=True):
     t.setStyle(TableStyle(cmds))
     return t
 
-def callout(text, st, colour=BLUE, bg='#f5f8ff'):
+def callout(text, st, color=BLUE, bg='#f5f8ff'):
     p = Paragraph(text, st['callout'])
     t = Table([[p]], colWidths=[6.6*inch])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor(bg)),
-        ('LINEBEFORE', (0,0), (0,-1), 2.5, colour),
+        ('LINEBEFORE', (0,0), (0,-1), 2.5, color),
         ('LEFTPADDING', (0,0), (-1,-1), 10),
         ('RIGHTPADDING', (0,0), (-1,-1), 10),
         ('TOPPADDING', (0,0), (-1,-1), 8),
@@ -83,7 +83,7 @@ def build(path, title, subtitle, story_fn):
     def footer(canvas, d):
         canvas.saveState()
         canvas.setFont('Helvetica', 7.5)
-        canvas.setFillColor(GREY)
+        canvas.setFillColor(GRAY)
         canvas.drawString(0.85*inch, 0.5*inch, title)
         canvas.drawRightString(7.65*inch, 0.5*inch, f"Page {canvas.getPageNumber()}")
         canvas.setStrokeColor(BORDER)

@@ -250,7 +250,7 @@ hands records out, `POST /ack` confirms them. There is no inbound path.
 ### What pulling needs that pushing did not
 
 **A key that survives both directions.** QuickBooks' `TxnID` is the only stable identifier
-for a transaction. `invoices.qb_txn_id` already exists and is stamped on acknowledgement,
+for a transaction. `invoices.qb_txn_id` already exists and is stamped on acknowledgment,
 so the same column serves both — pull matches on it.
 
 **Not re-importing our own records.** USSCOS pushes invoices to QuickBooks and would then

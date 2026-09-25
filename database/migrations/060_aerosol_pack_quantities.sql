@@ -1,10 +1,10 @@
--- Aerosol pack quantities: 12 cans per case, 108 cases per pallet of one colour.
+-- Aerosol pack quantities: 12 cans per case, 108 cases per pallet of one color.
 --
 -- Migration 054 defined these columns but deliberately left them empty, waiting for
 -- real numbers. These are the real numbers for aerosol, and they are corroborated by
 -- QuickBooks itself, which carries pallet SKUs named "108 CASE PALLET WHITE" and so on.
 --
--- So a full pallet of one colour is 12 x 108 = 1,296 cans, and receiving one pallet
+-- So a full pallet of one color is 12 x 108 = 1,296 cans, and receiving one pallet
 -- posts 1,296 cans rather than 1.
 --
 -- Matching is on the product NAME, not the unit of measure. uom_code is unreliable
@@ -14,7 +14,7 @@
 --
 -- NOTE no semicolons in these comments. See the note in 054.
 
--- 1) The 18 oz aerosol cases - the main catalogue, about 147 products.
+-- 1) The 18 oz aerosol cases - the main catalog, about 147 products.
 UPDATE products
 SET units_per_case = 12,
     pallet_qty     = 108

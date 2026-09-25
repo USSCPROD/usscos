@@ -148,15 +148,15 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
     });
 
     function show(kind, message) {
-        var colours = {
+        var colors = {
             ok:    ['#f0fdf4', '#bbf7d0', '#166534'],
             over:  ['#fffbeb', '#fcd34d', '#92400e'],
             bad:   ['#fef2f2', '#fca5a5', '#b91c1c']
         }[kind];
         result.style.display      = 'block';
-        result.style.background   = colours[0];
-        result.style.border       = '1px solid ' + colours[1];
-        result.style.color        = colours[2];
+        result.style.background   = colors[0];
+        result.style.border       = '1px solid ' + colors[1];
+        result.style.color        = colors[2];
         result.textContent        = message;
     }
 

@@ -11,7 +11,7 @@ use App\Repositories\JobBinderRepository;
  * The rest of the Digital Job Binder: what happened on a job, and what was checked.
  *
  * Notes are append-only. A job history that can be quietly edited is not a history — the
- * whole value of writing down that the colour was mixed twice is that it is still there
+ * whole value of writing down that the color was mixed twice is that it is still there
  * when somebody asks about it eight months later.
  *
  * QA results are the opposite: they are the current state, so answering a check again

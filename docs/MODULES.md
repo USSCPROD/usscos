@@ -69,12 +69,12 @@ Accepted and converted quotes can't be edited.
 
 Created from an accepted quote, carrying line items, addresses, terms, and rep.
 Statuses: `draft → confirmed → processing → partially_shipped → shipped → invoiced`
-(plus `paid` and `cancelled`).
+(plus `paid` and `canceled`).
 
 Payment can be collected against an order before shipping. Packing slips and print views
 are available.
 
-The list **defaults to the "Open" filter**, which hides `invoiced` and `cancelled` — so
+The list **defaults to the "Open" filter**, which hides `invoiced` and `canceled` — so
 completed work drops off the working list automatically.
 
 ## Ship & Invoice

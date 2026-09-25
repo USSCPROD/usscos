@@ -59,7 +59,7 @@ class AdjustmentController extends Controller
         if ($product === null) {
             return $response->json([
                 'found'   => false,
-                'message' => 'Not recognised: ' . $request->post('code', ''),
+                'message' => 'Not recognized: ' . $request->post('code', ''),
             ]);
         }
 

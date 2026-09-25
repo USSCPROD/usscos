@@ -16,7 +16,7 @@ use App\Repositories\StockRepository;
  * one. Paint comes back, somebody puts it on a shelf, and the system never hears — so the
  * count is short by exactly the amount physically present.
  *
- * The judgement in a return is whether the goods can be sold again, and it belongs to the
+ * The judgment in a return is whether the goods can be sold again, and it belongs to the
  * person holding the pail. Only resellable stock goes back on. Goods left inventory when
  * they were sold, so returning something that gets scrapped needs no stock movement at all
  * — the position is already right. Putting scrap back and writing it off again would be
@@ -98,7 +98,7 @@ class ReturnService
         $match = $this->stock->resolveScan($code);
 
         if ($match === null) {
-            throw new \RuntimeException('Not recognised: ' . $code);
+            throw new \RuntimeException('Not recognized: ' . $code);
         }
 
         $product   = $match['product'];
@@ -225,7 +225,7 @@ class ReturnService
 
     public function cancel(int $returnId): void
     {
-        $this->require($returnId, 'draft', 'A booked-in return cannot be cancelled — adjust the stock instead.');
+        $this->require($returnId, 'draft', 'A booked-in return cannot be canceled — adjust the stock instead.');
         $this->repo->setStatus($returnId, 'cancelled');
     }
 

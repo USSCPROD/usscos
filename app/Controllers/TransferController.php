@@ -124,7 +124,7 @@ class TransferController extends Controller
     {
         try {
             $this->transfers->cancel((int)$id);
-            Session::flash('success', 'Transfer cancelled.');
+            Session::flash('success', 'Transfer canceled.');
         } catch (\RuntimeException $e) {
             Session::flash('error', $e->getMessage());
         }

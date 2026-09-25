@@ -171,10 +171,10 @@ Multi-state, so this needs a real decision.
 
 The spec notes that if online orders don't ship same-day, the sale should sit in
 **Customer Deposits (2500)** and reclass to revenue at ship date, rather than being
-recognised at checkout.
+recognized at checkout.
 
 - What's the typical order-to-ship lag?
-- Is it material enough to bother with, or is recognising at checkout fine?
+- Is it material enough to bother with, or is recognizing at checkout fine?
 
 **Answer:**
 

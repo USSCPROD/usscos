@@ -7,7 +7,7 @@
  * left with product_id NULL. The raw name survives in
  * invoice_line_items.quickbooks_item, so the link can be rebuilt in place.
  *
- * Only unambiguous matches are applied. A normalised name that hits more than one
+ * Only unambiguous matches are applied. A normalized name that hits more than one
  * product is reported and skipped — guessing which product earned $200k of history is
  * not something a script should do.
  *

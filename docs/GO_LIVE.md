@@ -137,7 +137,7 @@ Recorded 2026-09-23.
 
 Today Amazon orders are printed and **typed into QuickBooks only** — they never reach
 USSCOS. When the integration is built they should arrive here **directly as sales orders,
-labelled Amazon**.
+labeled Amazon**.
 
 **They carry a same-day ship obligation**, so they outrank everything else in the queue.
 That is a harder deadline than a phone order and it cannot depend on someone remembering

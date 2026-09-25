@@ -36,7 +36,7 @@ class ReceivingService
         $match = $this->stock->resolveScan($code);
 
         if ($match === null) {
-            return ['found' => false, 'message' => 'Not recognised: ' . $code];
+            return ['found' => false, 'message' => 'Not recognized: ' . $code];
         }
 
         $p           = $match['product'];

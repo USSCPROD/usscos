@@ -133,7 +133,7 @@ class ReturnController extends Controller
     {
         try {
             $this->returns->cancel((int)$id);
-            Session::flash('success', 'Return cancelled.');
+            Session::flash('success', 'Return canceled.');
         } catch (\RuntimeException $e) {
             Session::flash('error', $e->getMessage());
         }

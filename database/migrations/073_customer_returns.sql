@@ -4,7 +4,7 @@
 -- one at all. Paint comes back, somebody puts it on a shelf, and the system never hears
 -- about it - so the count is short by exactly the amount that is physically present.
 --
--- ONLY RESELLABLE STOCK GOES BACK ON. That is the whole judgement in a return, and it is
+-- ONLY RESELLABLE STOCK GOES BACK ON. That is the whole judgment in a return, and it is
 -- made by the person holding the pail, not by the paperwork. Goods left inventory when
 -- they were sold, so returning something that gets scrapped needs NO stock movement - the
 -- inventory position is already correct. Putting scrap back and writing it off again would
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS stock_return_lines (
 
     qty         DECIMAL(12,4) NOT NULL DEFAULT 0,
 
-    -- The judgement that decides whether stock goes back on the shelf.
+    -- The judgment that decides whether stock goes back on the shelf.
     item_condition ENUM('resellable','damaged','opened','expired','scrap') NOT NULL DEFAULT 'resellable',
 
     -- Only set for resellable goods, because only those go anywhere.

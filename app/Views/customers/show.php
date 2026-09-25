@@ -427,7 +427,7 @@ $ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right
                     <?php
                     $lastMonth = null;
                     foreach ($tl as $ev):
-                        [$colour, $label] = $evStyle[$ev['event_type']] ?? ['#9ca3af', ucfirst($ev['event_type'])];
+                        [$color, $label] = $evStyle[$ev['event_type']] ?? ['#9ca3af', ucfirst($ev['event_type'])];
                         $month = $ev['event_date'] ? date('F Y', strtotime($ev['event_date'])) : 'Undated';
                         if ($month !== $lastMonth):
                             $lastMonth = $month; ?>
@@ -442,7 +442,7 @@ $ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right
                                     <?= $ev['event_date'] ? date('M j', strtotime($ev['event_date'])) : '—' ?>
                                 </td>
                                 <td style="width:4px;padding:.75rem 0">
-                                    <div style="width:4px;height:100%;min-height:16px;background:<?= $colour ?>;border-radius:2px"></div>
+                                    <div style="width:4px;height:100%;min-height:16px;background:<?= $color ?>;border-radius:2px"></div>
                                 </td>
                                 <td style="padding:.65rem .75rem">
                                     <div style="font-size:.87rem;font-weight:500;color:#111">
@@ -451,7 +451,7 @@ $ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right
                                         <?php else: ?>
                                             <?= e($ev['title']) ?>
                                         <?php endif; ?>
-                                        <span style="font-size:.7rem;font-weight:600;color:<?= $colour ?>;margin-left:.4rem"><?= strtoupper($label) ?></span>
+                                        <span style="font-size:.7rem;font-weight:600;color:<?= $color ?>;margin-left:.4rem"><?= strtoupper($label) ?></span>
                                     </div>
                                     <?php if (!empty($ev['detail'])): ?>
                                         <div style="font-size:.8rem;color:#6b7280;margin-top:.15rem;line-height:1.5">

@@ -66,7 +66,7 @@ final class ReportPeriod
     /**
      * Resolve a preset (and, for `custom`, explicit bounds) into a concrete range.
      *
-     * An unrecognised preset falls back to the default rather than erroring — these
+     * An unrecognized preset falls back to the default rather than erroring — these
      * arrive from a query string and are not worth a 400.
      */
     public static function resolve(?string $preset, ?string $from = null, ?string $to = null): self

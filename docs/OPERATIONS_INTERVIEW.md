@@ -123,11 +123,11 @@ Two things to say at the start:
 56. When a delivery from TCC doesn't match the PO, who should be told?
 57. Who should be allowed to correct a stock figure? It's the one action that changes the
     count with nothing physical happening.
-58. What bays and racks are in 730, and how are they labelled? Right now the whole building
+58. What bays and racks are in 730, and how are they labeled? Right now the whole building
     is one place as far as the system is concerned.
 59. When a transfer between buildings arrives short, who chases it?
 60. Is there a rule about returned paint going back on the shelf — anything opened is
-    scrap, say — or is it a judgement each time?
+    scrap, say — or is it a judgment each time?
 
 ---
 

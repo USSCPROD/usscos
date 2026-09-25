@@ -209,7 +209,7 @@ class InvoiceController extends Controller
             'notes'             => $invoice['notes']             ?? '',
         ];
 
-        // Normalise qty field name for the packing slip template
+        // Normalize qty field name for the packing slip template
         $line_items = array_map(function ($li) {
             $li['qty_ordered'] = $li['qty_ordered'] ?? $li['qty'] ?? 0;
             return $li;

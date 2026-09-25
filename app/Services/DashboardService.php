@@ -138,9 +138,9 @@ class DashboardService extends Service
         $items = [];
         $n     = fn($v) => rtrim(rtrim(number_format((float)$v, 2), '0'), '.');
 
-        $add = function (array &$items, int $count, string $title, string $subtitle, string $url, string $colour) {
+        $add = function (array &$items, int $count, string $title, string $subtitle, string $url, string $color) {
             if ($count > 0) {
-                $items[] = ['title' => $title, 'subtitle' => $subtitle, 'url' => $url, 'color' => $colour];
+                $items[] = ['title' => $title, 'subtitle' => $subtitle, 'url' => $url, 'color' => $color];
             }
         };
 

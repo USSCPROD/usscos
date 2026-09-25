@@ -58,7 +58,7 @@ def story_fn(S, st):
                "all, and the same details are keyed twice before anyone picks them.", st))
     S.append(P("These also carry a <b>same-day ship obligation</b>, and nothing in the current "
                "process marks them as more urgent than anything else in the pile. They are urgent "
-               "because someone recognises the printout.", st))
+               "because someone recognizes the printout.", st))
 
     S.append(P("Route 3 — customer pickup (CPU)", st, 'h2'))
     S.append(P("The packing list goes into a file holder, the clerk collects it and pulls the order "
@@ -92,7 +92,7 @@ def story_fn(S, st):
         ("One trip per order", "The same rack visited many times a day", "<b>Yes</b>"),
         ("Packing is unverified", "Wrong shipments, returns, and stock that no longer matches", "<b>Yes</b>"),
         ("Amazon keyed by hand", "Printed, re-typed, and invisible to USSCOS", "<b>Yes</b>, with the Amazon link"),
-        ("Deciding the carrier", "Still a judgement about cost and service", "No — stays human"),
+        ("Deciding the carrier", "Still a judgment about cost and service", "No — stays human"),
         ("Loading the truck", "Physical work", "No"),
     ]:
         bn.append([C(r[0], st), C(r[1], st), C(r[2], st)])
@@ -103,7 +103,7 @@ def story_fn(S, st):
     S.append(P("Same people, same building. The order stops being paper and the copying stops.", st))
     fut = [[C("#", st, True), C("Step", st, True), C("Who", st, True), C("Change", st, True)]]
     for r in [("1","Order entered, or pulled in automatically from Amazon","Sales / system","<b>Amazon keying gone</b>"),
-              ("1b","Amazon orders land labelled and flagged urgent, at the top of the queue","System","<b>Same-day protected</b>"),
+              ("1b","Amazon orders land labeled and flagged urgent, at the top of the queue","System","<b>Same-day protected</b>"),
               ("2","Order appears in the shipping queue the moment it is confirmed","—","<b>No printing, no walking</b>"),
               ("3","Shipping builds a pick list across several orders at once","Hannah","<b>One trip, not many</b>"),
               ("4","Picker scans each item; wrong or excess is refused at the shelf","Picker","<b>Wrong picks stopped</b>"),
@@ -213,7 +213,7 @@ def story_fn(S, st):
               "<b>A pick list is only as good as the stock figure.</b> If the count is wrong the list sends someone to an empty rack. This is why receiving, counting and returns come <i>before</i> the clever picking.",
               "<b>Wi-Fi in the racks.</b> If coverage drops where the paint is, scanning stalls. Worth walking the building with a device before buying several.",
               "<b>Someone still confirms the order.</b> Orders start as drafts and only reach shipping once confirmed. If that step is skipped they stay invisible — the digital equivalent of the paper never being walked over.",
-              "<b>Carrier choice stays a judgement.</b> The system can rate and compare; deciding freight versus parcel is still a person.",
+              "<b>Carrier choice stays a judgment.</b> The system can rate and compare; deciding freight versus parcel is still a person.",
               "<b>Adoption is the real risk.</b> If scanning is slower than what people do now, they will work around it, and the count will rot exactly as it does today. Every screen has to be quicker than the paper it replaces."]:
         S.append(B(b, st))
 
@@ -269,7 +269,7 @@ def story_fn(S, st):
     S.append(callout("<b>A note on figures from USSCOS.</b> The system is still in testing, so order "
                      "and stock counts inside it describe test data rather than the business. Live "
                      "figures in this document come from imported QuickBooks history, which is real.",
-                     st, GREY, '#f9fafb'))
+                     st, GRAY, '#f9fafb'))
 
 build(sys.argv[2],
       "Order to Shipment",

@@ -30,7 +30,7 @@ The dividing line is not features, it is **which system owns which record**:
 |---|---|---|
 | Leads, opportunities, tasks | **USSCOS** | Never existed in QuickBooks |
 | Quotes | **USSCOS** | |
-| Sales orders, fulfilment, artwork | **USSCOS** | Including the Digital Job Binder |
+| Sales orders, fulfillment, artwork | **USSCOS** | Including the Digital Job Binder |
 | Products, categories, media, specs | **USSCOS** | Spreadsheet is the source of truth for content |
 | Customers | **USSCOS** | Synced to QuickBooks for invoicing |
 | Invoices and payments | **USSCOS** originates | Exported to QuickBooks, which records them financially |
@@ -209,7 +209,7 @@ that as possible. Mobile matters a lot."* Its category structure governs — see
 Category (L1)     Field Marking Paints
   Category (L2)   Aerosol Field Marking Paints        ← leaf
     Group         DuraStripe Fat Cans                 ← one page, one URL
-      SKU         DSWFC / DSRFC / DSYFC …             ← colour × pack picker
+      SKU         DSWFC / DSRFC / DSYFC …             ← color × pack picker
 ```
 
 Categories run **2–3 levels** (three under Striping Machines), with **product groups**
@@ -221,7 +221,7 @@ Specialty Coatings keeps all 26 children.
 page with pickers and add-to-cart resolves to the real SKU. Products stay flat internally,
 which is correct — each variant is genuinely made, stocked and shipped as its own item with
 its own barcode and weight. The data already supports it: 42 product lines over 627
-products, 726 carrying a colour (Fat Can = 7 SKUs/7 colours; T-Tip = 84/41, second axis
+products, 726 carrying a color (Fat Can = 7 SKUs/7 colors; T-Tip = 84/41, second axis
 being pack).
 
 **The spreadsheet is the source of truth for which products exist.** The hand-written
@@ -235,7 +235,7 @@ part of the online catalog. Fix before publishing.
 What the current site uses, for reference: Porto theme, Elementor Pro (page builder),
 RevSlider (banners), WooCommerce, **woo-discount-rules-pro** (volume pricing today),
 flexible-shipping, and google-listings-and-ads — so the product model must keep supporting
-a Google Shopping feed. Brand colour is **#730b12**, not the admin navy; fonts are
+a Google Shopping feed. Brand color is **#730b12**, not the admin navy; fonts are
 Montserrat, Oswald, Roboto and Roboto Slab.
 
 ### Build order
@@ -365,7 +365,7 @@ Accrual basis, C-corp equity, three-stage manufacturing inventory, multi-state s
 Contains a paint-manufacturer chart of accounts, entity definitions, journal entry logic
 per workflow, a reconciliation schedule, and an anti-patterns list.
 
-The accounting judgement is sound — immutable ledger with reversing entries, undeposited
+The accounting judgment is sound — immutable ledger with reversing entries, undeposited
 funds for checks, gross revenue with processor fees posted separately, one Sales Tax
 Payable account plus a jurisdiction sub-ledger, and a recommendation to use Avalara or
 TaxJar rather than building nexus logic in-house.
@@ -468,7 +468,7 @@ convention).
   and `retail_price` is kept mirrored; the dead column could be dropped.
 - **Product documents are per-product** — a shared library with per-product links would
   stop the same catalog being uploaded dozens of times.
-- **Inconsistent field naming** — the same product description is labelled "Sales
+- **Inconsistent field naming** — the same product description is labeled "Sales
   Description", "Short Description", and "Sales" in three different places.
 - **The flex/grid convention** is probably based on a misdiagnosis and is worth
   retesting; see [CLAUDE.md](../CLAUDE.md#layout-use-tables-not-flexgrid).
