@@ -211,25 +211,54 @@ class TaxService
     {
         $warnings = [];
 
-        // Is there a rate for where we will be a fortnight from now?
         $soon = date('Y-m-d', strtotime('+14 days'));
 
         foreach (\App\Core\Database::select("
             SELECT state_code FROM tax_nexus_states WHERE collects = 1
         ") as $state) {
-            $row = \App\Core\Database::selectOne("
+            $code = $state['state_code'];
+
+            // Nothing in effect a fortnight from now — the loud case, where rates have an
+            // end date and no replacement was loaded.
+            $inEffect = \App\Core\Database::selectOne("
                 SELECT COUNT(*) AS n FROM tax_rates
                 WHERE state_code = ? AND is_active = 1 AND county IS NOT NULL
                   AND effective_from <= ? AND (effective_to IS NULL OR effective_to >= ?)
-            ", [$state['state_code'], $soon, $soon]);
+            ", [$code, $soon, $soon]);
 
-            if ((int)($row['n'] ?? 0) === 0) {
+            if ((int)($inEffect['n'] ?? 0) === 0) {
                 $warnings[] = sprintf(
-                    'No %s rates are on file for %s. Georgia reissues its chart every quarter — '
-                    . 'download the next one and run refresh_tax_rates.php before invoices are wrong.',
-                    $state['state_code'],
+                    'No %s rates on file for %s — invoices after that date cannot be taxed. '
+                    . 'Load the next chart and run refresh_tax_rates.php.',
+                    $code,
                     date('j F', strtotime($soon))
                 );
+
+                continue;
+            }
+
+            // The quiet case, and the one that actually happens: rates with no end date
+            // that simply get old. Georgia reissues quarterly, so a chart more than about
+            // four months old means a newer one exists and nobody fetched it. Without this
+            // the system would go on charging a stale rate for ever, perfectly confidently.
+            $newest = \App\Core\Database::selectOne("
+                SELECT MAX(effective_from) AS newest FROM tax_rates
+                WHERE state_code = ? AND is_active = 1 AND county IS NOT NULL
+            ", [$code]);
+
+            if (!empty($newest['newest'])) {
+                $days = (int)floor((time() - strtotime((string)$newest['newest'])) / 86400);
+
+                if ($days > 120) {
+                    $warnings[] = sprintf(
+                        'The newest %s rates are from %s, %d days ago. %s — worth checking whether '
+                        . 'a newer chart has been published.',
+                        $code,
+                        date('j F Y', strtotime((string)$newest['newest'])),
+                        $days,
+                        $code === 'GA' ? 'Georgia reissues every quarter' : 'Rates change occasionally'
+                    );
+                }
             }
         }
 
