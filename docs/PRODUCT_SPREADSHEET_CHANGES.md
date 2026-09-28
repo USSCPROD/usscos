@@ -1,3 +1,50 @@
+# What USSCOS already knows — do not re-gather
+
+**Added 28 September 2026.** Since this document was written, 508 products have had their
+pack sizes and weights answered directly and loaded into USSCOS. That work does not need
+repeating in the spreadsheet, but it **must survive the reimport**.
+
+| | Products |
+|---|---|
+| Units per case | 513 |
+| Pallet quantity | 458 |
+| Case weight | 461 |
+| Parcel limit (`max_parcel_qty`) | 223 |
+
+Established so far:
+
+| Product | Per case | Per pallet | Case weight |
+|---|---|---|---|
+| 18 oz aerosol — all brands | 12 | 108 | 18 lb |
+| 26 oz Fat Cans | 12 | 75 | 26 lb |
+| 2-pack cases | 24 | 54 | 36 lb |
+| 5 gallon pails | 1 | 24 | 70 lb |
+| Robo 2.5 gal — Removable | 2 | 24 | 70 lb (35/jug) |
+| Robo 2.5 gal — RoboChalk | 2 | 24 | 64 lb (32/jug) |
+| Robo 2.5 gal — Concentrate | 2 | 24 | 62 lb (31/jug) |
+| Robo 2.5 gal — Ready-to-Spray | 2 | 24 | 58 lb (29/jug) |
+| Robo 2.5 gal — Hard Surface (RoboTraffic) | 2 | 24 | 58 lb (29/jug) |
+| Direct-to-Metal 1 gal | 1 | — | — |
+| iGo 2.6 gal / 1.3 gal | 1 / 2 | — | — |
+| 55 gallon drums, machines, wands | 1 | — | — |
+
+**The full list is exported to `USSCOS_pack_sizes_and_weights.csv`.** If the spreadsheet is
+built from a fresh QuickBooks export, paste these columns back into it — otherwise the
+reimport will overwrite real figures with blanks, which is worse than never having had them.
+
+## Still needed
+
+- **Dimensions.** Nothing has any. FedEx needs length, width and height per box, and the
+  two aerosol shipping boxes need measuring — outside dimensions and empty weight.
+- **Weights for the remaining 50** active products that have a pack size but no weight:
+  1 gal, 1.25 gal jugs, drums, and the other 2-pack lines.
+- **Barcodes.** 744 products have none. See the note on printing SKU barcodes instead.
+- **Hazmat class.** Empty on every product, and FedEx will refuse aerosol labels without it.
+- **Open decision:** whether Robo jugs move to single boxes. If so `units_per_case`,
+  `pallet_qty` and `case_weight_gross` all change together — 1, 48, and half the weight.
+
+---
+
 # Product spreadsheet — changes needed before import
 
 Reviewed **`USSC EDI-ERP DATA.xlsx`** on 2026-09-23 (832 rows, 765 with a SKU, 45 columns
