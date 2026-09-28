@@ -34,6 +34,10 @@
 *.xlsx
 *.xls
 *.csv
+# …except the published tax rate tables, which are reference data rather than our own
+# records. The blanket rule exists to keep customer exports out of the repository, and
+# that still holds — this is a deliberate hole for files anyone can download.
+!database/reference/*.csv
 
 # ---------------------------------------------------------------
 # OS / editor noise
