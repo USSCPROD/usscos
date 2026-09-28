@@ -39,7 +39,7 @@ def story_fn(S, st):
         ("Variance queue", "Receipts that disagree with their PO, resolved by updating the PO or explaining the difference"),
         ("Locations", "Admin screen, warehouses named 1000, 900, 3085 and 730"),
         ("Customer PO on the job", "The PO document itself is filed on the job binder and stays with the job after invoicing"),
-        ("Pack quantities", "Aerosol, Fat Cans, pails and 2.5 gal jugs — 458 of 891 products now carry real figures"),
+        ("Pack quantities", "Aerosol, Fat Cans, pails and 2.5 gal jugs — 508 of 885 products packed, 458 weighed"),
         ("Sales tax engine", "Tax calculated here, from the ship-to address. Rate, county, base and reason frozen onto each invoice"),
         ("GA and NC rate tables", "All 259 counties and 1,605 ZIPs, from the state revenue departments"),
         ("Tax reporting", "Liability by county, Amazon's collections kept separate, and a sales-by-state nexus watch"),
@@ -55,6 +55,9 @@ def story_fn(S, st):
         ("Dashboard", "Real figures, and only the ones USSCOS can actually know. The queues from every module surface here"),
         ("Credit memos", "Raised from a return. Negative totals, so every existing report nets them correctly"),
         ("Job binder", "Artwork, the customer PO, append-only job notes, and a quality checklist USSC defines itself"),
+        ("Box dimensions", "All four boxes measured — aerosol single and double, Fat Can, Robo jug — with a 2 lb empty weight each"),
+        ("Rate cross-check", "Every GA and NC ZIP compared against an independent published table. Ambiguity is now found rather than assumed"),
+        ("Rate refresh", "One command loads whatever chart is dropped in, dates it from inside the chart, and the dashboard warns before rates go stale"),
     ]:
         new.append([C(r[0], st), C(r[1], st)])
     S.append(table(new, [1.8*inch, 4.8*inch], st))
@@ -90,6 +93,14 @@ def story_fn(S, st):
          "Caught in my own work before anyone used it. It would have quietly started working on 1 October, which is the worst way for a fault to behave"),
         ("One county stood in for a whole state",
          "With no default marked, the lowest-numbered county — Appling, 8 percent — was returned as the rate for the whole of Georgia"),
+        ("ZIPs were assigned to counties by land area",
+         "A weak proxy: a ZIP can hold most of its acreage in a rural county and nearly all its mail in the urban one next door, which priced Johns Creek as Gwinnett. Checking against a published table found 281 such ZIPs"),
+        ("Georgia's October rates had no end date",
+         "They would have gone on applying silently long after the quarter ended. Found while automating the refresh, which now judges rates by the age of the newest chart rather than trusting an end date"),
+        ("Fat Cans were sharing the aerosol box",
+         "Every 12-to-a-case product had been given the same box, so 26 oz cases would have been rated as the smaller 18 oz carton. They have their own now"),
+        ("A Robo jug pack was recorded as the box, not the jug",
+         "An order for three jugs would have been weighed as three pairs — a FedEx label reading 105 lb for something that weighs 35"),
         ("Nothing told a credit memo from an invoice",
          "invoice_type has a credit_memo value that nothing filtered on, so a credit would have counted as revenue in Sales by Rep, A/R aging and customer lifetime value. Fixed by giving credits negative totals, so all fifteen money queries net correctly untouched"),
         ("Shipping queued invoices from the wrong place",
@@ -112,7 +123,7 @@ def story_fn(S, st):
         ("Invoicing", "Ship and invoice, receipt or invoice email, closes the order, moves stock"),
         ("Customers", "41,233 records, 360° profile, revenue history, activity timeline, alerts"),
         ("Duplicate prevention", "Adding a customer warns on likely duplicates, including ones the user cannot see"),
-        ("Products", "891 records, images, documents, ~100 fields for EDI and Amazon"),
+        ("Products", "885 active records, images, documents, ~100 fields for EDI and Amazon"),
         ("Sales reps", "33 reps, credited revenue, commission rates, logins"),
         ("Reporting", "Sales by rep, sales by employee, A/R aging, all with date ranges"),
         ("Pick and verify", "Scan against the order, refuse wrong items, report short stock"),
@@ -132,7 +143,7 @@ def story_fn(S, st):
     S.append(P("Close to finished", st, 'h1'))
     close = [[C("Item", st, True), C("What remains", st, True), C("Effort", st, True)]]
     for r in [
-        ("Scan a delivery against its PO", "Receiving and purchasing both work, but separately. The warehouse scan screen does not yet know about POs, so a scanned delivery does not update one", "Small"),
+        ("Pack and weight data", "508 products packed and 458 weighed. The rest wait on figures, and all of it must survive the reimport", "Small"),
         ("Locations", "Screens and warehouses done. Needs the bays and racks in 730 entering", "Small"),
         ("FedEx production", "Works against sandbox. FedEx must certify the Ship API before real labels print, and package weights are still missing", "Small"),
         ("Sales tax", "Engine and both states' rates are in. Needs real invoices checked against what QuickBooks charged before it is trusted", "Small"),
@@ -149,7 +160,7 @@ def story_fn(S, st):
     for r in [
         ("Opening physical count", "One full count. The screens exist and a full count is the same machinery as a cycle count — this is people walking buildings, not code", "Operations"),
         ("Bays and racks in 730", "Locations work, but 730 has no internal detail yet, so everything there counts as one place", "Operations"),
-        ("Scan a delivery against its PO", "Receiving and purchasing each work, but separately — a scanned delivery does not update a PO", "Small"),
+        ("Scanners", "None bought yet, so picking, packing and counting are keyboard-only. 738 products carry no barcode either — printing Code 128 SKU labels would settle both", "Operations"),
     ]:
         inv.append([C(r[0], st), C(r[1], st), C(r[2], st)])
     S.append(table(inv, [1.7*inch, 4.0*inch, 0.9*inch], st))
@@ -169,11 +180,11 @@ def story_fn(S, st):
     S.append(P("Data and integration", st, 'h2'))
     dat = [[C("Item", st, True), C("Why it matters", st, True), C("Effort", st, True)]]
     for r in [
-        ("Product reimport", "765 SKUs with barcodes and pack quantities replacing the current 891", "Small"),
+        ("Product reimport", "765 SKUs with barcodes and pack quantities replacing the current 885", "Small"),
         ("Carry pack data through the reimport", "The figures entered so far must survive it or they are lost", "Small"),
-        ("Quarterly tax rate refresh", "Georgia republishes its rate chart EVERY QUARTER, and ten counties change on 1 October. Somebody or something must load the new chart four times a year or the rates go quietly stale", "Small"),
+        ("Quarterly tax rate refresh", "Loading is now one command and the dashboard warns when rates go stale. What cannot be automated is the download — Georgia's site refuses our server and Avalara's tables sit behind a form. Two minutes, four times a year", "Operations"),
         ("Historical A/R", "Imported invoices carry no payments, so $1.6m reads as overdue that is not. Either import the payments or close the period", "Small"),
-        ("Atlanta city-limit addresses", "In Fulton, DeKalb and Clayton the rate depends on the city and a ZIP cannot settle it. Those deliveries are flagged for a person today", "Medium"),
+        ("281 disputed ZIPs", "Where our county assignment and the published table disagree — 174 in GA, 107 in NC. Listed on the tax screen and flagged for a person on each order. Settling them properly means address-level lookup", "Medium"),
         ("QuickBooks bridge", "Reads QuickBooks and talks to USSCOS. Outbound only — no port to open", "Large"),
         ("Capture QuickBooks IDs", "So a rename in QuickBooks never breaks the link again", "Small"),
         ("Two-entity support", "TCC and USSC, with per-area access rather than one flag", "Large"),
@@ -193,10 +204,11 @@ def story_fn(S, st):
     S.append(P("Not stalled for want of effort — listed so they are not mistaken for work in progress.", st))
     blk = [[C("Item", st, True), C("Waiting on", st, True)]]
     for r in [
-        ("Remaining pack quantities", "1 gal, 2-packs, 1.25 gal jugs, 55 gal drums. Aerosol, Fat Cans, pails and 2.5 gal jugs are done"),
-        ("Robo jug boxing decision", "Whether to move from double boxes to singles. The pallet stays 48 jugs either way, so nothing is blocked — but the figures change when it is decided"),
+        ("Remaining pack quantities and weights", "Roughly 380 products still without a pack size or a weight. Aerosol, Fat Cans, pails and 2.5 gal jugs are complete"),
+        ("Robo jug boxing decision", "Settled for parcels — one jug per box, since a pair is 58 to 70 lb. The box still holds two on a pallet or a truck, and the pallet is 48 jugs either way"),
         ("Process sign-off", "The step-by-step handed to sales, shipping, bookkeeping and operations to approve or mark up"),
-        ("Box measurements", "Outside dimensions and empty weight of the aerosol single and double boxes — four numbers each"),
+        ("Pail dimensions", "A pail ships unboxed, so the pail is the package and FedEx needs its size. The four cardboard boxes are all measured"),
+        ("Scanners", "None bought yet. Two to trial would do — one at receiving, one at the packing bench"),
         ("Final product file", "Barcodes, QuickBooks IDs, case weights, and the pack columns"),
         ("Hazmat class", "Aerosol is regulated and FedEx will refuse production labels without it declared"),
         ("FedEx certification", "FedEx must certify the Ship API before production labels can print"),
@@ -227,14 +239,14 @@ def story_fn(S, st):
          "Built — the count itself is operations"),
         ("3", "Product data", "Reimport 765 SKUs with barcodes, pack quantities, QuickBooks IDs",
          "Waiting on the file"),
-        ("4", "Shipping finished", "Pack verification · freight and BOL · scan a delivery against its PO",
-         "Pack verification done — paused for sign-off"),
+        ("4", "Shipping finished", "Pack verification · PO receiving · freight and BOL · handling fee",
+         "Built except freight — paused for sign-off"),
         ("5", "Carriers", "FedEx labels and tracking · Kuebix quotes · Amazon direct",
          "FedEx proven in sandbox"),
         ("6", "QuickBooks", "The bridge, both files, items and customers pulled",
          "Not started"),
-        ("6b", "Tax upkeep", "Quarterly GA rate refresh · Atlanta city-limit addresses",
-         "Rates loaded, upkeep not"),
+        ("6b", "Tax upkeep", "Quarterly GA rate refresh · the 281 disputed ZIPs",
+         "Loading automated, downloading is manual"),
         ("7", "Two entities", "TCC and USSC with per-area access",
          "Not started"),
         ("8", "The rest", "Dashboard · job binder remainder · portals · tiered pricing",
@@ -304,11 +316,11 @@ def story_fn(S, st):
     S.append(callout(
         "<b>The single most useful thing right now</b> is still the finished product file — barcodes, "
         "QuickBooks IDs and the remaining pack quantities. Scanning, transfers and counting all wait on "
-        "it, and no amount of building substitutes for it. The pack figures supplied so far cover 458 "
-        "of 891 products and must be carried through the reimport, or they are lost.", st, GREEN, '#f0fdf4'))
+        "it, and no amount of building substitutes for it. The pack figures supplied so far cover 508 "
+        "of 885 products and must be carried through the reimport, or they are lost.", st, GREEN, '#f0fdf4'))
 
 build(sys.argv[2],
       "USSCOS Build Status and Priorities",
-      "What is ready, what is close, what remains &nbsp;·&nbsp; 25 September 2026",
+      "What is ready, what is close, what remains &nbsp;·&nbsp; 28 September 2026",
       story_fn)
 print("written:", sys.argv[2])
