@@ -164,6 +164,64 @@ class TaxRepository
         ", [$from, $to]);
     }
 
+    /**
+     * A second source's rate for a ZIP, where there is one.
+     *
+     * Never used in preference to ours where we have a county, because the Georgia return
+     * is filed by jurisdiction and a flat ZIP rate cannot produce that. It is a check, and
+     * a fallback for ZIPs we know nothing about.
+     */
+    public function referenceRate(string $zip): ?array
+    {
+        $zip = substr(preg_replace('/\D/', '', $zip) ?? '', 0, 5);
+
+        if (strlen($zip) !== 5) {
+            return null;
+        }
+
+        $row = Database::selectOne(
+            "SELECT * FROM tax_zip_reference WHERE zip = ? ORDER BY imported_at DESC LIMIT 1",
+            [$zip]
+        );
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Where our rates and the reference disagree — the honest list of hard addresses.
+     *
+     * Replaces guessing which counties are difficult. A ZIP is hard when two independent
+     * researchers reached different answers about it, not when somebody assumed Atlanta
+     * would be awkward.
+     */
+    public function disagreements(?string $state = null, ?string $onDate = null): array
+    {
+        $onDate = $onDate ?: date('Y-m-d');
+        $params = [$onDate, $onDate];
+        $where  = '';
+
+        if ($state !== null) {
+            $where    = ' AND z.state_code = ?';
+            $params[] = strtoupper($state);
+        }
+
+        return Database::select("
+            SELECT z.zip, z.state_code, z.county AS our_county, tr.name AS our_jurisdiction,
+                   tr.rate AS our_rate, ref.combined_rate AS reference_rate,
+                   ref.region_name AS reference_region, ref.as_of,
+                   ROUND((ref.combined_rate - tr.rate) * 100, 3) AS difference_pct
+            FROM tax_zip_jurisdictions z
+            JOIN tax_zip_reference ref ON ref.zip = z.zip
+            JOIN tax_rates tr
+              ON tr.state_code = z.state_code AND tr.county = z.county AND tr.is_active = 1
+             AND tr.effective_from <= ? AND (tr.effective_to IS NULL OR tr.effective_to >= ?)
+            WHERE ABS(ref.combined_rate - tr.rate) > 0.00001 {$where}
+            GROUP BY z.zip, z.state_code, z.county, tr.name, tr.rate,
+                     ref.combined_rate, ref.region_name, ref.as_of
+            ORDER BY ABS(ref.combined_rate - tr.rate) DESC, z.zip
+        ", $params);
+    }
+
     /** Rates nobody has verified — surfaced rather than quietly trusted. */
     public function unverifiedRates(): array
     {

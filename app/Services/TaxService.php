@@ -78,12 +78,39 @@ class TaxService
             return $none('none', 'No nexus in ' . $state . ' — not registered to collect there');
         }
 
+        $zip = (string)($shipTo['zip'] ?? '');
+
         // The ZIP first, because tax follows the delivery address down to the county.
-        $j = $this->repo->byZip((string)($shipTo['zip'] ?? ''), $onDate);
+        $j = $this->repo->byZip($zip, $onDate);
         $fromZip = $j !== null;
 
         if ($j === null) {
             $j = $this->repo->stateDefault($state, $onDate);
+        }
+
+        // A second source for the same ZIP. Used to disagree with, not to defer to.
+        $reference = $this->repo->referenceRate($zip);
+
+        if ($j === null && $reference !== null) {
+            // We have no county for this ZIP — 418 of them, mostly PO Box and newer ZIPs
+            // that are not in the Census file. Charging nothing would be under-collecting
+            // rather than being careful, so the reference rate is used and flagged.
+            return [
+                'rate'         => (float)$reference['combined_rate'],
+                'tax_rate_id'  => null,
+                'source'       => 'usscos',
+                'reason'       => sprintf(
+                    'No county on file for %s %s — using the reference rate of %s%% (%s, %s). '
+                    . 'The county is needed before this appears correctly on the return.',
+                    $state,
+                    $zip,
+                    rtrim(rtrim(number_format((float)$reference['combined_rate'] * 100, 3), '0'), '.'),
+                    $reference['region_name'] ?? 'unnamed region',
+                    $reference['as_of']
+                ),
+                'jurisdiction' => 'Reference rate — ' . ($reference['region_name'] ?? $zip),
+                'needs_review' => true,
+            ];
         }
 
         if ($j === null) {
@@ -101,7 +128,26 @@ class TaxService
             ? 'Delivery ZIP resolved to ' . $j['name']
             : 'No ZIP mapping — fell back to the ' . $state . ' default rate';
 
-        if (!empty($j['is_ambiguous'])) {
+        $review = !empty($j['needs_review']);
+
+        // Two independent sources on the same ZIP. Agreement clears the doubt that a ZIP
+        // spanning counties would otherwise raise — both researchers reached the same
+        // number, which is better evidence than either alone. Disagreement raises it even
+        // where nobody expected difficulty.
+        if ($reference !== null) {
+            $gap = abs((float)$reference['combined_rate'] - (float)$j['rate']);
+
+            if ($gap > 0.00001) {
+                $review  = true;
+                $reason .= sprintf(
+                    '. A second source says %s%% for this ZIP (%s) — confirm which applies before invoicing',
+                    rtrim(rtrim(number_format((float)$reference['combined_rate'] * 100, 3), '0'), '.'),
+                    $reference['region_name'] ?? 'unnamed region'
+                );
+            }
+        } elseif (!empty($j['is_ambiguous'])) {
+            // No second opinion available, so the geographic doubt stands.
+            $review  = true;
             $reason .= '. That ZIP spans more than one jurisdiction — confirm the county';
         }
 
@@ -115,7 +161,7 @@ class TaxService
             'source'       => 'usscos',
             'reason'       => $reason,
             'jurisdiction' => (string)$j['name'],
-            'needs_review' => !empty($j['needs_review']) || !empty($j['is_ambiguous']),
+            'needs_review' => $review,
         ];
     }
 
@@ -162,6 +208,12 @@ class TaxService
     public function salesByState(string $from, string $to): array
     {
         return $this->repo->salesByState($from, $to);
+    }
+
+    /** ZIPs where our rate and the reference disagree — the addresses worth checking. */
+    public function disagreements(?string $state = null): array
+    {
+        return $this->repo->disagreements($state);
     }
 
     public function unverifiedRates(): array
