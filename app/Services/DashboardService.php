@@ -228,6 +228,17 @@ class DashboardService extends Service
             'Being charged to customers without anybody having confirmed them.',
             '/accounting/tax', 'amber');
 
+        // Tax rates about to go stale. Looks ahead rather than reporting after the fact,
+        // because the cost of noticing late is every invoice issued in between.
+        foreach (TaxService::coverageWarnings() as $warning) {
+            $items[] = [
+                'title'    => 'Tax rates need refreshing',
+                'subtitle' => $warning,
+                'url'      => '/accounting/tax',
+                'color'    => 'red',
+            ];
+        }
+
         $overdue = Database::selectOne("
             SELECT COUNT(*) AS n, COALESCE(SUM(balance_due), 0) AS total
             FROM invoices WHERE status NOT IN ('void', 'paid') AND balance_due > 0 AND due_date < CURDATE()

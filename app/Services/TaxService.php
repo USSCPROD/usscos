@@ -195,6 +195,66 @@ class TaxService
         return round($base * $rate, 2);
     }
 
+    /**
+     * Whether the rate tables are about to go stale.
+     *
+     * The real failure is not somebody forgetting to run an import — it is nobody noticing
+     * that Georgia reissued its chart and every invoice since has been wrong. Georgia
+     * republishes quarterly and Avalara monthly, so this looks ahead rather than reporting
+     * after the fact.
+     *
+     * Static because the refresh script calls it before the container is built.
+     *
+     * @return list<string>
+     */
+    public static function coverageWarnings(): array
+    {
+        $warnings = [];
+
+        // Is there a rate for where we will be a fortnight from now?
+        $soon = date('Y-m-d', strtotime('+14 days'));
+
+        foreach (\App\Core\Database::select("
+            SELECT state_code FROM tax_nexus_states WHERE collects = 1
+        ") as $state) {
+            $row = \App\Core\Database::selectOne("
+                SELECT COUNT(*) AS n FROM tax_rates
+                WHERE state_code = ? AND is_active = 1 AND county IS NOT NULL
+                  AND effective_from <= ? AND (effective_to IS NULL OR effective_to >= ?)
+            ", [$state['state_code'], $soon, $soon]);
+
+            if ((int)($row['n'] ?? 0) === 0) {
+                $warnings[] = sprintf(
+                    'No %s rates are on file for %s. Georgia reissues its chart every quarter — '
+                    . 'download the next one and run refresh_tax_rates.php before invoices are wrong.',
+                    $state['state_code'],
+                    date('j F', strtotime($soon))
+                );
+            }
+        }
+
+        // The reference tables are reissued monthly and are a check rather than a rate, so
+        // staleness matters less — but a year-old second opinion is not a second opinion.
+        $ref = \App\Core\Database::selectOne(
+            "SELECT MAX(as_of) AS newest, COUNT(*) AS n FROM tax_zip_reference"
+        );
+
+        if ((int)($ref['n'] ?? 0) > 0 && $ref['newest'] !== null) {
+            $age = (int)floor((time() - strtotime($ref['newest'] . '-01')) / 86400);
+
+            if ($age > 120) {
+                $warnings[] = sprintf(
+                    'The reference ZIP tables are from %s, about %d months old. They are what flags '
+                    . 'ambiguous addresses, so an old copy quietly stops catching new ones.',
+                    $ref['newest'],
+                    (int)round($age / 30)
+                );
+            }
+        }
+
+        return $warnings;
+    }
+
     public function liability(string $from, string $to): array
     {
         return $this->repo->liabilityByJurisdiction($from, $to);
