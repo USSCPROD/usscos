@@ -186,6 +186,9 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/receiving',         [ReceivingController::class, 'index'])->name('receiving');
     Router::post('/receiving/lookup', [ReceivingController::class, 'lookup'])->name('receiving.lookup');
     Router::post('/receiving',        [ReceivingController::class, 'store'])->name('receiving.store');
+    Router::get('/receiving/po/{id}',        [ReceivingController::class, 'purchaseOrder'])->name('receiving.po');
+    Router::post('/receiving/po/{id}',       [ReceivingController::class, 'storePurchaseOrder'])->name('receiving.po.store');
+    Router::post('/receiving/po/{id}/lookup',[ReceivingController::class, 'purchaseOrderLookup'])->name('receiving.po.lookup');
 
     // Sales Orders
     Router::get('/sales-orders',                 [SalesOrderController::class, 'index'])->name('sales_orders');

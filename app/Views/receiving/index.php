@@ -18,6 +18,41 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
     </div>
 </div>
 
+<?php if (!empty($openOrders)): ?>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:1.25rem">
+        <div style="padding:.7rem 1rem;border-bottom:1px solid #e5e7eb;font-size:.72rem;font-weight:700;
+                    text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            Delivery against a purchase order?
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+            <?php foreach ($openOrders as $po): ?>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="padding:.65rem 1rem">
+                        <a href="/receiving/po/<?= (int)$po['id'] ?>"
+                           style="color:#0A3D91;font-weight:600;text-decoration:none"><?= e($po['po_number']) ?></a>
+                        <?php if (!empty($po['vendor_name'])): ?>
+                            <span style="color:#6b7280;font-size:.9rem"> · <?= e($po['vendor_name']) ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td style="padding:.65rem 1rem;font-size:.85rem;color:#6b7280">
+                        <?= (int)$po['line_count'] ?> line<?= (int)$po['line_count'] === 1 ? '' : 's' ?>
+                    </td>
+                    <td style="padding:.65rem 1rem;font-size:.85rem;color:#b45309;text-align:right">
+                        <?= rtrim(rtrim(number_format((float)$po['outstanding'], 2), '0'), '.') ?> outstanding
+                    </td>
+                    <td style="padding:.65rem 1rem;font-size:.85rem;color:#9ca3af;text-align:right;width:9rem">
+                        <?= $po['expected_date'] ? 'due ' . date('j M', strtotime($po['expected_date'])) : '' ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+        <div style="padding:.6rem 1rem;border-top:1px solid #f3f4f6;font-size:.78rem;color:#9ca3af">
+            Booking in against the PO records what was ordered as well as what arrived, so a
+            short or over delivery is caught. The form below is for anything without a PO.
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="card" style="padding:1.25rem;margin-bottom:1.25rem;background:#f8fafc">
     <form method="POST" action="/receiving" id="receiveForm">
         <?= csrf_field() ?>

@@ -197,6 +197,27 @@ class PurchaseOrderRepository
         $this->recalcStatus(Database::connection(), $poId);
     }
 
+    /**
+     * Purchase orders with something still to come, for the warehouse to book in against.
+     *
+     * Ordered by when they were expected, because the one that is late is the one somebody
+     * is standing in front of.
+     */
+    public function awaitingDelivery(): array
+    {
+        return Database::select("
+            SELECT po.id, po.po_number, po.order_date, po.expected_date, po.status,
+                   v.company_name AS vendor_name,
+                   (SELECT COUNT(*) FROM purchase_order_lines l WHERE l.po_id = po.id) AS line_count,
+                   (SELECT COALESCE(SUM(l.qty_ordered - l.qty_received), 0)
+                      FROM purchase_order_lines l WHERE l.po_id = po.id) AS outstanding
+            FROM purchase_orders po
+            LEFT JOIN vendors v ON v.id = po.vendor_id
+            WHERE po.status IN ('sent', 'partial')
+            ORDER BY po.expected_date IS NULL, po.expected_date, po.id
+        ");
+    }
+
     public function nextPoNumber(): string
     {
         $row = Database::selectOne(

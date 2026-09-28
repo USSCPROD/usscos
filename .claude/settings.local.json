@@ -336,7 +336,11 @@
       "Bash(python3 doc1.py . USSCOS_Shipping_and_Fulfillment.pdf)",
       "Bash(python3 doc3.py . USSCOS_Order_to_Shipment.pdf)",
       "Bash(cp *.pdf /Users/artdeptmac/Desktop/USSCOS/)",
-      "Bash(rm -f /tmp/doc*_test.pdf)"
+      "Bash(rm -f /tmp/doc*_test.pdf)",
+      "Bash(php -l app/Controllers/ReceivingController.php)",
+      "Bash(php -l app/Views/receiving/purchase_order.php)",
+      "Bash(php -l app/Views/receiving/index.php)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/porcvtest.php root@159.223.177.58:/tmp/)"
     ]
   }
 }
