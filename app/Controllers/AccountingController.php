@@ -114,6 +114,7 @@ class AccountingController extends Controller
             'marketplace' => $tax->marketplace($from, $to),
             'byState'     => $tax->salesByState($from, $to),
             'unverified'  => $tax->unverifiedRates(),
+            'disagree'    => $tax->disagreements(),
             'nexus'       => (new \App\Repositories\TaxRepository())->nexusStates(),
             'period'      => $period,
             'options'     => ReportPeriod::options($this->repo->invoiceYears()),

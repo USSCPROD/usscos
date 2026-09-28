@@ -85,6 +85,52 @@ if (!function_exists('taxPct')) {
     </tr>
 </table>
 
+<?php if (!empty($disagree)): ?>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:1.5rem">
+        <div style="padding:.7rem 1rem;border-bottom:1px solid #e5e7eb;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            ZIPs where two sources disagree — <?= count($disagree) ?>
+        </div>
+        <div style="padding:.8rem 1rem;font-size:.85rem;color:#6b7280;border-bottom:1px solid #f3f4f6">
+            Our rates come from the state revenue departments with each ZIP assigned to a
+            county by land area. These are the ZIPs where an independent researcher reached
+            a different answer — the addresses worth confirming before a large order ships
+            to one. Everything not listed here agreed, which is better evidence than either
+            source alone.
+        </div>
+        <table style="width:100%;border-collapse:collapse">
+            <thead>
+                <tr>
+                    <th style="<?= $th ?>;text-align:left">ZIP</th>
+                    <th style="<?= $th ?>;text-align:left">Our county</th>
+                    <th style="<?= $th ?>;text-align:right">Ours</th>
+                    <th style="<?= $th ?>;text-align:left">Reference says</th>
+                    <th style="<?= $th ?>;text-align:right">Theirs</th>
+                    <th style="<?= $th ?>;text-align:right">Gap</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach (array_slice($disagree, 0, 40) as $dz): ?>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="<?= $td ?>;font-family:monospace"><?= e($dz['zip']) ?> <span class="text-muted"><?= e($dz['state_code']) ?></span></td>
+                    <td style="<?= $td ?>"><?= e($dz['our_county']) ?></td>
+                    <td style="<?= $td ?>;text-align:right"><?= taxPct($dz['our_rate']) ?></td>
+                    <td style="<?= $td ?>;color:#6b7280"><?= e($dz['reference_region'] ?? '') ?></td>
+                    <td style="<?= $td ?>;text-align:right"><?= taxPct($dz['reference_rate']) ?></td>
+                    <td style="<?= $td ?>;text-align:right;font-weight:600;color:<?= abs((float)$dz['difference_pct']) >= 1 ? '#b91c1c' : '#b45309' ?>">
+                        <?= (float)$dz['difference_pct'] > 0 ? '+' : '' ?><?= rtrim(rtrim(number_format((float)$dz['difference_pct'], 3), '0'), '.') ?>%
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php if (count($disagree) > 40): ?>
+            <div style="padding:.6rem 1rem;border-top:1px solid #f3f4f6;font-size:.78rem;color:#9ca3af">
+                Showing the 40 largest gaps of <?= count($disagree) ?>.
+            </div>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
+
 <!-- What we owe, by jurisdiction -->
 <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:1.5rem">
     <div style="padding:.7rem 1rem;border-bottom:1px solid #e5e7eb;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
