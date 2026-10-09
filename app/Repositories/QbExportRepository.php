@@ -16,10 +16,38 @@ use App\Core\Database;
  */
 class QbExportRepository
 {
+    /**
+     * The pilot gate - see config/quickbooks.php.
+     *
+     * Returns a WHERE fragment and its parameters restricting records to the channels
+     * being piloted, or an empty fragment when the gate is off. Built with placeholders
+     * rather than interpolated, because the value comes from the environment and SQL is
+     * never assembled from a string we did not write ourselves.
+     */
+    private function channelGate(string $soAlias): array
+    {
+        $channels = (array)(\App\Core\Config::get('quickbooks.channels') ?? []);
+
+        if ($channels === []) {
+            return ['', []];
+        }
+
+        $holes = implode(',', array_fill(0, count($channels), '?'));
+
+        return [" AND {$soAlias}.channel IN ({$holes}) ", $channels];
+    }
+
+    /** Is the pilot gate on, and for what? Used by the status endpoint. */
+    public function gatedChannels(): array
+    {
+        return (array)(\App\Core\Config::get('quickbooks.channels') ?? []);
+    }
+
     /** Invoices not yet confirmed as written to QuickBooks. */
     public function pendingInvoices(int $limit = 100): array
     {
         $limit = max(1, min(500, $limit));
+        [$gate, $gateParams] = $this->channelGate('so');
 
         $invoices = Database::select("
             SELECT i.id,
@@ -43,9 +71,10 @@ class QbExportRepository
             LEFT JOIN sales_orders so   ON so.id = i.sales_order_id
             WHERE i.qb_exported_at IS NULL
               AND i.status != 'void'
+              {$gate}
             ORDER BY i.invoice_date ASC, i.id ASC
             LIMIT {$limit}
-        ");
+        ", $gateParams);
 
         foreach ($invoices as &$inv) {
             $inv['lines'] = $this->invoiceLines((int)$inv['id']);
@@ -79,6 +108,7 @@ class QbExportRepository
     public function pendingSalesOrders(int $limit = 100): array
     {
         $limit = max(1, min(500, $limit));
+        [$gate, $gateParams] = $this->channelGate('so');
 
         $orders = Database::select("
             SELECT so.id,
@@ -97,9 +127,10 @@ class QbExportRepository
             LEFT JOIN ship_via sv   ON sv.id = so.ship_via_id
             WHERE so.qb_exported_at IS NULL
               AND so.status NOT IN ('cancelled','draft')
+              {$gate}
             ORDER BY so.order_date ASC, so.id ASC
             LIMIT {$limit}
-        ");
+        ", $gateParams);
 
         foreach ($orders as &$o) {
             $o['lines'] = Database::select("
@@ -127,6 +158,15 @@ class QbExportRepository
     {
         $limit = max(1, min(500, $limit));
 
+        // A payment is only safe to hand over once every invoice it pays already exists in
+        // QuickBooks, because QODBC matches the application by RefNumber. Offering it
+        // earlier produces a receipt that lands unapplied on the customer's account -
+        // which looks like money received against nothing, and is tedious to unpick.
+        $channels = $this->gatedChannels();
+        $gateFails = $channels === []
+            ? ''
+            : ' OR so2.channel IS NULL OR so2.channel NOT IN (' . implode(',', array_fill(0, count($channels), '?')) . ')';
+
         $payments = Database::select("
             SELECT p.id,
                    p.payment_date       AS TxnDate,
@@ -140,9 +180,20 @@ class QbExportRepository
             FROM payments p
             JOIN customers c ON c.id = p.customer_id
             WHERE p.qb_exported_at IS NULL
+              AND EXISTS (
+                  SELECT 1 FROM payment_applications pa WHERE pa.payment_id = p.id
+              )
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM payment_applications pa
+                  JOIN invoices i2            ON i2.id  = pa.invoice_id
+                  LEFT JOIN sales_orders so2  ON so2.id = i2.sales_order_id
+                  WHERE pa.payment_id = p.id
+                    AND (i2.qb_txn_id IS NULL {$gateFails})
+              )
             ORDER BY p.payment_date ASC, p.id ASC
             LIMIT {$limit}
-        ");
+        ", $channels);
 
         foreach ($payments as &$pay) {
             $pay['applied_to'] = Database::select("
@@ -155,14 +206,56 @@ class QbExportRepository
         return $payments;
     }
 
+    /**
+     * Counts must match what /pending would actually hand over, gate included. A status
+     * endpoint reporting work that the next call will not offer is worse than no status
+     * endpoint - it reads as a stuck queue.
+     *
+     * 'held' is the honest companion figure: real records, deliberately not being sent
+     * because the pilot gate excludes them. Without it the gate looks like data loss.
+     */
     public function pendingCounts(): array
     {
-        return [
-            'invoices'     => (int)(Database::selectOne("SELECT COUNT(*) c FROM invoices     WHERE qb_exported_at IS NULL AND status != 'void'")['c'] ?? 0),
-            'sales_orders' => (int)(Database::selectOne("SELECT COUNT(*) c FROM sales_orders WHERE qb_exported_at IS NULL AND status NOT IN ('cancelled','draft')")['c'] ?? 0),
-            'payments'     => (int)(Database::selectOne("SELECT COUNT(*) c FROM payments     WHERE qb_exported_at IS NULL")['c'] ?? 0),
-            'failed'       => (int)(Database::selectOne("SELECT COUNT(*) c FROM invoices     WHERE qb_exported_at IS NULL AND qb_export_error IS NOT NULL")['c'] ?? 0),
+        [$gate, $p] = $this->channelGate('so');
+
+        $invoices = (int)(Database::selectOne("
+            SELECT COUNT(*) c FROM invoices i
+            LEFT JOIN sales_orders so ON so.id = i.sales_order_id
+            WHERE i.qb_exported_at IS NULL AND i.status != 'void' {$gate}
+        ", $p)['c'] ?? 0);
+
+        $orders = (int)(Database::selectOne("
+            SELECT COUNT(*) c FROM sales_orders so
+            WHERE so.qb_exported_at IS NULL
+              AND so.status NOT IN ('cancelled','draft') {$gate}
+        ", $p)['c'] ?? 0);
+
+        $failed = (int)(Database::selectOne("
+            SELECT COUNT(*) c FROM invoices i
+            LEFT JOIN sales_orders so ON so.id = i.sales_order_id
+            WHERE i.qb_exported_at IS NULL AND i.qb_export_error IS NOT NULL {$gate}
+        ", $p)['c'] ?? 0);
+
+        $counts = [
+            'invoices'     => $invoices,
+            'sales_orders' => $orders,
+            'payments'     => count($this->pendingPayments(500)),
+            'failed'       => $failed,
         ];
+
+        if ($this->gatedChannels() !== []) {
+            $counts['gate'] = $this->gatedChannels();
+            $counts['held'] = [
+                'invoices' => (int)(Database::selectOne(
+                    "SELECT COUNT(*) c FROM invoices WHERE qb_exported_at IS NULL AND status != 'void'"
+                )['c'] ?? 0) - $invoices,
+                'sales_orders' => (int)(Database::selectOne(
+                    "SELECT COUNT(*) c FROM sales_orders WHERE qb_exported_at IS NULL AND status NOT IN ('cancelled','draft')"
+                )['c'] ?? 0) - $orders,
+            ];
+        }
+
+        return $counts;
     }
 
     // ------------------------------------------------------------ acknowledge

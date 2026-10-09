@@ -31,9 +31,10 @@ class QbSyncController extends Controller
     public function status(Request $request, Response $response): Response
     {
         return $response->json([
-            'ok'      => true,
-            'time'    => date('c'),
-            'pending' => $this->repo->pendingCounts(),
+            'ok'       => true,
+            'time'     => date('c'),
+            'channels' => $this->repo->gatedChannels() ?: 'all',
+            'pending'  => $this->repo->pendingCounts(),
         ]);
     }
 
