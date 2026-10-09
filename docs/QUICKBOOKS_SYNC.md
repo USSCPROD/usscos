@@ -288,3 +288,96 @@ Both need the entity, and `inbound` must be idempotent on `TxnID` + `EditSequenc
   in QuickBooks?
 - `qb_export_log.record_type` is an enum of `invoice`, `sales_order`, `payment`. It needs
   `purchase_order` and `bill` adding, and a direction column.
+
+---
+
+## Phase one, decided 2026-10-09: website orders only
+
+Confirmed with Chip: **QuickBooks Desktop** (so QODBC, so a Windows machine), payments
+applied **in USSCOS and pushed**, and the pilot limited to orders from usscproducts.com.
+
+### The gate
+
+`config/quickbooks.php` reads `QB_SYNC_CHANNELS` from `.env`, defaulting to `website`.
+While it holds a non-empty list, only records whose sales order came from one of those
+channels is ever offered. Everything else stays pending and untouched.
+
+It is a `.env` value rather than a settings screen deliberately — opening the sync to all
+41,233 customers' invoices should be a deliberate act on the server, not a mis-click.
+
+An invoice with **no sales order** — a counter sale, a manual correction — has no channel
+and is therefore excluded while the gate is on. That is correct for a pilot.
+
+`/api/qb/status` reports the gate and a `held` count, so records the gate is withholding
+are visible rather than looking like data loss:
+
+```json
+{"ok":true,"channels":["website"],
+ "pending":{"invoices":1,"sales_orders":1,"payments":0,"failed":0,
+            "gate":["website"],"held":{"invoices":0,"sales_orders":0}}}
+```
+
+To open it up later: set `QB_SYNC_CHANNELS=` (empty) for no gate, or add channels to the
+list. No restart needed.
+
+### Payments are held until their invoices exist
+
+QODBC applies a receipt to an invoice by `RefNumber`. A payment offered before its invoice
+reached QuickBooks would land **unapplied on the customer's account** — money received
+against nothing, and tedious to unpick. `pendingPayments()` now withholds a payment until
+every invoice it pays carries a `qb_txn_id`.
+
+### The bridge
+
+`bridge/qb_bridge.py`. Three modes:
+
+```
+python qb_bridge.py --dry-run      fetch and report, acknowledge nothing
+python qb_bridge.py --simulate     full cycle against a stub, QuickBooks untouched
+python qb_bridge.py                the real thing, needs pyodbc and QODBC
+```
+
+`--simulate` needs neither pyodbc nor QuickBooks, so the USSCOS half is provable before
+the QODBC licence is bought. `QuickBooks.insert()` deliberately **raises** rather than
+returning a fake id — acknowledging a write that did not happen is the one unrecoverable
+mistake here, so the unimplemented path fails loudly.
+
+Environment: `USSCOS_URL`, `USSCOS_API_KEY`, `QODBC_DSN`.
+
+### Proven 2026-10-09
+
+Against the live API, by temporarily marking test order SO 3 as `website` and unexported,
+then restoring it exactly (original state captured first, `qb_export_log` cleared):
+
+- the gate offered **only** that order and its invoice, nothing else
+- `--simulate` wrote both and acknowledged them; `qb_txn_id` stamped back
+- an immediate re-run offered **nothing** — no record handed over twice
+- an `ok:false` ack stored the message and left the invoice **still pending**, as intended
+
+What remains is `QuickBooks.insert()` — the QODBC column mapping — which cannot be written
+honestly without QODBC in front of it.
+
+### Still needed from USSC
+
+| | |
+|---|---|
+| A Windows machine that stays on, QuickBooks file open | Does one exist? |
+| QODBC licence | Not bought — $300–900 |
+| WooCommerce API credentials | For the other end of the chain |
+| How a web customer maps to QuickBooks | See below |
+
+**The customer question.** A retail web buyer is a one-off. Creating a QuickBooks customer
+record per web order bloats a file that already holds 41,233 of them. Most shops post web
+sales to a single `Web Sales` customer with the buyer's name in the memo. That is the
+recommendation, but it is a bookkeeping decision, not a technical one.
+
+### Not yet built
+
+Pulling orders **from WooCommerce into USSCOS** — the first link of the chain. The site is
+a known-compromised WordPress install, so that link must be outbound and read-only, with
+every field treated as hostile input.
+
+Woo collects its own tax at checkout, which will not match what our engine calculates.
+**What was actually collected is what gets pushed to QuickBooks** — the calculated figure
+is stored alongside it for comparison, the same way Amazon's collected tax is. The gap
+between the two is the first free real-world test of the tax engine.
