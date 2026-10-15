@@ -83,11 +83,52 @@ class SalesOrderController extends Controller
         $user = Auth::user();
         $soId = $this->service->store((int)$user['id'], $_POST);
 
+        $fileProblem = $this->fileAttachedDocument($soId);
+
         if (($_POST['_action'] ?? '') === 'save_new') {
             return $response->redirect('/sales-orders/create');
         }
 
+        // A rejected file must not cost somebody the order they just keyed. The order is
+        // already saved, so send them to it with the reason rather than back to a blank
+        // form, and let them re-attach from there.
+        if ($fileProblem !== null) {
+            Session::flash('error', 'Order saved, but the document was not filed: ' . $fileProblem);
+            return $response->redirect('/sales-orders/' . $soId . '#documents');
+        }
+
         return $response->redirect('/sales-orders');
+    }
+
+    /**
+     * File the PO picked on the create screen, now that the order has an id.
+     *
+     * Returns null when there was nothing to file or it filed cleanly, otherwise the
+     * reason, so the caller can report it without losing the order.
+     */
+    private function fileAttachedDocument(int $salesOrderId): ?string
+    {
+        $file = $_FILES['binder_file'] ?? null;
+
+        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+
+        try {
+            (new \App\Services\JobDocumentService())->add(
+                $salesOrderId,
+                [
+                    'doc_type'      => 'customer_po',
+                    // The PO number typed on the order is the reference people search by,
+                    // so it is taken from the form rather than asked for twice.
+                    'reference_num' => trim((string)($_POST['po_number'] ?? '')),
+                ],
+                $file
+            );
+            return null;
+        } catch (\RuntimeException $e) {
+            return $e->getMessage();
+        }
     }
 
     public function edit(Request $request, Response $response, string $id = '0'): Response
@@ -99,7 +140,11 @@ class SalesOrderController extends Controller
         }
 
         return $this->view('sales_orders.edit', [
-            'title' => 'Edit SO #' . $data['so']['so_number'],
+            'title'        => 'Edit SO #' . $data['so']['so_number'],
+            // Editing an order is where people go when something about it changed, which
+            // is exactly when a revised PO arrives. Showing the binder here costs one
+            // query and saves a trip to the read-only page.
+            'jobDocuments' => (new \App\Services\JobDocumentService())->forSalesOrder((int)$id),
             ...$data,
         ]);
     }

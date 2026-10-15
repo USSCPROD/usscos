@@ -370,7 +370,12 @@
       "Bash(scp -q /tmp/a2.php root@159.223.177.58:/tmp/a2.php)",
       "Bash(python3 test_qbxml.py)",
       "Bash(python3 -c \"import ast;ast.parse\\(open\\('qb_bridge.py'\\).read\\(\\)\\);print\\('qb_bridge.py OK'\\)\")",
-      "Bash(scp -q /tmp/tx.php root@159.223.177.58:/tmp/tx.php)"
+      "Bash(scp -q /tmp/tx.php root@159.223.177.58:/tmp/tx.php)",
+      "Bash(scp -q /tmp/noso.php root@159.223.177.58:/tmp/noso.php)",
+      "Bash(grep -n '<form\\\\|</form>\\\\|ob_get_clean\\\\|$content =' app/Views/sales_orders/edit.php)",
+      "Bash(php -l app/Views/sales_orders/create.php)",
+      "Bash(php -l app/Views/sales_orders/edit.php)",
+      "Bash(grep -n '$_FILES\\\\['\\\\''document'\\\\''\\\\]\\\\|'\\\\''document'\\\\''' app/Controllers/JobBinderController.php)"
     ]
   }
 }

@@ -789,6 +789,29 @@ $jbInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;bo
        . 'border-radius:5px;box-sizing:border-box;background:#fff;color:#111';
 ?>
 
+<!--
+    Jump links.
+
+    This page runs to well over a thousand lines and the binder sits past the line items,
+    so Documents was invisible unless you knew to scroll - which read as "we never built
+    it". Counts are shown so an empty section is obvious without going there.
+-->
+<div style="margin-top:1.5rem;padding:.6rem .9rem;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;
+            font-size:.82rem;color:#6b7280">
+    <span style="font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:.75rem">On this job</span>
+    <span style="margin:0 .5rem;color:#d1d5db">|</span>
+    <a href="#documents" style="color:#0A3D91;font-weight:600;text-decoration:none">Documents</a>
+    <span style="color:#9ca3af">(<?= count($jobDocuments ?? []) ?>)</span>
+    <span style="margin:0 .5rem;color:#d1d5db">·</span>
+    <a href="#notes" style="color:#0A3D91;font-weight:600;text-decoration:none">Notes</a>
+    <span style="color:#9ca3af">(<?= count($jobNotes ?? []) ?>)</span>
+    <span style="margin:0 .5rem;color:#d1d5db">·</span>
+    <a href="#qa" style="color:#0A3D91;font-weight:600;text-decoration:none">Quality</a>
+    <span style="margin:0 .5rem;color:#d1d5db">·</span>
+    <a href="#artwork" style="color:#0A3D91;font-weight:600;text-decoration:none">Artwork</a>
+    <span style="color:#9ca3af">(<?= count($artwork ?? []) ?>)</span>
+</div>
+
 <!-- Job documents — the customer's PO and the rest of the paperwork -->
 <div id="documents" style="margin-top:1.5rem">
     <div style="display:block;border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">

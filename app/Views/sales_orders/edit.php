@@ -279,6 +279,93 @@ $hasShipAddr = !empty($so['ship_address_1']);
 </div>
 </form>
 
+<!--
+    The job binder, OUTSIDE the form above - HTML forms cannot nest, and this one needs
+    its own multipart post. It writes to the same endpoint the saved order page uses, so
+    there is one upload path rather than two that have to be kept in step.
+-->
+<?php if (!function_exists('soEditDocLbl')) {
+    function soEditDocLbl(): string {
+        return 'font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.3rem';
+    }
+    function soEditDocInp(): string {
+        return 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;border:1px solid #d1d5db;'
+             . 'border-radius:5px;box-sizing:border-box;background:#fff;color:#111';
+    }
+} ?>
+
+<div id="documents" style="margin-top:1.5rem">
+    <div style="border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">
+        <span style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280">
+            Documents
+        </span>
+        <?php if (!empty($jobDocuments)): ?>
+            <span style="font-size:.78rem;color:#9ca3af">&nbsp;— <?= count($jobDocuments) ?> on file</span>
+        <?php endif; ?>
+    </div>
+
+    <?php if (empty($jobDocuments)): ?>
+        <div class="text-muted" style="font-size:.88rem;margin-bottom:1rem">
+            Nothing filed yet. The customer's PO belongs here — it stays with this job
+            after it is invoiced.
+        </div>
+    <?php else: ?>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:1rem">
+            <?php foreach ($jobDocuments as $jd): ?>
+                <tr style="border-bottom:1px solid #eef0f3">
+                    <td style="padding:.5rem .6rem .5rem 0;font-size:.85rem;width:9rem;color:#6b7280">
+                        <?= e(\App\Services\JobDocumentService::TYPES[$jd['doc_type']] ?? $jd['doc_type']) ?>
+                    </td>
+                    <td style="padding:.5rem 0;font-size:.9rem">
+                        <a href="<?= e($jd['file_path']) ?>" target="_blank" rel="noopener"
+                           style="color:#0A3D91;font-weight:600;text-decoration:none">
+                            <?= e($jd['title'] ?: $jd['file_name']) ?>
+                        </a>
+                        <?php if (!empty($jd['reference_num'])): ?>
+                            <span style="color:#9ca3af;font-size:.82rem">&nbsp;· <?= e($jd['reference_num']) ?></span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php endif; ?>
+
+    <div class="card" style="padding:1.25rem;background:#f8fafc">
+        <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.8rem">
+            File a document
+        </div>
+        <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/documents" enctype="multipart/form-data">
+            <?= csrf_field() ?>
+            <table style="width:100%;border-collapse:collapse">
+                <tr>
+                    <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280;width:7rem">Kind</td>
+                    <td style="padding:.3rem 0;width:40%">
+                        <select name="doc_type" style="<?= soEditDocInp() ?>">
+                            <?php foreach (\App\Services\JobDocumentService::TYPES as $typeKey => $typeLabel): ?>
+                                <option value="<?= e($typeKey) ?>"><?= e($typeLabel) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                    <td style="padding:.3rem .6rem;font-size:.85rem;color:#6b7280;width:7rem">Reference</td>
+                    <td style="padding:.3rem 0">
+                        <input type="text" name="reference_num" maxlength="100"
+                               value="<?= e($so['po_number'] ?? '') ?>" style="<?= soEditDocInp() ?>">
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280">File</td>
+                    <td colspan="3" style="padding:.3rem 0">
+                        <input type="file" name="document_file" required style="<?= soEditDocInp() ?>;padding:.4rem">
+                    </td>
+                </tr>
+            </table>
+            <div style="margin-top:.85rem;text-align:right">
+                <button type="submit" class="btn btn--secondary btn--sm">File it</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 var EXISTING_LINES = <?= json_encode(array_values($line_items), JSON_HEX_TAG) ?>;
 </script>

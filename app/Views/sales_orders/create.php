@@ -38,7 +38,7 @@ $currentUser = \App\Core\Auth::user();
     </div>
 </div>
 
-<form method="post" action="/sales-orders" id="soForm">
+<form method="post" action="/sales-orders" id="soForm" enctype="multipart/form-data">
 <?= csrf_field() ?>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
@@ -124,7 +124,7 @@ $currentUser = \App\Core\Auth::user();
         <tr>
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:20%">
                 <div style="<?= soLblStyle() ?>">P.O. No.</div>
-                <input type="text" name="po_number" maxlength="100" style="<?= soInpStyle() ?>">
+                <input type="text" name="po_number" id="poNumber" maxlength="100" style="<?= soInpStyle() ?>">
             </td>
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:20%">
                 <div style="<?= soLblStyle() ?>">Terms</div>
@@ -254,7 +254,25 @@ $currentUser = \App\Core\Auth::user();
             <div style="<?= soLblStyle() ?>">Memo</div>
             <textarea name="memo" rows="5" style="<?= soInpStyle() ?>;resize:vertical"></textarea>
         </div>
-        <div></div>
+        <!--
+            Attach the customer's PO while keying the order from it.
+
+            The file is held until the order is saved, because a document has to hang off
+            a sales order id and there is no id until then. Making someone save, reopen
+            and scroll to file the one document most likely to need filing is backwards -
+            the PO is usually open on screen at this exact moment.
+        -->
+        <div>
+            <div style="<?= soLblStyle() ?>">Customer PO <span style="font-weight:400;color:#9ca3af">(optional)</span></div>
+            <input type="file" name="binder_file"
+                   accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.tif,.tiff,.txt,.csv,.doc,.docx,.xls,.xlsx,.eml,.msg"
+                   id="binderFile"
+                   style="<?= soInpStyle() ?>;padding:.4rem;background:#fff">
+            <div style="font-size:.75rem;color:#9ca3af;margin-top:.4rem;line-height:1.4">
+                Filed to the job binder when the order is saved, and stays with it after
+                invoicing. Other paperwork can be added from the saved order.
+            </div>
+        </div>
     </div>
 
     <!-- ── Actions ──────────────────────────────────────────────────────── -->
@@ -280,6 +298,25 @@ function soThStyle(): string {
 ?>
 
 <script>
+/*
+ * A customer PO is filed under its PO number - that is what people search by years
+ * later - so the binder refuses one without it. Ask here, where the order can still be
+ * fixed in place, rather than after saving when the message arrives too late to be
+ * useful.
+ */
+(function () {
+    var file = document.getElementById('binderFile');
+    var po   = document.getElementById('poNumber');
+    if (!file || !po) return;
+
+    file.addEventListener('change', function () {
+        po.required = !!file.files.length;
+        if (po.required && !po.value.trim()) {
+            po.focus();
+        }
+    });
+})();
+
 (function(){
     function fmt(n){return '$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
     function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
