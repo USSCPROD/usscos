@@ -91,6 +91,72 @@ class JobDocumentService
         return $id;
     }
 
+    /**
+     * Turn one $_FILES entry into a list of individual uploads.
+     *
+     * PHP transposes multi-file inputs: `name="x[]"` arrives as
+     * ['name' => [a, b], 'tmp_name' => [a, b], ...] rather than the list of file arrays
+     * everything else expects. This untransposes it, and handles the single-file shape
+     * unchanged so callers do not have to care which they were given.
+     *
+     * Entries the browser sent empty are dropped - an unused file input still arrives,
+     * with UPLOAD_ERR_NO_FILE, and treating that as a failed upload would report an
+     * error for a field nobody filled in.
+     *
+     * @return list<array> each shaped like a single $_FILES entry
+     */
+    public static function spread(?array $file): array
+    {
+        if ($file === null || !isset($file['name'])) {
+            return [];
+        }
+
+        if (!is_array($file['name'])) {
+            return ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE ? [] : [$file];
+        }
+
+        $out = [];
+        foreach (array_keys($file['name']) as $i) {
+            if (($file['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $out[] = [
+                'name'     => $file['name'][$i]     ?? '',
+                'type'     => $file['type'][$i]     ?? '',
+                'tmp_name' => $file['tmp_name'][$i] ?? '',
+                'error'    => $file['error'][$i]    ?? UPLOAD_ERR_NO_FILE,
+                'size'     => $file['size'][$i]     ?? 0,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * File several at once, under the same type and reference.
+     *
+     * One bad file does not discard the good ones. A PO that arrived as six scanned
+     * pages should not be lost entirely because the seventh was a .heic - the six are
+     * filed and the failure is reported.
+     *
+     * @return array{filed:int, problems:list<string>}
+     */
+    public function addMany(int $salesOrderId, array $input, ?array $file): array
+    {
+        $filed = 0;
+        $problems = [];
+
+        foreach (self::spread($file) as $one) {
+            try {
+                $this->add($salesOrderId, $input, $one);
+                $filed++;
+            } catch (\RuntimeException $e) {
+                $problems[] = ($one['name'] ?? 'file') . ': ' . $e->getMessage();
+            }
+        }
+
+        return ['filed' => $filed, 'problems' => $problems];
+    }
+
     public function remove(int $id): void
     {
         $this->repo->deactivate($id);

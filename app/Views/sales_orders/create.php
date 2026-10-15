@@ -264,13 +264,14 @@ $currentUser = \App\Core\Auth::user();
         -->
         <div>
             <div style="<?= soLblStyle() ?>">Customer PO <span style="font-weight:400;color:#9ca3af">(optional)</span></div>
-            <input type="file" name="binder_file"
+            <input type="file" name="binder_file[]" multiple
                    accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.tif,.tiff,.txt,.csv,.doc,.docx,.xls,.xlsx,.eml,.msg"
                    id="binderFile"
                    style="<?= soInpStyle() ?>;padding:.4rem;background:#fff">
             <div style="font-size:.75rem;color:#9ca3af;margin-top:.4rem;line-height:1.4">
-                Filed to the job binder when the order is saved, and stays with it after
-                invoicing. Other paperwork can be added from the saved order.
+                Several files are fine — a PO that arrived as separate scanned pages, say.
+                All are filed as the Customer PO; other kinds of paperwork can be added from
+                the saved order, where you pick the type. Keep one upload under 40&nbsp;MB.
             </div>
         </div>
     </div>

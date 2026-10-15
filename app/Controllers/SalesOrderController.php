@@ -108,27 +108,18 @@ class SalesOrderController extends Controller
      */
     private function fileAttachedDocument(int $salesOrderId): ?string
     {
-        $file = $_FILES['binder_file'] ?? null;
+        $result = (new \App\Services\JobDocumentService())->addMany(
+            $salesOrderId,
+            [
+                'doc_type'      => 'customer_po',
+                // The PO number typed on the order is the reference people search by,
+                // so it is taken from the form rather than asked for twice.
+                'reference_num' => trim((string)($_POST['po_number'] ?? '')),
+            ],
+            $_FILES['binder_file'] ?? null
+        );
 
-        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            return null;
-        }
-
-        try {
-            (new \App\Services\JobDocumentService())->add(
-                $salesOrderId,
-                [
-                    'doc_type'      => 'customer_po',
-                    // The PO number typed on the order is the reference people search by,
-                    // so it is taken from the form rather than asked for twice.
-                    'reference_num' => trim((string)($_POST['po_number'] ?? '')),
-                ],
-                $file
-            );
-            return null;
-        } catch (\RuntimeException $e) {
-            return $e->getMessage();
-        }
+        return $result['problems'] === [] ? null : implode('; ', $result['problems']);
     }
 
     public function edit(Request $request, Response $response, string $id = '0'): Response

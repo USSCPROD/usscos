@@ -64,11 +64,18 @@ class JobBinderController extends Controller
     /** File a document against the job — a customer PO, a BOL, a signed proof. */
     public function storeDocument(Request $request, Response $response, string $id = '0'): Response
     {
-        try {
-            $this->documents->add((int)$id, $_POST, $_FILES['document_file'] ?? null);
-            Session::flash('success', 'Filed on the job binder.');
-        } catch (\RuntimeException $e) {
-            Session::flash('error', $e->getMessage());
+        $result = $this->documents->addMany((int)$id, $_POST, $_FILES['document_file'] ?? null);
+
+        if ($result['filed'] > 0) {
+            Session::flash('success', $result['filed'] === 1
+                ? 'Filed on the job binder.'
+                : $result['filed'] . ' documents filed on the job binder.');
+        }
+
+        // Reported separately from the successes, because a part-filed batch is both:
+        // saying only "3 filed" would hide the one that did not.
+        if ($result['problems'] !== []) {
+            Session::flash('error', implode('; ', $result['problems']));
         }
 
         return $response->redirect('/sales-orders/' . (int)$id . '#documents');

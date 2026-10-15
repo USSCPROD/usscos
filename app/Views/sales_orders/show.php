@@ -903,7 +903,7 @@ $jbInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;bo
                 </tr>
                 <tr>
                     <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280">File</td>
-                    <td style="padding:.3rem 0"><input type="file" name="document_file" required style="font-size:.9rem"></td>
+                    <td style="padding:.3rem 0"><input type="file" name="document_file[]" multiple required style="font-size:.9rem"></td>
                     <td style="padding:.3rem .6rem .3rem 1rem;font-size:.85rem;color:#6b7280">Notes</td>
                     <td style="padding:.3rem 0">
                         <input type="text" name="notes" maxlength="500" placeholder="Optional" style="<?= $jbInp ?>">
