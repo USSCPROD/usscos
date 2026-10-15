@@ -133,6 +133,74 @@ class DashboardService extends Service
      * figure and an unreviewed invoice are both quiet — neither shouts — which is exactly
      * why they belong on the front page.
      */
+    /**
+     * Reasons to think the QuickBooks bridge has stopped working.
+     *
+     * Two different faults, which look identical from the accounting side and need
+     * different fixes:
+     *
+     *   - the bridge is not running at all. Nothing has been handed over for a day,
+     *     while records sit waiting. Usually the Windows machine is off, QuickBooks is
+     *     closed, or the scheduled task is not firing.
+     *
+     *   - the bridge is running and QuickBooks is refusing records. Those carry an
+     *     error and stay pending by design, so the queue grows quietly while every log
+     *     line says the run succeeded.
+     *
+     * Deliberately silent when there is simply nothing to send - an idle queue on a
+     * quiet week is not a fault, and a dashboard that cries wolf gets ignored.
+     */
+    private function quickBooksWarnings(): array
+    {
+        $out = [];
+
+        $pending = Database::selectOne("
+            SELECT COUNT(*) AS n, MIN(created_at) AS oldest
+            FROM invoices i
+            WHERE i.qb_exported_at IS NULL AND i.status != 'void'
+        ");
+
+        $rejected = (int)(Database::selectOne("
+            SELECT COUNT(*) AS n FROM invoices
+            WHERE qb_exported_at IS NULL AND qb_export_error IS NOT NULL
+        ")['n'] ?? 0);
+
+        $lastRun = Database::selectOne("SELECT MAX(created_at) AS t FROM qb_export_log");
+
+        $waiting = (int)($pending['n'] ?? 0);
+
+        if ($rejected > 0) {
+            $out[] = sprintf(
+                '%d invoice%s refused by QuickBooks and waiting for a person. '
+                . 'Usually a customer or item that exists here but not in the company file.',
+                $rejected,
+                $rejected === 1 ? '' : 's'
+            );
+        }
+
+        if ($waiting > $rejected) {
+            $silentFor = $lastRun['t'] ?? null;
+            $hours = $silentFor !== null
+                ? (int)floor((time() - strtotime((string)$silentFor)) / 3600)
+                : null;
+
+            if ($hours === null) {
+                $out[] = sprintf(
+                    '%d invoice%s waiting and the bridge has never run.',
+                    $waiting, $waiting === 1 ? '' : 's'
+                );
+            } elseif ($hours >= 24) {
+                $out[] = sprintf(
+                    '%d invoice%s waiting. Nothing has been sent to QuickBooks for %d hours '
+                    . '- check the Windows machine is on with the company file open.',
+                    $waiting, $waiting === 1 ? '' : 's', $hours
+                );
+            }
+        }
+
+        return $out;
+    }
+
     private function getFocusItems(): array
     {
         $items = [];
@@ -235,6 +303,21 @@ class DashboardService extends Service
                 'title'    => 'Tax rates need refreshing',
                 'subtitle' => $warning,
                 'url'      => '/accounting/tax',
+                'color'    => 'red',
+            ];
+        }
+
+        // A QuickBooks sync that has stopped.
+        //
+        // This belongs on the dashboard precisely because nobody will be working in
+        // QuickBooks once this is live. A sync that silently stopped would otherwise be
+        // discovered at a period end, by which point the gap is weeks of invoices and
+        // nobody remembers what changed. Here it is a red tile the next morning.
+        foreach ($this->quickBooksWarnings() as $warning) {
+            $items[] = [
+                'title'    => 'QuickBooks sync',
+                'subtitle' => $warning,
+                'url'      => '/accounting',
                 'color'    => 'red',
             ];
         }

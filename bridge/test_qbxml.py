@@ -63,7 +63,7 @@ check("InvoiceAdd children in spec order", order == expected, f"got {order}")
 
 line_order = tag_order(x, "InvoiceLineAdd")
 check("InvoiceLineAdd in spec order",
-      line_order == ["ItemRef", "Desc", "Quantity", "UnitOfMeasure", "Rate"],
+      line_order == ["ItemRef", "Desc", "Quantity", "UnitOfMeasure", "Rate", "SalesTaxCodeRef"],
       f"got {line_order}")
 
 print("\n-- empty values are omitted, not sent empty --")
@@ -128,6 +128,58 @@ check("ReceivePaymentAdd in spec order",
       tag_order(pay, "ReceivePaymentAdd") ==
       ["CustomerRef", "TxnDate", "RefNumber", "TotalAmount", "PaymentMethodRef", "AppliedToTxnAdd"],
       f"got {tag_order(pay, 'ReceivePaymentAdd')}")
+
+print("\n-- sales tax: QuickBooks will not take our figure, so we send it as a line --")
+TAXED = dict(INVOICE,
+             tax_source="usscos", tax_amount="90.21", tax_rate_applied="0.07750",
+             tax_reason="GA - Chatham", taxable_subtotal="1164.00",
+             total_amount="1254.21",
+             ItemSalesTaxRef="Tax Calculated in USSCOS", TaxLineItemRef="Sales Tax")
+xt = qbxml.invoice_add(TAXED)
+check("invoice points at the zero-rate tax item",
+      "<ItemSalesTaxRef><FullName>Tax Calculated in USSCOS</FullName></ItemSalesTaxRef>" in xt)
+check("ItemSalesTaxRef sits after ShipMethodRef, before Memo",
+      tag_order(xt, "InvoiceAdd") == ["CustomerRef", "TxnDate", "RefNumber", "PONumber",
+                                      "TermsRef", "DueDate", "ShipMethodRef",
+                                      "ItemSalesTaxRef", "InvoiceLineAdd", "InvoiceLineAdd"],
+      f"got {tag_order(xt, 'InvoiceAdd')}")
+check("tax went on as its own line", xt.count("<InvoiceLineAdd>") == 2)
+check("tax line carries our amount", "<Amount>90.21</Amount>" in xt)
+check("tax line says why that rate applied", "GA - Chatham (7.750%)" in xt)
+check("tax line is itself non-taxable",
+      xt.rsplit("<InvoiceLineAdd>", 1)[1].count("<FullName>Non</FullName>") == 1)
+
+print("\n-- per-line tax codes --")
+mixed = dict(TAXED, lines=[
+    dict(INVOICE["lines"][0], is_taxable=1),
+    dict(INVOICE["lines"][0], ItemRefFullName="FREIGHT", is_taxable=0),
+])
+xm = qbxml.invoice_add(mixed)
+check("taxable line marked Tax", "<FullName>Tax</FullName>" in xm)
+check("non-taxable line marked Non", "<FullName>Non</FullName>" in xm)
+check("SalesTaxCodeRef is last in the line",
+      tag_order(xm, "InvoiceLineAdd")[-1] == "SalesTaxCodeRef",
+      f"got {tag_order(xm, 'InvoiceLineAdd')}")
+
+print("\n-- marketplace tax is Amazon's, not ours --")
+amz = dict(INVOICE, tax_source="marketplace", tax_amount="0.00",
+           marketplace_tax_collected="74.18",
+           ItemSalesTaxRef="Tax Calculated in USSCOS", TaxLineItemRef="Sales Tax")
+xa = qbxml.invoice_add(amz)
+check("no tax line for a marketplace order", xa.count("<InvoiceLineAdd>") == 1)
+check("Amazon's collected tax never reaches QuickBooks", "74.18" not in xa)
+
+print("\n-- no tax at all --")
+xn = qbxml.invoice_add(dict(INVOICE, tax_source="none", tax_amount="0.00",
+                            ItemSalesTaxRef="Tax Calculated in USSCOS"))
+check("exempt invoice gets no tax line", xn.count("<InvoiceLineAdd>") == 1)
+
+print("\n-- tax with nowhere to post it is refused --")
+try:
+    qbxml.invoice_add(dict(TAXED, TaxLineItemRef=""))
+    check("tax with no QuickBooks item refused", False)
+except qbxml.QBXMLError as e:
+    check("tax with no QuickBooks item refused", "QB_TAX_LINE_ITEM" in str(e))
 
 print("\n-- response parsing --")
 OK_RESP = """<?xml version="1.0" ?><QBXML><QBXMLMsgsRs>

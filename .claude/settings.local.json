@@ -345,7 +345,32 @@
       "Bash(sed -i '' 's/count\\($r\\) < 10/count\\($r\\) < 9/; s/\\\\$r\\\\[9\\\\]/$r[8]/g' /tmp/ratediff.php)",
       "Bash(scp -q /tmp/ratediff.php root@159.223.177.58:/tmp/)",
       "Bash(scp -q /tmp/rtax2.php root@159.223.177.58:/tmp/)",
-      "Bash(php -l database/refresh_tax_rates.php)"
+      "Bash(php -l database/refresh_tax_rates.php)",
+      "Bash(scp -q /tmp/warn.php root@159.223.177.58:/tmp/)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/stat.php root@159.223.177.58:/tmp/stat.php)",
+      "WebFetch(domain:www.numeral.com)",
+      "Bash(scp -q /private/tmp/claude-501/-Users-artdeptmac-Projects-BusinessOS/c6413231-4bc5-4bea-af06-9ba97d0046e7/scratchpad/ch.php root@159.223.177.58:/tmp/ch.php)",
+      "Bash(php -l config/quickbooks.php)",
+      "Bash(php -l app/Repositories/QbExportRepository.php)",
+      "Bash(php -l app/Controllers/QbSyncController.php)",
+      "Bash(python3 -c \"import ast;ast.parse\\(open\\('bridge/qb_bridge.py'\\).read\\(\\)\\);print\\('bridge/qb_bridge.py OK'\\)\")",
+      "Bash(scp -q /tmp/probe.php root@159.223.177.58:/tmp/probe.php)",
+      "Bash(scp -q /tmp/verify.php root@159.223.177.58:/tmp/verify.php)",
+      "Bash(scp -q /tmp/restore.php root@159.223.177.58:/tmp/restore.php)",
+      "Bash(scp -q /tmp/em.php root@159.223.177.58:/tmp/em.php)",
+      "Bash(sed -i '' 's/show_on_website=1\\) show_flag/publish_to_website=1\\) show_flag/' /tmp/web.php)",
+      "Bash(scp -q /tmp/web.php root@159.223.177.58:/tmp/web.php)",
+      "Bash(curl -s -m 25 \"https://usscproducts.com/wp-json/wc/store/v1/products?per_page=1\" -o /tmp/woo1.json -w \"store-api: %{http_code}\\\\n\")",
+      "Bash(curl -s -m 25 -D- -o /dev/null \"https://usscproducts.com/wp-json/wc/store/v1/products?per_page=1\")",
+      "Bash(curl -s -m 25 \"https://usscproducts.com/wp-sitemap.xml\")",
+      "Bash(curl -s -m 20 -o /dev/null -w \"product-sitemap: %{http_code}\\\\n\" \"https://usscproducts.com/product-sitemap.xml\")",
+      "Bash(curl -s -m 25 \"https://usscproducts.com/wp-json/wc/store/v1/products?per_page=2&page=1\")",
+      "Bash(curl -s -m 25 -D- -o /tmp/cats.json \"https://usscproducts.com/wp-json/wc/store/v1/products/categories?per_page=100\")",
+      "Bash(scp -q /tmp/addr.php root@159.223.177.58:/tmp/addr.php)",
+      "Bash(scp -q /tmp/a2.php root@159.223.177.58:/tmp/a2.php)",
+      "Bash(python3 test_qbxml.py)",
+      "Bash(python3 -c \"import ast;ast.parse\\(open\\('qb_bridge.py'\\).read\\(\\)\\);print\\('qb_bridge.py OK'\\)\")",
+      "Bash(scp -q /tmp/tx.php root@159.223.177.58:/tmp/tx.php)"
     ]
   }
 }

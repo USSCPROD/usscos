@@ -57,6 +57,8 @@ class QbExportRepository
                    i.po_number           AS PONumber,
                    i.memo                AS Memo,
                    i.subtotal, i.tax_amount, i.total_amount, i.balance_due,
+                   i.tax_source, i.taxable_subtotal, i.tax_rate_applied, i.tax_reason,
+                   i.marketplace_tax_collected,
                    c.quickbooks_name     AS CustomerRefFullName,
                    c.company_name,
                    pt.name               AS TermsRefFullName,
@@ -76,8 +78,15 @@ class QbExportRepository
             LIMIT {$limit}
         ", $gateParams);
 
+        // The QuickBooks item names travel with the record rather than being configured
+        // again on the Windows box. One source of truth, and the bridge stays a transport.
+        $taxItem     = (string)(\App\Core\Config::get('quickbooks.tax_item') ?? '');
+        $taxLineItem = (string)(\App\Core\Config::get('quickbooks.tax_line_item') ?? '');
+
         foreach ($invoices as &$inv) {
-            $inv['lines'] = $this->invoiceLines((int)$inv['id']);
+            $inv['lines']            = $this->invoiceLines((int)$inv['id']);
+            $inv['ItemSalesTaxRef']  = $taxItem;
+            $inv['TaxLineItemRef']   = $taxLineItem;
         }
         return $invoices;
     }

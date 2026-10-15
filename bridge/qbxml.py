@@ -165,14 +165,26 @@ def customer_query_by_name(full_name: str, request_id: str = "1") -> str:
 
 # -------------------------------------------------------------------- writes
 
+def _tax_code(is_taxable) -> str:
+    """QuickBooks' two built-in sales tax codes. Any company file has both."""
+    truthy = str(is_taxable).strip().lower() in ("1", "true", "t", "yes", "y")
+    return "Tax" if truthy else "Non"
+
+
 def _invoice_line(line: dict) -> str:
     """
     InvoiceLineAdd, in schema order:
-        ItemRef, Desc, Quantity, UnitOfMeasure, Rate, ClassRef, Amount, ...
+        ItemRef, Desc, Quantity, UnitOfMeasure, Rate, ClassRef, Amount, ...,
+        SalesTaxCodeRef, ...
 
     Rate is sent, not Amount. QuickBooks then computes the extension itself, and the
     caller compares its total against ours - see check_total(). Sending both invites a
     silent disagreement where QuickBooks keeps one and we believe the other.
+
+    SalesTaxCodeRef is sent even though the invoice carries a 0% tax item and the tax
+    therefore computes to zero either way. It costs nothing and it keeps the record
+    honest: which lines were taxable is a fact about the sale, and a year from now
+    nobody should have to infer it.
     """
     return (
         "        <InvoiceLineAdd>\n"
@@ -181,6 +193,52 @@ def _invoice_line(line: dict) -> str:
         f"          {_el('Quantity', _qty(line.get('Quantity')))}\n"
         f"          {_el('UnitOfMeasure', line.get('UOM'))}\n"
         f"          {_el('Rate', _amount(line.get('Rate')))}\n"
+        f"          {_ref('SalesTaxCodeRef', _tax_code(line.get('is_taxable')))}\n"
+        "        </InvoiceLineAdd>"
+    )
+
+
+def _tax_line(rec: dict) -> str:
+    """
+    Sales tax as an ordinary line, which is the only way QuickBooks will accept our
+    figure. Sent as Amount rather than Rate because it is a flat charge, not a unit price.
+
+    Only for tax USSCOS itself charged. A marketplace order's tax was collected and
+    remitted by Amazon - it is not ours, we never owe it, and putting it on the invoice
+    would inflate both revenue and the liability account. It stays on the USSCOS record
+    in marketplace_tax_collected, where the tax screen reports it separately.
+    """
+    if str(rec.get("tax_source") or "").strip().lower() != "usscos":
+        return ""
+
+    amount = _amount(rec.get("tax_amount"))
+    if not amount or Decimal(amount) == 0:
+        return ""
+
+    item = rec.get("TaxLineItemRef")
+    if not item:
+        raise QBXMLError(
+            0,
+            f"Invoice {rec.get('RefNumber')} has {amount} of sales tax but no QuickBooks "
+            "item to post it to. Set QB_TAX_LINE_ITEM.",
+        )
+
+    # The reason line records WHY this rate applied - county, or the fallback that was
+    # used. Reconciling a tax figure two years later without it is guesswork.
+    desc = rec.get("tax_reason") or "Sales tax"
+    rate = rec.get("tax_rate_applied")
+    if rate:
+        try:
+            desc = f"{desc} ({Decimal(str(rate)) * 100:.3f}%)"
+        except (InvalidOperation, ValueError):
+            pass
+
+    return (
+        "        <InvoiceLineAdd>\n"
+        f"          {_ref('ItemRef', item)}\n"
+        f"          {_el('Desc', desc)}\n"
+        f"          {_el('Amount', amount)}\n"
+        f"          {_ref('SalesTaxCodeRef', 'Non')}\n"
         "        </InvoiceLineAdd>"
     )
 
@@ -192,10 +250,16 @@ def invoice_add(rec: dict, request_id: str = "1", version: str = DEFAULT_VERSION
     Field order below is the InvoiceAdd sequence from the qbXML spec. It is not
     alphabetical and not the order of our payload. Do not sort it.
     """
-    lines = "\n".join(_invoice_line(l) for l in (rec.get("lines") or []))
+    parts = [_invoice_line(l) for l in (rec.get("lines") or [])]
 
-    if not lines:
+    if not parts:
         raise QBXMLError(0, f"Invoice {rec.get('RefNumber')} has no lines")
+
+    tax = _tax_line(rec)
+    if tax:
+        parts.append(tax)
+
+    lines = "\n".join(parts)
 
     body = (
         f'    <InvoiceAddRq requestID="{_esc(request_id)}">\n'
@@ -208,6 +272,7 @@ def invoice_add(rec: dict, request_id: str = "1", version: str = DEFAULT_VERSION
         f"        {_el('DueDate', rec.get('DueDate'))}\n"
         f"        {_el('ShipDate', rec.get('ShipDate'))}\n"
         f"        {_ref('ShipMethodRef', rec.get('ShipMethodRefFullName'))}\n"
+        f"        {_ref('ItemSalesTaxRef', rec.get('ItemSalesTaxRef'))}\n"
         f"        {_el('Memo', rec.get('Memo'))}\n"
         f"{lines}\n"
         "      </InvoiceAdd>\n"
