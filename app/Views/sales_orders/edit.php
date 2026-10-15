@@ -284,15 +284,13 @@ $hasShipAddr = !empty($so['ship_address_1']);
     its own multipart post. It writes to the same endpoint the saved order page uses, so
     there is one upload path rather than two that have to be kept in step.
 -->
-<?php if (!function_exists('soEditDocLbl')) {
-    function soEditDocLbl(): string {
-        return 'font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.3rem';
-    }
-    function soEditDocInp(): string {
-        return 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;border:1px solid #d1d5db;'
-             . 'border-radius:5px;box-sizing:border-box;background:#fff;color:#111';
-    }
-} ?>
+<?php
+// A variable, not a view-local function. Two views declaring the same function name in
+// one request is a fatal error that renders half a page and reads as a broken layout -
+// see CLAUDE.md. show.php uses $jbInp for the same thing.
+$soEditDocInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;border:1px solid #d1d5db;'
+              . 'border-radius:5px;box-sizing:border-box;background:#fff;color:#111';
+?>
 
 <div id="documents" style="margin-top:1.5rem">
     <div style="border-bottom:2px solid #d1d5db;padding-bottom:.5rem;margin-bottom:1rem">
@@ -340,7 +338,7 @@ $hasShipAddr = !empty($so['ship_address_1']);
                 <tr>
                     <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280;width:7rem">Kind</td>
                     <td style="padding:.3rem 0;width:40%">
-                        <select name="doc_type" style="<?= soEditDocInp() ?>">
+                        <select name="doc_type" style="<?= $soEditDocInp ?>">
                             <?php foreach (\App\Services\JobDocumentService::TYPES as $typeKey => $typeLabel): ?>
                                 <option value="<?= e($typeKey) ?>"><?= e($typeLabel) ?></option>
                             <?php endforeach; ?>
@@ -349,13 +347,13 @@ $hasShipAddr = !empty($so['ship_address_1']);
                     <td style="padding:.3rem .6rem;font-size:.85rem;color:#6b7280;width:7rem">Reference</td>
                     <td style="padding:.3rem 0">
                         <input type="text" name="reference_num" maxlength="100"
-                               value="<?= e($so['po_number'] ?? '') ?>" style="<?= soEditDocInp() ?>">
+                               value="<?= e($so['po_number'] ?? '') ?>" style="<?= $soEditDocInp ?>">
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:.3rem .6rem .3rem 0;font-size:.85rem;color:#6b7280">File</td>
                     <td colspan="3" style="padding:.3rem 0">
-                        <input type="file" name="document_file" required style="<?= soEditDocInp() ?>;padding:.4rem">
+                        <input type="file" name="document_file" required style="<?= $soEditDocInp ?>;padding:.4rem">
                     </td>
                 </tr>
             </table>
