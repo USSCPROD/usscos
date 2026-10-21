@@ -375,7 +375,11 @@
       "Bash(grep -n '<form\\\\|</form>\\\\|ob_get_clean\\\\|$content =' app/Views/sales_orders/edit.php)",
       "Bash(php -l app/Views/sales_orders/create.php)",
       "Bash(php -l app/Views/sales_orders/edit.php)",
-      "Bash(grep -n '$_FILES\\\\['\\\\''document'\\\\''\\\\]\\\\|'\\\\''document'\\\\''' app/Controllers/JobBinderController.php)"
+      "Bash(grep -n '$_FILES\\\\['\\\\''document'\\\\''\\\\]\\\\|'\\\\''document'\\\\''' app/Controllers/JobBinderController.php)",
+      "Bash(scp -q /tmp/ch2.php root@159.223.177.58:/tmp/ch2.php)",
+      "Bash(php -l app/Services/SalesOrderService.php)",
+      "Bash(grep -c 'channelFields\\($post\\)' app/Services/SalesOrderService.php)",
+      "Bash(scp -q /tmp/render2.php root@159.223.177.58:/tmp/render2.php)"
     ]
   }
 }

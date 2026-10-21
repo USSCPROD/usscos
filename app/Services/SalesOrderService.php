@@ -65,6 +65,42 @@ class SalesOrderService
         ];
     }
 
+
+    /**
+     * Where the order came from, and what the marketplace already did about tax.
+     *
+     * The channel is not cosmetic. TaxService refuses to charge tax on a marketplace
+     * order because Amazon has already collected and remitted it - so an Amazon order
+     * saved as 'direct' is charged Georgia tax a second time, overcharging a customer
+     * and booking a liability that was never ours. It also drives which records the
+     * QuickBooks bridge is allowed to take.
+     *
+     * Unknown values fall back to 'direct' rather than being written through, because
+     * channel is an enum and MySQL would otherwise coerce a bad value to an empty
+     * string under some modes.
+     */
+    private function channelFields(array $post): array
+    {
+        $allowed = ['direct', 'amazon', 'website', 'pickup', 'edi', 'other'];
+        $channel = strtolower(trim((string)($post['channel'] ?? 'direct')));
+
+        if (!in_array($channel, $allowed, true)) {
+            $channel = 'direct';
+        }
+
+        // Only a marketplace order can carry marketplace tax. Keeping the figure on a
+        // direct order would quietly understate what USSC owes.
+        $collected = $channel === 'amazon'
+            ? round((float)($post['marketplace_tax_collected'] ?? 0), 2)
+            : 0.0;
+
+        return [
+            ':channel'                   => $channel,
+            ':channel_reference'         => trim((string)($post['channel_reference'] ?? '')) ?: null,
+            ':marketplace_tax_collected' => $collected,
+        ];
+    }
+
     public function store(int $userId, array $post): int
     {
         $lines    = $this->parseLines($post);
@@ -95,6 +131,7 @@ class SalesOrderService
             ':total_amount'       => $totals['total'],
             ':memo'               => ($post['memo'] ?? '') ?: null,
             ':internal_notes'     => ($post['internal_notes'] ?? '') ?: null,
+            ...$this->channelFields($post),
         ]);
 
         $this->repo->replaceLineItems($soId, $lines);
@@ -150,6 +187,7 @@ class SalesOrderService
             ':total_amount'       => $totals['total'],
             ':memo'               => ($post['memo'] ?? '') ?: null,
             ':internal_notes'     => ($post['internal_notes'] ?? '') ?: null,
+            ...$this->channelFields($post),
         ]);
 
         $this->repo->replaceLineItems($id, $lines);

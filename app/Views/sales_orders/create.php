@@ -119,6 +119,51 @@ $currentUser = \App\Core\Auth::user();
         </tr>
     </table>
 
+
+    <!-- ── Channel ───────────────────────────────────────────────────────
+         Where the order came from. Not cosmetic: a marketplace order must NOT be
+         charged sales tax, because Amazon has already collected and remitted it, and
+         the channel is what tells the tax engine so. It also decides which records the
+         QuickBooks bridge is allowed to take.
+    -->
+    <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #d1d5db;background:#f8f9fb;table-layout:fixed">
+        <tr>
+            <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:20%">
+                <div style="<?= soLblStyle() ?>">Channel</div>
+                <select name="channel" id="soChannel" style="<?= soInpStyle() ?>">
+                    <?php foreach ([
+                        'direct'  => 'Direct',
+                        'amazon'  => 'Amazon',
+                        'website' => 'Website',
+                        'pickup'  => 'Pickup',
+                        'edi'     => 'EDI',
+                        'other'   => 'Other',
+                    ] as $chKey => $chLabel): ?>
+                        <option value="<?= e($chKey) ?>"<?= ($soChannelValue ?? 'direct') === $chKey ? ' selected' : '' ?>><?= e($chLabel) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
+            <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:30%">
+                <div style="<?= soLblStyle() ?>">Marketplace Order ID</div>
+                <input type="text" name="channel_reference" id="soChannelRef" maxlength="100"
+                       value="<?= e($soChannelRef ?? '') ?>"
+                       placeholder="e.g. 113-1234567-1234567" style="<?= soInpStyle() ?>">
+            </td>
+            <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:25%" id="mktTaxCell">
+                <div style="<?= soLblStyle() ?>">Tax Amazon Collected</div>
+                <input type="number" step="0.01" min="0" name="marketplace_tax_collected"
+                       value="<?= e((string)($soMktTax ?? '')) ?>"
+                       placeholder="0.00" style="<?= soInpStyle() ?>">
+                <div style="font-size:.72rem;color:#9ca3af;margin-top:.3rem;line-height:1.35">
+                    From the packing slip. Recorded only &mdash; never billed, never remitted.
+                </div>
+            </td>
+            <td style="padding:.85rem 1.25rem;vertical-align:top;width:25%">
+                <div id="chHint" style="font-size:.78rem;color:#6b7280;line-height:1.45"></div>
+            </td>
+        </tr>
+    </table>
+
     <!-- ── Meta row: PO · Terms · Rep · Processed By · Ship Via ──────────── -->
     <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #d1d5db;background:#f8f9fb;table-layout:fixed">
         <tr>
@@ -299,6 +344,32 @@ function soThStyle(): string {
 ?>
 
 <script>
+/*
+ * The marketplace fields only make sense for a marketplace order, and the tax
+ * consequence is worth stating on screen rather than leaving someone to discover it
+ * on the invoice.
+ */
+(function () {
+    var sel  = document.getElementById('soChannel');
+    var cell = document.getElementById('mktTaxCell');
+    var ref  = document.getElementById('soChannelRef');
+    var hint = document.getElementById('chHint');
+    if (!sel) return;
+
+    function sync() {
+        var amazon = sel.value === 'amazon';
+        if (cell) cell.style.display = amazon ? '' : 'none';
+        if (ref)  ref.closest('td').style.display = (amazon || sel.value === 'website') ? '' : 'none';
+        if (hint) {
+            hint.textContent = amazon
+                ? 'No sales tax will be charged — Amazon collected and remits it.'
+                : (sel.value === 'website' ? 'Tax is calculated from the ship-to address.' : '');
+        }
+    }
+    sel.addEventListener('change', sync);
+    sync();
+})();
+
 /*
  * A customer PO is filed under its PO number - that is what people search by years
  * later - so the binder refuses one without it. Ask here, where the order can still be

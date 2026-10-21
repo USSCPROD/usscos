@@ -134,6 +134,45 @@ $hasShipAddr = !empty($so['ship_address_1']);
         </tr>
     </table>
 
+
+    <!-- ── Channel ───────────────────────────────────────────────────────
+         A marketplace order must NOT be charged sales tax - Amazon collected and
+         remits it - and the channel is what tells the tax engine so. Changing it here
+         re-resolves the tax on the next save.
+    -->
+    <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #d1d5db;background:#f8f9fb;table-layout:fixed">
+        <tr>
+            <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:20%">
+                <div style="<?= soInpStyle2('lbl') ?>">Channel</div>
+                <select name="channel" id="soChannel" style="<?= soInpStyle2('inp') ?>">
+                    <?php foreach ([
+                        'direct'  => 'Direct',
+                        'amazon'  => 'Amazon',
+                        'website' => 'Website',
+                        'pickup'  => 'Pickup',
+                        'edi'     => 'EDI',
+                        'other'   => 'Other',
+                    ] as $chKey => $chLabel): ?>
+                        <option value="<?= e($chKey) ?>"<?= (string)($so['channel'] ?? 'direct') === $chKey ? ' selected' : '' ?>><?= e($chLabel) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
+            <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:30%">
+                <div style="<?= soInpStyle2('lbl') ?>">Marketplace Order ID</div>
+                <input type="text" name="channel_reference" id="soChannelRef" maxlength="100"
+                       value="<?= e($so['channel_reference'] ?? '') ?>" style="<?= soInpStyle2('inp') ?>">
+            </td>
+            <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:25%" id="mktTaxCell">
+                <div style="<?= soInpStyle2('lbl') ?>">Tax Amazon Collected</div>
+                <input type="number" step="0.01" min="0" name="marketplace_tax_collected"
+                       value="<?= e((string)($so['marketplace_tax_collected'] ?? '')) ?>" style="<?= soInpStyle2('inp') ?>">
+            </td>
+            <td style="padding:.85rem 1.25rem;vertical-align:top;width:25%">
+                <div id="chHint" style="font-size:.78rem;color:#6b7280;line-height:1.45"></div>
+            </td>
+        </tr>
+    </table>
+
     <!-- ── Meta row: PO · Terms · Rep · Processed By · Ship Via ──────────── -->
     <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #d1d5db;background:#f8f9fb;table-layout:fixed">
         <tr>
@@ -365,6 +404,24 @@ $soEditDocInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inh
 </div>
 
 <script>
+(function () {
+    var sel  = document.getElementById('soChannel');
+    var cell = document.getElementById('mktTaxCell');
+    var ref  = document.getElementById('soChannelRef');
+    var hint = document.getElementById('chHint');
+    if (!sel) return;
+    function sync() {
+        var amazon = sel.value === 'amazon';
+        if (cell) cell.style.display = amazon ? '' : 'none';
+        if (ref)  ref.closest('td').style.display = (amazon || sel.value === 'website') ? '' : 'none';
+        if (hint) hint.textContent = amazon
+            ? 'No sales tax will be charged — Amazon collected and remits it.'
+            : (sel.value === 'website' ? 'Tax is calculated from the ship-to address.' : '');
+    }
+    sel.addEventListener('change', sync);
+    sync();
+})();
+
 var EXISTING_LINES = <?= json_encode(array_values($line_items), JSON_HEX_TAG) ?>;
 </script>
 
