@@ -142,6 +142,7 @@ $currentUser = \App\Core\Auth::user();
                         <option value="<?= e($chKey) ?>"<?= ($soChannelValue ?? 'direct') === $chKey ? ' selected' : '' ?>><?= e($chLabel) ?></option>
                     <?php endforeach; ?>
                 </select>
+                <div id="chHint" style="font-size:.72rem;color:#6b7280;margin-top:.4rem;line-height:1.4"></div>
             </td>
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:30%">
                 <div style="<?= soLblStyle() ?>">Marketplace Order ID</div>
@@ -158,8 +159,14 @@ $currentUser = \App\Core\Auth::user();
                     From the packing slip. Recorded only &mdash; never billed, never remitted.
                 </div>
             </td>
-            <td style="padding:.85rem 1.25rem;vertical-align:top;width:25%">
-                <div id="chHint" style="font-size:.78rem;color:#6b7280;line-height:1.45"></div>
+            <td style="padding:.85rem 1.25rem;vertical-align:top;width:25%" id="mktFeeCell">
+                <div style="<?= soLblStyle() ?>">Amazon Fee</div>
+                <input type="number" step="0.01" min="0" name="marketplace_fee"
+                       value="<?= e((string)($soMktFee ?? '')) ?>"
+                       placeholder="0.00" style="<?= soInpStyle() ?>">
+                <div style="font-size:.72rem;color:#9ca3af;margin-top:.3rem;line-height:1.35">
+                    What Amazon keeps. A cost to USSC &mdash; never billed to the buyer.
+                </div>
             </td>
         </tr>
     </table>
@@ -359,6 +366,8 @@ function soThStyle(): string {
     function sync() {
         var amazon = sel.value === 'amazon';
         if (cell) cell.style.display = amazon ? '' : 'none';
+        var feeCell = document.getElementById('mktFeeCell');
+        if (feeCell) feeCell.style.display = amazon ? '' : 'none';
         if (ref)  ref.closest('td').style.display = (amazon || sel.value === 'website') ? '' : 'none';
         if (hint) {
             hint.textContent = amazon

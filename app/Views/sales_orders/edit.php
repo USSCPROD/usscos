@@ -156,6 +156,7 @@ $hasShipAddr = !empty($so['ship_address_1']);
                         <option value="<?= e($chKey) ?>"<?= (string)($so['channel'] ?? 'direct') === $chKey ? ' selected' : '' ?>><?= e($chLabel) ?></option>
                     <?php endforeach; ?>
                 </select>
+                <div id="chHint" style="font-size:.72rem;color:#6b7280;margin-top:.4rem;line-height:1.4"></div>
             </td>
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:30%">
                 <div style="<?= soInpStyle2('lbl') ?>">Marketplace Order ID</div>
@@ -167,8 +168,14 @@ $hasShipAddr = !empty($so['ship_address_1']);
                 <input type="number" step="0.01" min="0" name="marketplace_tax_collected"
                        value="<?= e((string)($so['marketplace_tax_collected'] ?? '')) ?>" style="<?= soInpStyle2('inp') ?>">
             </td>
-            <td style="padding:.85rem 1.25rem;vertical-align:top;width:25%">
-                <div id="chHint" style="font-size:.78rem;color:#6b7280;line-height:1.45"></div>
+            <td style="padding:.85rem 1.25rem;vertical-align:top;width:25%" id="mktFeeCell">
+                <div style="<?= soInpStyle2('lbl') ?>">Amazon Fee</div>
+                <input type="number" step="0.01" min="0" name="marketplace_fee"
+                       value="<?= e((string)($so['marketplace_fee'] ?? '')) ?>"
+                       placeholder="0.00" style="<?= soInpStyle2('inp') ?>">
+                <div style="font-size:.72rem;color:#9ca3af;margin-top:.3rem;line-height:1.35">
+                    What Amazon keeps. A cost to USSC &mdash; never billed to the buyer.
+                </div>
             </td>
         </tr>
     </table>
@@ -413,6 +420,8 @@ $soEditDocInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inh
     function sync() {
         var amazon = sel.value === 'amazon';
         if (cell) cell.style.display = amazon ? '' : 'none';
+        var feeCell = document.getElementById('mktFeeCell');
+        if (feeCell) feeCell.style.display = amazon ? '' : 'none';
         if (ref)  ref.closest('td').style.display = (amazon || sel.value === 'website') ? '' : 'none';
         if (hint) hint.textContent = amazon
             ? 'No sales tax will be charged — Amazon collected and remits it.'

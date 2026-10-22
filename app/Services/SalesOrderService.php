@@ -88,16 +88,22 @@ class SalesOrderService
             $channel = 'direct';
         }
 
-        // Only a marketplace order can carry marketplace tax. Keeping the figure on a
-        // direct order would quietly understate what USSC owes.
-        $collected = $channel === 'amazon'
-            ? round((float)($post['marketplace_tax_collected'] ?? 0), 2)
-            : 0.0;
+        // Only a marketplace order can carry marketplace tax or a marketplace fee.
+        // Keeping either on a direct order would quietly misstate what USSC owes and
+        // what it earned.
+        $isMarketplace = $channel === 'amazon';
+        $collected = $isMarketplace ? round((float)($post['marketplace_tax_collected'] ?? 0), 2) : 0.0;
+        $fee       = $isMarketplace ? round((float)($post['marketplace_fee'] ?? 0), 2) : 0.0;
 
         return [
             ':channel'                   => $channel,
             ':channel_reference'         => trim((string)($post['channel_reference'] ?? '')) ?: null,
             ':marketplace_tax_collected' => $collected,
+            ':marketplace_fee'           => $fee,
+            // Typed by a person here. The settlement importer will overwrite with the
+            // authoritative figure and stamp 'settlement', which is how you tell an
+            // estimate from a fact later.
+            ':marketplace_fee_source'    => $fee > 0 ? 'manual' : 'none',
         ];
     }
 

@@ -158,7 +158,8 @@ class SalesOrderRepository
                  ship_city, ship_state, ship_zip, ship_phone,
                  subtotal, discount_amount, tax_amount, total_amount,
                  memo, internal_notes,
-                 channel, channel_reference, marketplace_tax_collected)
+                 channel, channel_reference, marketplace_tax_collected,
+                 marketplace_fee, marketplace_fee_source)
             VALUES
                 (:so_number, :customer_id, :created_by, :rep_id, :status, :order_date,
                  :requested_ship_date, :po_number, :ship_via_id, :tax_rate_id,
@@ -166,7 +167,8 @@ class SalesOrderRepository
                  :ship_city, :ship_state, :ship_zip, :ship_phone,
                  :subtotal, :discount_amount, :tax_amount, :total_amount,
                  :memo, :internal_notes,
-                 :channel, :channel_reference, :marketplace_tax_collected)
+                 :channel, :channel_reference, :marketplace_tax_collected,
+                 :marketplace_fee, :marketplace_fee_source)
         ");
         $stmt->execute($data);
         return (int)$this->pdo->lastInsertId();
@@ -200,7 +202,9 @@ class SalesOrderRepository
                 internal_notes      = :internal_notes,
                 channel             = :channel,
                 channel_reference   = :channel_reference,
-                marketplace_tax_collected = :marketplace_tax_collected
+                marketplace_tax_collected = :marketplace_tax_collected,
+                marketplace_fee          = :marketplace_fee,
+                marketplace_fee_source   = :marketplace_fee_source
             WHERE id = :id
         ");
         $data[':id'] = $id;
