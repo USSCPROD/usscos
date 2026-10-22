@@ -84,11 +84,16 @@ class DashboardService extends Service
             WHERE status NOT IN ('void', 'paid') AND balance_due > 0
         ");
 
+        // Restricted to the A/R period - see App\Services\ArPeriod and migration 096.
+        // Without it this reports 1.63 million of imported history whose payments were
+        // never brought across from QuickBooks.
+        [$arWhere, $arParams] = (new ArPeriod())->clause('');
         $overdue = Database::selectOne("
             SELECT COALESCE(SUM(balance_due), 0) AS total, COUNT(*) AS n
             FROM invoices
             WHERE status NOT IN ('void', 'paid') AND balance_due > 0 AND due_date < CURDATE()
-        ");
+              {$arWhere}
+        ", $arParams);
 
         $orders = Database::selectOne("
             SELECT COUNT(*) AS n
@@ -381,14 +386,42 @@ class DashboardService extends Service
             ];
         }
 
+        $ar = new ArPeriod();
+        [$arWhere, $arParams] = $ar->clause('');
+
         $overdue = Database::selectOne("
             SELECT COUNT(*) AS n, COALESCE(SUM(balance_due), 0) AS total
             FROM invoices WHERE status NOT IN ('void', 'paid') AND balance_due > 0 AND due_date < CURDATE()
-        ");
+              {$arWhere}
+        ", $arParams);
         $add($items, (int)$overdue['n'],
             '$' . number_format((float)$overdue['total'], 2) . ' overdue',
             (int)$overdue['n'] . ' invoice' . ((int)$overdue['n'] === 1 ? '' : 's') . ' past their due date.',
             '/accounting/ar-aging', 'red');
+
+        // With no opening date set, say what is actually true rather than reporting a
+        // total nobody should act on. Imported invoices arrived without their payments,
+        // so they will read as overdue for ever - that is a fact about the import, not
+        // about any customer, and dressing it up as money owed is how a dashboard loses
+        // its readers.
+        if (!$ar->isSet()) {
+            $history = $ar->unexplainedHistory();
+
+            if ($history['count'] > 0) {
+                $items[] = [
+                    'title'    => 'A/R is not meaningful yet',
+                    'subtitle' => sprintf(
+                        '%s invoices worth $%s were imported without their payments, so they '
+                        . 'read as unpaid. Set an A/R opening date in Admin, or import the '
+                        . 'payments, before trusting any receivables figure.',
+                        number_format($history['count']),
+                        number_format($history['balance'], 2)
+                    ),
+                    'url'   => '/admin',
+                    'color' => 'amber',
+                ];
+            }
+        }
 
         return $items;
     }

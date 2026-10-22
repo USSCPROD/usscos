@@ -93,6 +93,10 @@ class AccountingRepository
      */
     public function arAging(): array
     {
+        // Restricted to the A/R period, same definition the dashboard uses, so the two
+        // cannot quote different totals for the same question. See migration 096.
+        [$arWhere, $arParams] = (new \App\Services\ArPeriod())->clause('i');
+
         return Database::select("
             SELECT c.id            AS customer_id,
                    c.company_name,
@@ -109,14 +113,17 @@ class AccountingRepository
             JOIN customers c ON c.id = i.customer_id
             WHERE i.balance_due > 0
               AND i.status NOT IN ('void','paid')
+              {$arWhere}
             GROUP BY c.id, c.company_name, c.rep_id
             ORDER BY d90_plus DESC, d61_90 DESC, total_due DESC
-        ");
+        ", $arParams);
     }
 
     /** Column totals for the aging report. */
     public function arAgingTotals(): array
     {
+        [$arWhere, $arParams] = (new \App\Services\ArPeriod())->clause('i');
+
         return Database::selectOne("
             SELECT COUNT(*) AS invoice_count,
                    COUNT(DISTINCT i.customer_id) AS customer_count,
@@ -128,7 +135,8 @@ class AccountingRepository
                    COALESCE(SUM(CASE WHEN DATEDIFF(CURDATE(), i.due_date) > 90 THEN i.balance_due ELSE 0 END),0) AS d90_plus
             FROM invoices i
             WHERE i.balance_due > 0 AND i.status NOT IN ('void','paid')
-        ") ?: [];
+              {$arWhere}
+        ", $arParams) ?: [];
     }
 
     /** Individual open invoices for one customer, oldest first. */

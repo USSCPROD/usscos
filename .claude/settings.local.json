@@ -383,7 +383,13 @@
       "Bash(scp -q /tmp/amz.php root@159.223.177.58:/tmp/amz.php)",
       "Bash(scp -q /tmp/r3.php root@159.223.177.58:/tmp/r3.php)",
       "Bash(scp -q /tmp/d3.php root@159.223.177.58:/tmp/d3.php)",
-      "Bash(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@159.223.177.58 'true')"
+      "Bash(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@159.223.177.58 'true')",
+      "Bash(scp -q /tmp/sw.php root@159.223.177.58:/tmp/sw.php)",
+      "Bash(scp -q /tmp/ar.php root@159.223.177.58:/tmp/ar.php)",
+      "Bash(scp -q /tmp/s2.php root@159.223.177.58:/tmp/s2.php)",
+      "Bash(php -l app/Repositories/AccountingRepository.php)",
+      "Bash(php -l app/Services/ArPeriod.php)",
+      "Bash(php -l app/Repositories/SettingsRepository.php)"
     ]
   }
 }
