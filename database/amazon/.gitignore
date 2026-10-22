@@ -1,0 +1,10 @@
+# Amazon reports contain buyer names, addresses and phone numbers. Amazon's Data
+# Protection Policy requires that PII be deleted within 30 days of delivery, and a git
+# history is the opposite of deletable - a committed file is there for ever, on every
+# clone, in every backup.
+#
+# Nothing in this directory is committed. The importers read from here and the files are
+# deleted afterwards.
+*
+!.gitignore
+!README.md
