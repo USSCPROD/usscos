@@ -379,7 +379,11 @@
       "Bash(scp -q /tmp/ch2.php root@159.223.177.58:/tmp/ch2.php)",
       "Bash(php -l app/Services/SalesOrderService.php)",
       "Bash(grep -c 'channelFields\\($post\\)' app/Services/SalesOrderService.php)",
-      "Bash(scp -q /tmp/render2.php root@159.223.177.58:/tmp/render2.php)"
+      "Bash(scp -q /tmp/render2.php root@159.223.177.58:/tmp/render2.php)",
+      "Bash(scp -q /tmp/amz.php root@159.223.177.58:/tmp/amz.php)",
+      "Bash(scp -q /tmp/r3.php root@159.223.177.58:/tmp/r3.php)",
+      "Bash(scp -q /tmp/d3.php root@159.223.177.58:/tmp/d3.php)",
+      "Bash(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@159.223.177.58 'true')"
     ]
   }
 }

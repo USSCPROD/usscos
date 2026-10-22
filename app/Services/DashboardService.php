@@ -134,6 +134,56 @@ class DashboardService extends Service
      * why they belong on the front page.
      */
     /**
+     * The server needing attention.
+     *
+     * Ubuntu installs security patches on its own but will not reboot, so a patched
+     * kernel and libc can sit on disk doing nothing while every running process keeps
+     * using the old ones. That is not a visible failure - nothing breaks, the site stays
+     * up - so it is only ever noticed when somebody goes looking. It went unnoticed here
+     * for eleven weeks and twenty-three kernel releases, until a vendor advisory about
+     * something else prompted a look.
+     *
+     * Deliberately not fixed by letting unattended-upgrades reboot on its own: that would
+     * drop the warehouse, the office and the reps mid-order at 2am-ish with no warning.
+     * A person should choose the moment. This just makes sure they know there is a moment
+     * to choose.
+     */
+    private function serverWarnings(): array
+    {
+        if (!is_file('/var/run/reboot-required')) {
+            return [];
+        }
+
+        $why = @file_get_contents('/var/run/reboot-required.pkgs');
+        $pkgs = $why === false ? [] : array_values(array_unique(array_filter(
+            array_map('trim', explode("\n", $why))
+        )));
+
+        // Name the kernel and libc explicitly. "linux-base" means nothing to the person
+        // reading the dashboard, but "the kernel has been patched" does.
+        $plain = [];
+        foreach ($pkgs as $p) {
+            if (str_starts_with($p, 'linux-image') || str_starts_with($p, 'linux-base')) {
+                $plain['kernel'] = 'the kernel';
+            } elseif (str_starts_with($p, 'libc')) {
+                $plain['libc'] = 'the C library';
+            } else {
+                $plain[$p] = $p;
+            }
+        }
+
+        $since = @filemtime('/var/run/reboot-required');
+        $days  = $since ? (int)floor((time() - $since) / 86400) : null;
+
+        return [sprintf(
+            'Security updates to %s are installed but will not take effect until the '
+            . 'server is restarted%s. Ask for a reboot at a quiet moment.',
+            $plain === [] ? 'the system' : implode(' and ', array_values($plain)),
+            $days !== null && $days > 0 ? ", waiting {$days} day" . ($days === 1 ? '' : 's') : ''
+        )];
+    }
+
+    /**
      * Reasons to think the QuickBooks bridge has stopped working.
      *
      * Two different faults, which look identical from the accounting side and need
@@ -319,6 +369,15 @@ class DashboardService extends Service
                 'subtitle' => $warning,
                 'url'      => '/accounting',
                 'color'    => 'red',
+            ];
+        }
+
+        foreach ($this->serverWarnings() as $warning) {
+            $items[] = [
+                'title'    => 'Server restart needed',
+                'subtitle' => $warning,
+                'url'      => '/admin',
+                'color'    => 'amber',
             ];
         }
 
