@@ -393,7 +393,11 @@
       "Bash(php -l app/Repositories/CustomerRepository.php)",
       "Bash(awk 'NR>=400 && NR<=520 && \\(/customer_id = \\\\?/ || /ORDER BY/ || /\\\\], \\\\[/ || /\\\\$customerId/ || /LIMIT/\\)' app/Repositories/CustomerRepository.php)",
       "Bash(grep -n '\\\\$customerId, \\\\$customerId' app/Repositories/CustomerRepository.php)",
-      "Bash(php -l app/Repositories/PaymentRepository.php)"
+      "Bash(php -l app/Repositories/PaymentRepository.php)",
+      "Bash(scp -q /tmp/amz2.php root@159.223.177.58:/tmp/amz2.php)",
+      "Bash(scp -q /tmp/amz3.php root@159.223.177.58:/tmp/amz3.php)",
+      "Bash(scp -q /tmp/amz4.php root@159.223.177.58:/tmp/amz4.php)",
+      "Bash(scp -q /tmp/coa.php root@159.223.177.58:/tmp/coa.php)"
     ]
   }
 }
