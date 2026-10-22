@@ -78,16 +78,17 @@ class DashboardService extends Service
               AND invoice_date >= DATE_FORMAT(CURDATE(), '%Y-01-01')
         ");
 
+        // Both A/R figures are restricted to the A/R period - see ArPeriod and
+        // migration 096. Without it they report 1.63 million of imported history whose
+        // payments were never brought across from QuickBooks.
+        [$arWhere, $arParams] = (new ArPeriod())->clause('');
+
         $ar = Database::selectOne("
             SELECT COALESCE(SUM(balance_due), 0) AS total, COUNT(*) AS n
             FROM invoices
             WHERE status NOT IN ('void', 'paid') AND balance_due > 0
-        ");
-
-        // Restricted to the A/R period - see App\Services\ArPeriod and migration 096.
-        // Without it this reports 1.63 million of imported history whose payments were
-        // never brought across from QuickBooks.
-        [$arWhere, $arParams] = (new ArPeriod())->clause('');
+              {$arWhere}
+        ", $arParams);
         $overdue = Database::selectOne("
             SELECT COALESCE(SUM(balance_due), 0) AS total, COUNT(*) AS n
             FROM invoices
@@ -394,10 +395,16 @@ class DashboardService extends Service
             FROM invoices WHERE status NOT IN ('void', 'paid') AND balance_due > 0 AND due_date < CURDATE()
               {$arWhere}
         ", $arParams);
-        $add($items, (int)$overdue['n'],
-            '$' . number_format((float)$overdue['total'], 2) . ' overdue',
-            (int)$overdue['n'] . ' invoice' . ((int)$overdue['n'] === 1 ? '' : 's') . ' past their due date.',
-            '/accounting/ar-aging', 'red');
+        // Only chase people for money when the figure can be stood behind. With no
+        // opening date these are overwhelmingly imported invoices whose payments never
+        // came across, and a red tile demanding action on them would be both wrong and
+        // contradicted by the amber one immediately below it.
+        if ($ar->isSet()) {
+            $add($items, (int)$overdue['n'],
+                '$' . number_format((float)$overdue['total'], 2) . ' overdue',
+                (int)$overdue['n'] . ' invoice' . ((int)$overdue['n'] === 1 ? '' : 's') . ' past their due date.',
+                '/accounting/ar-aging', 'red');
+        }
 
         // With no opening date set, say what is actually true rather than reporting a
         // total nobody should act on. Imported invoices arrived without their payments,
