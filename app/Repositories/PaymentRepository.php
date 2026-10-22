@@ -78,6 +78,13 @@ class PaymentRepository
 
     public function getOpenInvoicesForCustomer(int $customerId): array
     {
+        // What a payment can be applied to. Offering an imported invoice here would be
+        // worse than a wrong number on a report - somebody would apply a real payment to
+        // an invoice that was settled in QuickBooks two years ago, and the money would
+        // land against the wrong debt. Named placeholders, because this query uses them
+        // and PDO will not mix the two styles.
+        [$arWhere, $arParams] = (new \App\Services\ArPeriod())->clauseNamed('i');
+
         $stmt = $this->pdo->prepare("
             SELECT i.id, i.invoice_number, i.invoice_date, i.due_date,
                    i.total_amount, i.amount_paid, i.balance_due, i.status
@@ -85,9 +92,10 @@ class PaymentRepository
             WHERE i.customer_id = :cid
               AND i.status IN ('pending','partial','overdue')
               AND i.balance_due > 0
+              {$arWhere}
             ORDER BY i.invoice_date ASC, i.id ASC
         ");
-        $stmt->execute([':cid' => $customerId]);
+        $stmt->execute([':cid' => $customerId, ...$arParams]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 

@@ -64,6 +64,54 @@ class ArPeriod
     }
 
     /**
+     * The same restriction as a named parameter, for queries built with them.
+     *
+     * PDO refuses to mix named and positional placeholders in one statement, and some
+     * repositories are written with names. Rather than rewrite those queries - or, worse,
+     * let a second copy of this rule grow up beside the first - the rule is offered in
+     * both shapes.
+     *
+     * @return array{0:string, 1:array<string,string>}
+     */
+    public function clauseNamed(string $alias = 'i', string $param = ':ar_from'): array
+    {
+        $date = $this->openingDate();
+
+        if ($date === null) {
+            return ['', []];
+        }
+
+        $col = $alias === '' ? 'invoice_date' : $alias . '.invoice_date';
+
+        return [" AND {$col} >= {$param} ", [$param => $date]];
+    }
+
+    /**
+     * A boolean expression, for use INSIDE a SUM or CASE rather than in a WHERE.
+     *
+     * Needed because a customer's lifetime revenue, order count and first order date are
+     * perfectly good history and must NOT be restricted - only the balance figures are
+     * wrong, and only because the payments were never imported. Filtering the whole query
+     * would quietly erase years of legitimate sales history from the customer profile.
+     *
+     * Returns '1' when no opening date is set, so the expression is always valid SQL.
+     *
+     * @return array{0:string, 1:list<string>}
+     */
+    public function inScopeExpr(string $alias = 'i'): array
+    {
+        $date = $this->openingDate();
+
+        if ($date === null) {
+            return ['1', []];
+        }
+
+        $col = $alias === '' ? 'invoice_date' : $alias . '.invoice_date';
+
+        return ["({$col} >= ?)", [$date]];
+    }
+
+    /**
      * Invoices sitting outside the period with no payment record at all.
      *
      * This is the number that makes the case for setting an opening date: imported

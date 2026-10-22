@@ -242,6 +242,13 @@ class CustomerRepository extends Repository
      */
     public function getProfileStats(int $customerId): array
     {
+        // The balance figures - and ONLY those - are restricted to the A/R period.
+        // Lifetime revenue, order count and the first/last order dates are perfectly
+        // good history; it is only the balances that are wrong, and only because the
+        // payments were never imported alongside the invoices. Filtering the whole
+        // query would erase years of real sales history from the customer profile.
+        [$inScope, $scopeParams] = (new \App\Services\ArPeriod())->inScopeExpr('i');
+
         $row = Database::selectOne("
             SELECT
                 COUNT(*)                              AS order_count,
@@ -249,13 +256,13 @@ class CustomerRepository extends Repository
                 COALESCE(AVG(i.total_amount), 0)      AS avg_order_value,
                 MIN(i.invoice_date)                   AS first_order_date,
                 MAX(i.invoice_date)                   AS last_order_date,
-                COALESCE(SUM(i.balance_due), 0)       AS outstanding_balance,
-                SUM(CASE WHEN i.balance_due > 0 AND i.due_date < CURDATE()
+                COALESCE(SUM(CASE WHEN {$inScope} THEN i.balance_due ELSE 0 END), 0) AS outstanding_balance,
+                SUM(CASE WHEN i.balance_due > 0 AND i.due_date < CURDATE() AND {$inScope}
                          THEN i.balance_due ELSE 0 END) AS overdue_balance
             FROM invoices i
             WHERE i.customer_id = ?
               AND i.status != 'void'
-        ", [$customerId]) ?: [];
+        ", [...$scopeParams, ...$scopeParams, $customerId]) ?: [];
 
         $stats = [
             'order_count'         => (int)($row['order_count'] ?? 0),
@@ -397,6 +404,11 @@ class CustomerRepository extends Repository
     {
         $limit = max(1, min(300, $limit));
 
+        // An imported invoice shows a balance it has no business claiming - its payments
+        // stayed in QuickBooks - so outside the A/R period the row drops the
+        // "outstanding" note rather than asserting a figure.
+        [$inScope, $scopeParams] = (new \App\Services\ArPeriod())->inScopeExpr('i');
+
         return Database::select("
             (
                 SELECT 'note' AS event_type,
@@ -421,7 +433,7 @@ class CustomerRepository extends Repository
                             WHEN i.status = 'void'  THEN 'Invoice voided'
                             ELSE 'Invoice issued' END,
                        CONCAT('Invoice ', i.invoice_number,
-                              CASE WHEN i.balance_due > 0
+                              CASE WHEN i.balance_due > 0 AND {$inScope}
                                    THEN CONCAT(' — ', FORMAT(i.balance_due, 2), ' outstanding')
                                    ELSE '' END),
                        i.total_amount,
@@ -490,7 +502,19 @@ class CustomerRepository extends Repository
             )
             ORDER BY sort_at DESC, event_date DESC
             LIMIT {$limit}
-        ", array_fill(0, 6, $customerId));
+        ", [
+            // Listed one per subquery, in the order the placeholders appear. Not
+            // array_fill: the scope parameter sits inside the invoice subquery's SELECT,
+            // ahead of that subquery's own customer_id, and positional binding follows
+            // the order the placeholders appear in the SQL rather than anything tidier.
+            $customerId,                 // notes
+            ...$scopeParams,             // invoice subquery, in the SELECT list
+            $customerId,                 // invoices
+            $customerId,                 // sales orders
+            $customerId,                 // payments
+            $customerId,                 // quotes
+            $customerId,                 // tasks
+        ]);
     }
 
     /** How many events exist in total, so the view can say what it's truncating. */
