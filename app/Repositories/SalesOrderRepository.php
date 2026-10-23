@@ -255,6 +255,30 @@ class SalesOrderRepository
             $carry[$key][] = $old;
         }
 
+        // A line that has shipped cannot simply be removed. The goods are with the
+        // customer and an invoice bills them: taking the line off the order would leave
+        // stock deducted, revenue booked and nothing recording why. That is a credit
+        // memo, which USSCOS has, and not an edit.
+        $keptKeys = [];
+
+        foreach ($lines as $line) {
+            $keptKeys[!empty($line['product_id'])
+                ? 'p' . (int)$line['product_id']
+                : 'd' . md5((string)($line['description'] ?? ''))] = true;
+        }
+
+        foreach ($carry as $key => $olds) {
+            foreach ($olds as $old) {
+                if ((float)$old['qty_shipped'] > 0 && !isset($keptKeys[$key])) {
+                    throw new \RuntimeException(sprintf(
+                        '%s has already shipped on this order, so it cannot be removed. '
+                        . 'Raise a credit memo instead.',
+                        $old['description'] ?: 'That line'
+                    ));
+                }
+            }
+        }
+
         $del = $this->pdo->prepare("DELETE FROM sales_order_line_items WHERE sales_order_id = :id");
         $del->execute([':id' => $soId]);
 
@@ -305,7 +329,14 @@ class SalesOrderRepository
                 [
                     min($ordered, (float)$old['qty_picked']),
                     min($ordered, (float)$old['qty_packed']),
-                    min($ordered, (float)$old['qty_shipped']),
+                    // NOT capped. qty_shipped records a physical event - the goods left
+                    // the building and an invoice billed them. Trimming it to a reduced
+                    // order quantity would rewrite that: cutting a line from 3 to 1
+                    // after 3 shipped would leave the order claiming 1 went out while
+                    // stock, the invoice and the customer's delivery all say 3. If the
+                    // two now disagree, the order is what is wrong, and it should show
+                    // the contradiction rather than hide it.
+                    (float)$old['qty_shipped'],
                     $old['pick_note'] ?: null,
                     $old['pack_note'] ?: null,
                     (int)$this->pdo->lastInsertId(),
