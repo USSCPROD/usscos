@@ -523,7 +523,28 @@ class SalesOrderRepository
             JOIN customers c ON c.id = so.customer_id
             LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
             LEFT JOIN users u ON u.id = so.rep_id
-            WHERE so.status IN ('confirmed', 'processing', 'partially_shipped', 'paid')
+            WHERE (
+                so.status IN ('confirmed', 'processing', 'partially_shipped', 'paid')
+
+                -- Released but not yet labelled. Invoicing an order moves it to
+                -- 'invoiced', which used to drop it straight out of this queue - and the
+                -- label is made AFTER the invoice, so the work vanished at exactly the
+                -- point somebody still had a parcel to send. There is no screen to go
+                -- back to and nothing to search for, because as far as shipping is
+                -- concerned the order no longer exists.
+                --
+                -- It leaves again once a tracking number exists, which is the real
+                -- finish line: the parcel has a label on it.
+                OR (
+                    so.status = 'invoiced'
+                    AND EXISTS (SELECT 1 FROM invoices i WHERE i.sales_order_id = so.id)
+                    AND NOT EXISTS (
+                        SELECT 1 FROM shipment_tracking t
+                        JOIN invoices i2 ON i2.id = t.invoice_id
+                        WHERE i2.sales_order_id = so.id
+                    )
+                )
+            )
             ORDER BY so.requested_ship_date ASC, so.order_date ASC
         ")->fetchAll(\PDO::FETCH_ASSOC);
     }

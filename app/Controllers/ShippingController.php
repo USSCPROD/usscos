@@ -343,23 +343,35 @@ class ShippingController extends Controller
         // line and returning no packages at all, which read as missing product data
         // rather than as a mismatch between two function signatures.
         //
-        // Picked minus shipped is the right figure: it is what this shipment contains,
-        // and it is the same quantity the release invoices, so the label and the invoice
-        // describe the same parcel.
-        $plan = (new CartonizerService())->pack(array_map(
-            fn(array $l) => $l + ['qty' => max(0.0, (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0))],
-            $lines
-        ));
-
-        // The invoice is what FedEx ships against - it carries the delivery address and
-        // it is what the tracking number belongs on. No invoice means the order has not
-        // been shipped yet, and labelling before that would put a parcel on the road
-        // with nothing recording it.
+        // WHICH QUANTITY DEPENDS ON WHETHER IT HAS BEEN INVOICED, and getting this wrong
+        // is why SO 11 showed an empty packing plan. Releasing an order marks its lines
+        // shipped, so picked-minus-shipped drops to zero the moment the invoice exists -
+        // and the label is made AFTER the invoice. Reading it that way meant the screen
+        // had nothing to pack at exactly the point somebody wanted a label.
+        //
+        // Once invoiced, the parcel is whatever the invoice bills. Before that, it is
+        // what has been picked and not yet sent. Either way the label and the invoice
+        // describe the same goods.
         $invoice = Database::selectOne(
             "SELECT id, invoice_number, ship_address_1, ship_city, ship_state, ship_zip
              FROM invoices WHERE sales_order_id = ? ORDER BY id DESC LIMIT 1",
             [(int)$id]
         );
+
+        $forPacking = $invoice === false
+            ? array_map(
+                fn(array $l) => $l + ['qty' => max(0.0, (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0))],
+                $lines
+              )
+            : Database::select(
+                "SELECT li.product_id, li.qty AS qty, p.sku
+                 FROM invoice_line_items li
+                 LEFT JOIN products p ON p.id = li.product_id
+                 WHERE li.invoice_id = ? AND li.product_id IS NOT NULL",
+                [(int)$invoice['id']]
+              );
+
+        $plan = (new CartonizerService())->pack($forPacking);
 
         return $this->view('shipping.label', [
             'title'      => 'Label SO #' . $order['so_number'],
