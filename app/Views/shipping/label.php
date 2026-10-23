@@ -139,12 +139,12 @@ $suggestedPackages = max(1, count($packages));
         <?php endif; ?>
     </div>
 
-    <!-- ── Limited quantity ─────────────────────────────────────────────── -->
-    <div class="alert" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:.88rem">
-        <strong>Aerosol goes as Limited Quantity.</strong> The box must carry the limited
-        quantity mark before it leaves. USSCOS does not print that mark and does not check
-        for it — the person packing does.
-    </div>
+    <!--
+        No limited quantity notice here. USSC's boxes arrive pre-printed with the proper
+        markings, so there is nothing for the packer to remember or check - and a banner
+        telling somebody to verify a thing that is already handled is how the warnings
+        that do matter stop being read.
+    -->
 
     <!-- ── Make the label ───────────────────────────────────────────────── -->
     <div style="<?= $lblCard ?>">
