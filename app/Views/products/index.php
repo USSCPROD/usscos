@@ -118,6 +118,8 @@ $pageQs = '&q=' . urlencode($search)
                     <?php endforeach; ?>
                 </select>
                 <button type="submit" class="btn btn--sm" style="background:#fff;color:#222b59;margin-left:.4rem">Assign</button>
+                <button type="button" onclick="printLabels()" class="btn btn--sm"
+                        style="background:transparent;color:#fff;border:1px solid #6b7280;margin-left:.25rem">Print labels</button>
                 <button type="button" onclick="clearBulk()" class="btn btn--sm"
                         style="background:transparent;color:#c7d2fe;border:1px solid #4b5563;margin-left:.25rem">Clear</button>
             </td>
@@ -212,6 +214,14 @@ function updateBulk() {
 function toggleAll(master) {
     document.querySelectorAll('.bulkCb').forEach(function (cb) { cb.checked = master.checked; });
     updateBulk();
+}
+// A GET, not a submit — the bulk form posts to the category endpoint, and a label
+// sheet you can bookmark and reprint is worth more than one that only exists once.
+function printLabels() {
+    var ids = Array.prototype.map.call(
+        document.querySelectorAll('.bulkCb:checked'), function (cb) { return cb.value; });
+    if (!ids.length) { return; }
+    window.location = '/products/labels?ids=' + ids.join(',');
 }
 function clearBulk() {
     document.querySelectorAll('.bulkCb').forEach(function (cb) { cb.checked = false; });

@@ -141,6 +141,8 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::get('/products',                  [ProductController::class, 'index'])->name('products');
     Router::get('/products/autocomplete',     [ProductController::class, 'autocomplete'])->name('products.autocomplete');
     Router::get('/products/autocomplete-all', [ProductController::class, 'autocompleteAll'])->name('products.autocomplete_all');
+    // Before /products/{id} — otherwise 'labels' is read as an id and 404s.
+    Router::get('/products/labels',           [ProductController::class, 'labels'])->name('products.labels');
     Router::get('/products/{id}',             [ProductController::class, 'show'])->name('products.show');
     Router::get('/products/{id}/edit',        [ProductController::class, 'edit'])->name('products.edit');
     Router::post('/products/{id}/edit',       [ProductController::class, 'update'])->name('products.update');

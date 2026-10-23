@@ -397,4 +397,49 @@ class ProductRepository extends Repository
             [$docId, $productId]
         );
     }
+    /**
+     * The products a label run covers, in the order a person walks the racks.
+     *
+     * Takes explicit ids when somebody ticked rows, otherwise the same search and
+     * filter the product list uses, so "print labels for everything I am looking at"
+     * means what it looks like it means.
+     *
+     * @param int[] $ids
+     * @return array<int,array<string,mixed>>
+     */
+    public function forLabels(array $ids = [], string $search = '', string $filter = 'active'): array
+    {
+        $where  = [];
+        $params = [];
+
+        if ($ids !== []) {
+            // Cast before interpolating. These reach us from a query string, and the
+            // placeholders are built here rather than bound as one blob because IN ()
+            // cannot take an array through a single prepared parameter.
+            $ids   = array_values(array_unique(array_map('intval', $ids)));
+            $where[] = 'p.id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')';
+            $params  = array_merge($params, $ids);
+        } else {
+            if ($filter === 'active') {
+                $where[] = 'p.is_active = 1';
+            }
+
+            if ($search !== '') {
+                $where[] = '(p.sku LIKE ? OR p.name LIKE ?)';
+                $params[] = '%' . $search . '%';
+                $params[] = '%' . $search . '%';
+            }
+        }
+
+        $sql = "SELECT p.id, p.sku, p.name, p.gtin12, p.gtin14, p.units_per_case, p.uom_code
+                FROM products p";
+
+        if ($where !== []) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' ORDER BY p.sku';
+
+        return Database::select($sql, $params);
+    }
 }

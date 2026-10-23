@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Services\Barcode;
 use App\Services\ProductService;
 
 class ProductController extends Controller
@@ -379,5 +380,70 @@ class ProductController extends Controller
         if (is_file($full)) {
             @unlink($full);
         }
+    }
+    /**
+     * A sheet of barcode labels, sized for a laser printer and plain Avery stock.
+     *
+     * Symbol choice matters more than it looks. A product with a real GTIN should
+     * carry it, because that is the code Amazon and a customer's own receiving scanner
+     * expect. A product without one still needs to be scannable here, and its SKU is
+     * a perfectly good code for our own four walls - resolveScan already matches on
+     * sku, so a Code 128 of the SKU works the moment it is printed. 'auto' picks the
+     * best available per product rather than making somebody sort them into two runs.
+     */
+    public function labels(Request $request, Response $response): Response
+    {
+        $ids = array_filter(array_map('trim', explode(',', (string)($request->query('ids') ?? ''))));
+
+        $products = (new \App\Repositories\ProductRepository())->forLabels(
+            $ids,
+            trim((string)($request->query('q') ?? '')),
+            (string)($request->query('filter') ?? 'active')
+        );
+
+        $symbol = in_array($request->query('symbol'), ['auto', 'sku', 'upc', 'case'], true)
+            ? (string)$request->query('symbol')
+            : 'auto';
+
+        // One label per shelf position is the normal case; a run of identical labels
+        // is for a pallet of cases, so cap it well short of a jammed printer.
+        $copies = min(50, max(1, (int)($request->query('copies') ?? 1)));
+
+        $rendered = [];
+        $skipped  = [];
+
+        foreach ($products as $p) {
+            $gtin12 = preg_replace('/\D/', '', (string)($p['gtin12'] ?? '')) ?? '';
+            $gtin14 = preg_replace('/\D/', '', (string)($p['gtin14'] ?? '')) ?? '';
+
+            $want = $symbol === 'auto'
+                ? ($gtin12 !== '' ? 'upc' : 'sku')
+                : $symbol;
+
+            try {
+                [$svg, $kind, $human] = match ($want) {
+                    'upc'  => [Barcode::upcA($gtin12),    'UPC-A',    $gtin12],
+                    'case' => [Barcode::gs1_128($gtin14), 'GS1-128',  '(01) ' . $gtin14],
+                    default=> [Barcode::code128((string)$p['sku']), 'Code 128', (string)$p['sku']],
+                };
+            } catch (\InvalidArgumentException $e) {
+                // Never print a symbol we could not build correctly. A label with a
+                // wrong check digit scans as nothing, or worse as something else, and
+                // it does that silently at the moment somebody is relying on it.
+                $skipped[] = ['sku' => $p['sku'], 'reason' => $e->getMessage()];
+                continue;
+            }
+
+            $rendered[] = $p + ['svg' => $svg, 'kind' => $kind, 'human' => $human];
+        }
+
+        return $this->view('products.labels', [
+            'title'    => 'Print barcode labels',
+            'products' => $rendered,
+            'skipped'  => $skipped,
+            'symbol'   => $symbol,
+            'copies'   => $copies,
+            'query'    => trim((string)($request->query('q') ?? '')),
+        ]);
     }
 }

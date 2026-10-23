@@ -115,6 +115,7 @@ $colStyle  = 'vertical-align:top;padding:0';
         </td>
         <td style="vertical-align:top;text-align:right;white-space:nowrap">
             <a href="/products/<?= (int)$pr['id'] ?>/edit" class="btn btn--secondary">Edit</a>
+            <a href="/products/labels?ids=<?= (int)$pr['id'] ?>" class="btn btn--secondary">Label</a>
         </td>
     </tr>
 </table>
