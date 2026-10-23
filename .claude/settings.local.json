@@ -404,7 +404,10 @@
       "Bash(scp -q /tmp/lbl.php root@159.223.177.58:/tmp/lbl.php)",
       "Bash(scp -q /tmp/lbl2.php root@159.223.177.58:/tmp/lbl2.php)",
       "Bash(grep -n '\\\\$qty = \\\\|\\\\$qty=' app/Views/shipping/pick.php app/Views/shipping/pack.php)",
-      "Bash(grep -n 'step=\"1\"\\\\|$qty = fn' app/Views/shipping/pick.php app/Views/shipping/pack.php)"
+      "Bash(grep -n 'step=\"1\"\\\\|$qty = fn' app/Views/shipping/pick.php app/Views/shipping/pack.php)",
+      "Bash(scp -q /tmp/v.php root@159.223.177.58:/tmp/v.php)",
+      "Bash(scp -q /tmp/f.php root@159.223.177.58:/tmp/f.php)",
+      "Bash(php -l app/Views/shipping/pull.php)"
     ]
   }
 }

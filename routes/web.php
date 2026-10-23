@@ -173,6 +173,8 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/sales-orders/{id}/revision/{revisionId}/decision', [JobBinderController::class, 'decide'])->name('binder.artwork.decision');
 
     Router::get('/shipping', [ShippingController::class, 'index'])->name('shipping');
+    Router::get('/shipping/pull',       [ShippingController::class, 'pull'])->name('shipping.pull');
+    Router::post('/shipping/pull/pick', [ShippingController::class, 'pullPick'])->name('shipping.pull.pick');
     Router::get('/shipping/{id}/pick',       [ShippingController::class, 'pick'])->name('shipping.pick');
     Router::post('/shipping/{id}/pick/scan', [ShippingController::class, 'scan'])->name('shipping.scan');
     Router::post('/shipping/{id}/pick/line', [ShippingController::class, 'setLine'])->name('shipping.pick.line');

@@ -147,6 +147,71 @@ class ShippingController extends Controller
     }
 
     /**
+     * The warehouse pull list — everything owed, totalled by product.
+     *
+     * Deliberately not a per-order screen. The warehouse and the shipping clerk work at
+     * the same time rather than in sequence: the guys keep pulling against open orders
+     * while she approves whichever ones look ready, so neither is ever waiting on the
+     * other to finish a batch.
+     */
+    public function pull(Request $request, Response $response): Response
+    {
+        $list = $this->repo->pullList();
+
+        return $this->view('shipping.pull', [
+            'title'  => 'Pull list',
+            'list'   => $list,
+            'short'  => array_values(array_filter($list, fn($p) => $p['qty_on_hand'] < $p['total_needed'])),
+        ]);
+    }
+
+    /**
+     * Record what came off the shelf, from the pull list.
+     *
+     * Adds to what is already picked rather than replacing it, because the warehouse
+     * works this list in passes - a second trip for the rest of the DSW should not
+     * silently undo the first.
+     */
+    public function pullPick(Request $request, Response $response): Response
+    {
+        $lineId = (int)($_POST['line_id'] ?? 0);
+        $qty    = (float)($_POST['qty'] ?? 0);
+
+        if ($lineId <= 0 || $qty <= 0) {
+            Session::flash('error', 'Nothing recorded — enter how many came off the shelf.');
+            return $response->redirect('/shipping/pull');
+        }
+
+        $line = Database::selectOne(
+            "SELECT li.id, li.sales_order_id, li.qty_ordered, COALESCE(li.qty_picked,0) AS qty_picked
+             FROM sales_order_line_items li WHERE li.id = ?",
+            [$lineId]
+        );
+
+        if ($line === false) {
+            Session::flash('error', 'That order line no longer exists.');
+            return $response->redirect('/shipping/pull');
+        }
+
+        // Never more than was ordered. Over-picking here would quietly promise stock to
+        // an order that cannot use it, while the next order on the list goes short.
+        $newQty = min((float)$line['qty_ordered'], (float)$line['qty_picked'] + $qty);
+
+        Database::statement("UPDATE sales_order_line_items SET qty_picked = ? WHERE id = ?",
+            [$newQty, $lineId]);
+
+        $this->repo->refreshPickStatus((int)$line['sales_order_id']);
+
+        Session::flash('success', sprintf('Picked %s — SO #%s now has %s of %s.',
+            rtrim(rtrim(number_format($qty, 2), '0'), '.'),
+            Database::selectOne("SELECT so_number FROM sales_orders WHERE id=?", [(int)$line['sales_order_id']])['so_number'] ?? '?',
+            rtrim(rtrim(number_format($newQty, 2), '0'), '.'),
+            rtrim(rtrim(number_format((float)$line['qty_ordered'], 2), '0'), '.')));
+
+        return $response->redirect('/shipping/pull');
+    }
+
+    /**
      * The label screen, after the pack has been verified.
      *
      * Shows what the cartonizer worked out - which boxes, how many, what they weigh -

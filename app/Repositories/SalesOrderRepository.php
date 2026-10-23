@@ -338,6 +338,110 @@ class SalesOrderRepository
     // ------------------------------------------------------------- pick and verify
 
     /** Lines for the picking screen, with what has been picked so far. */
+    /**
+     * Everything still owed across every open order, totalled by product.
+     *
+     * The warehouse walks the building once rather than once per order. "47 cases of
+     * DSW" is one trip to one bay; the same 47 cases spread over twelve order sheets is
+     * twelve trips past the same shelf.
+     *
+     * Each product carries the orders that want it, so the split is already done by the
+     * time somebody is standing at the bay with a pallet. Working it out there, from
+     * memory, is where the wrong paint ends up on the wrong order.
+     *
+     * OUTSTANDING, NOT ORDERED. The figure is qty_ordered minus whatever is already
+     * picked, so a part-picked line shows only the remainder and a finished one drops off
+     * the list. Re-running it after a pass is how the warehouse knows what is left.
+     *
+     * @return list<array> one row per product, each with an `orders` list
+     */
+    public function pullList(): array
+    {
+        $rows = Database::select("
+            SELECT li.product_id,
+                   p.sku,
+                   COALESCE(p.name, li.description)            AS product_name,
+                   p.units_per_case,
+                   p.uom_code,
+                   so.id        AS sales_order_id,
+                   so.so_number,
+                   so.priority,
+                   so.ship_by,
+                   c.company_name,
+                   li.id        AS line_id,
+                   li.qty_ordered,
+                   li.qty_picked,
+                   (li.qty_ordered - COALESCE(li.qty_picked, 0)) AS qty_outstanding,
+                   COALESCE(p.qty_on_hand, 0)                   AS qty_on_hand
+            FROM sales_order_line_items li
+            JOIN sales_orders so ON so.id = li.sales_order_id
+            JOIN customers c     ON c.id  = so.customer_id
+            LEFT JOIN products p ON p.id  = li.product_id
+            WHERE so.status IN ('confirmed','processing','partially_shipped')
+              AND (li.qty_ordered - COALESCE(li.qty_picked, 0)) > 0
+            ORDER BY p.sku, so.ship_by IS NULL, so.ship_by, so.id
+        ");
+
+        $byProduct = [];
+
+        foreach ($rows as $r) {
+            // Lines with no product still have to appear. A free-text line is a real
+            // thing somebody has to go and find, and silently dropping it would send a
+            // short order out with nobody having noticed.
+            $key = $r['product_id'] !== null ? 'p' . $r['product_id'] : 'd' . md5((string)$r['product_name']);
+
+            if (!isset($byProduct[$key])) {
+                $byProduct[$key] = [
+                    'product_id'     => $r['product_id'] !== null ? (int)$r['product_id'] : null,
+                    'sku'            => $r['sku'],
+                    'product_name'   => $r['product_name'],
+                    'units_per_case' => $r['units_per_case'],
+                    'uom_code'       => $r['uom_code'],
+                    'qty_on_hand'    => (float)$r['qty_on_hand'],
+                    'total_needed'   => 0.0,
+                    'order_count'    => 0,
+                    'most_urgent'    => null,
+                    'orders'         => [],
+                ];
+            }
+
+            $byProduct[$key]['total_needed'] += (float)$r['qty_outstanding'];
+            $byProduct[$key]['order_count']++;
+            $byProduct[$key]['orders'][] = [
+                'sales_order_id' => (int)$r['sales_order_id'],
+                'so_number'      => $r['so_number'],
+                'company_name'   => $r['company_name'],
+                'line_id'        => (int)$r['line_id'],
+                'qty'            => (float)$r['qty_outstanding'],
+                'qty_ordered'    => (float)$r['qty_ordered'],
+                'qty_picked'     => (float)$r['qty_picked'],
+                'priority'       => $r['priority'],
+                'ship_by'        => $r['ship_by'],
+            ];
+
+            if ($r['ship_by'] !== null
+                && ($byProduct[$key]['most_urgent'] === null || $r['ship_by'] < $byProduct[$key]['most_urgent'])) {
+                $byProduct[$key]['most_urgent'] = $r['ship_by'];
+            }
+        }
+
+        // Short of stock first. That is the decision the warehouse actually faces - if
+        // there is not enough to go round, somebody has to choose who waits, and burying
+        // it halfway down an alphabetical list means the choice gets made by accident.
+        usort($byProduct, function ($a, $b) {
+            $aShort = $a['qty_on_hand'] < $a['total_needed'];
+            $bShort = $b['qty_on_hand'] < $b['total_needed'];
+
+            if ($aShort !== $bShort) {
+                return $aShort ? -1 : 1;
+            }
+
+            return strcmp((string)$a['sku'], (string)$b['sku']);
+        });
+
+        return array_values($byProduct);
+    }
+
     public function getPickLines(int $salesOrderId): array
     {
         $stmt = $this->pdo->prepare("
