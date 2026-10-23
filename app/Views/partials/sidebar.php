@@ -11,6 +11,23 @@ function isActive(string $prefix): string {
     global $current;
     return str_starts_with((string)$current, $prefix) ? 'is-active' : '';
 }
+
+/**
+ * For a parent entry that has its own children in the sidebar.
+ *
+ * isActive is a prefix match, so /shipping would light up while somebody is on
+ * /shipping/pull and two entries would look selected at once. This matches the section
+ * but yields to any child path listed beside it.
+ */
+function isActiveExcept(string $prefix, array $children): string {
+    global $current;
+    foreach ($children as $child) {
+        if (str_starts_with((string)$current, $child)) {
+            return '';
+        }
+    }
+    return str_starts_with((string)$current, $prefix) ? 'is-active' : '';
+}
 ?>
 
 <a href="/dashboard" class="sidebar__brand">
@@ -43,11 +60,24 @@ function isActive(string $prefix): string {
         <span class="sidebar__link-text">Sales Orders</span>
     </a>
 
-    <a href="/shipping" class="sidebar__link <?= isActive('/shipping') ?>">
+    <a href="/shipping" class="sidebar__link <?= isActiveExcept('/shipping', ['/shipping/pull']) ?>">
         <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
         </svg>
         <span class="sidebar__link-text">Shipping</span>
+    </a>
+
+    <!--
+        The pull list gets its own entry rather than living behind the shipping queue.
+        For the warehouse it is not a sub-screen of anything - it is the whole job, and
+        making them click through a queue meant for the shipping clerk first is one click
+        too many on every trip.
+    -->
+    <a href="/shipping/pull" class="sidebar__link <?= isActive('/shipping/pull') ?>">
+        <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+        <span class="sidebar__link-text">Pull List</span>
     </a>
 
     <a href="/receiving" class="sidebar__link <?= isActive('/receiving') ?>">
