@@ -38,6 +38,9 @@ $samePerson = !empty($order['picked_by']) && !empty($order['packed_by'])
             short pick is not an error here.
         </p>
     </div>
+    <div>
+        <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--secondary">Label &amp; ship &rarr;</a>
+    </div>
 </div>
 
 <?php if ($order['pick_status'] === 'not_started'): ?>

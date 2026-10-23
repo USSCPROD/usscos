@@ -7,7 +7,11 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Database;
+use App\Core\Session;
 use App\Repositories\SalesOrderRepository;
+use App\Services\CartonizerService;
+use App\Services\FedExShippingService;
 
 class ShippingController extends Controller
 {
@@ -140,6 +144,80 @@ class ShippingController extends Controller
             'order' => $order,
             'lines' => $this->repo->getPickLines((int)$id),
         ]);
+    }
+
+    /**
+     * The label screen, after the pack has been verified.
+     *
+     * Shows what the cartonizer worked out - which boxes, how many, what they weigh -
+     * and lets the packer correct it before anything is printed. It is a suggestion,
+     * not an instruction: the person at the bench can see the actual parcel and the
+     * software cannot.
+     */
+    public function label(Request $request, Response $response, string $id = '0'): Response
+    {
+        $order = $this->repo->findWithDetails((int)$id);
+
+        if (!$order) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        $fedex = new FedExShippingService();
+        $lines = $this->repo->getPickLines((int)$id);
+        $plan  = (new CartonizerService())->pack($lines);
+
+        // The invoice is what FedEx ships against - it carries the delivery address and
+        // it is what the tracking number belongs on. No invoice means the order has not
+        // been shipped yet, and labelling before that would put a parcel on the road
+        // with nothing recording it.
+        $invoice = Database::selectOne(
+            "SELECT id, invoice_number, ship_address_1, ship_city, ship_state, ship_zip
+             FROM invoices WHERE sales_order_id = ? ORDER BY id DESC LIMIT 1",
+            [(int)$id]
+        );
+
+        return $this->view('shipping.label', [
+            'title'      => 'Label SO #' . $order['so_number'],
+            'order'      => $order,
+            'lines'      => $lines,
+            'plan'       => $plan,
+            'invoice'    => $invoice === false ? null : $invoice,
+            'configured' => $fedex->configured(),
+            'sandbox'    => $fedex->isSandbox(),
+            'services'   => FedExShippingService::SERVICES,
+            'existing'   => $invoice === false ? [] : Database::select(
+                "SELECT * FROM shipment_tracking WHERE invoice_id = ? ORDER BY id",
+                [(int)$invoice['id']]
+            ),
+        ]);
+    }
+
+    /**
+     * Ask FedEx for the label.
+     *
+     * Everything that decides what gets printed comes from the form rather than from the
+     * cartonizer, because the packer has already been shown the suggestion and either
+     * accepted it or corrected it. Silently using the computed figure after someone typed
+     * a different one would make the correction look like it worked when it did not.
+     */
+    public function createLabel(Request $request, Response $response, string $id = '0'): Response
+    {
+        $invoiceId = (int)($_POST['invoice_id'] ?? 0);
+
+        if ($invoiceId <= 0) {
+            Session::flash('error', 'No invoice to label — ship and invoice the order first.');
+            return $response->redirect('/shipping/' . (int)$id . '/label');
+        }
+
+        $result = (new FedExShippingService())->createLabel($invoiceId, [
+            'weight'   => (float)($_POST['weight'] ?? 0),
+            'packages' => (int)($_POST['packages'] ?? 1),
+            'service'  => (string)($_POST['service'] ?? 'FEDEX_GROUND'),
+        ]);
+
+        Session::flash($result['ok'] ? 'success' : 'error', $result['message']);
+
+        return $response->redirect('/shipping/' . (int)$id . '/label');
     }
 
     /**

@@ -399,7 +399,8 @@
       "Bash(scp -q /tmp/amz4.php root@159.223.177.58:/tmp/amz4.php)",
       "Bash(scp -q /tmp/coa.php root@159.223.177.58:/tmp/coa.php)",
       "Bash(scp -q /tmp/e1.php root@159.223.177.58:/tmp/e1.php)",
-      "Bash(php -l database/import_amazon_settlement.php)"
+      "Bash(php -l database/import_amazon_settlement.php)",
+      "Bash(php -l app/Views/shipping/label.php)"
     ]
   }
 }

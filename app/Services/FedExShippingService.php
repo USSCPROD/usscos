@@ -212,6 +212,18 @@ class FedExShippingService
         $via = $this->notify->shipViaByName('FedEx');
         $this->notify->addTracking($invoiceId, implode(' ', $numbers), $via['id'] ?? null, 'parcel');
 
+        // Keep the PDF with the tracking number. Without this the file sits on disk with
+        // nothing pointing at it, and the label can be created once and never reprinted -
+        // which is one jammed printer away from a parcel nobody can ship.
+        if ($labelPath !== null) {
+            Database::statement(
+                "UPDATE shipment_tracking SET label_path = ?
+                 WHERE invoice_id = ? AND tracking_number = ?
+                 ORDER BY id DESC LIMIT 1",
+                [$labelPath, $invoiceId, implode(' ', $numbers)]
+            );
+        }
+
         Database::statement(
             "UPDATE invoices
              SET ship_via = COALESCE(NULLIF(ship_via, ''), 'FedEx'),
