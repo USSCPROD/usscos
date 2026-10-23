@@ -212,8 +212,49 @@ class SalesOrderRepository
         return $stmt->rowCount();
     }
 
+    /**
+     * Rewrite an order's lines, KEEPING what the warehouse has already done to them.
+     *
+     * This deletes and re-inserts, and for a long time the insert did not carry
+     * qty_picked, qty_packed or qty_shipped - so every one reset to zero. Editing a
+     * sales order quietly threw away the pick, and pick_status was left saying 'ready'
+     * over lines with nothing picked. That is how SO 22 came to show a Picked badge and
+     * an empty pack screen.
+     *
+     * The lost pick was the visible half. The dangerous half was qty_shipped:
+     * shipAndInvoice bills qty_picked minus qty_shipped, so an order that had already
+     * shipped and was then edited would look unshipped and BILL THE SAME GOODS AGAIN.
+     *
+     * Progress is carried across by product, because the incoming lines have no ids to
+     * match on - an edit form sends what the order should now contain, not which row was
+     * which. Where a product appears more than once the figures are handed out in order,
+     * which is a guess, but a guess that keeps the total right beats a certainty of zero.
+     * A line whose product was changed outright keeps nothing, which is correct: it is a
+     * different thing to pick.
+     */
     public function replaceLineItems(int $soId, array $lines): void
     {
+        // What has already happened to these lines, before they are thrown away.
+        $carry = [];
+
+        foreach (Database::select(
+            "SELECT product_id, description, qty_picked, qty_packed, qty_shipped, pick_note, pack_note
+             FROM sales_order_line_items WHERE sales_order_id = ? ORDER BY sort_order, id",
+            [$soId]
+        ) as $old) {
+            if ((float)$old['qty_picked'] <= 0 && (float)$old['qty_packed'] <= 0
+                && (float)$old['qty_shipped'] <= 0 && ($old['pick_note'] ?? '') === ''
+                && ($old['pack_note'] ?? '') === '') {
+                continue;
+            }
+
+            $key = $old['product_id'] !== null
+                ? 'p' . (int)$old['product_id']
+                : 'd' . md5((string)$old['description']);
+
+            $carry[$key][] = $old;
+        }
+
         $del = $this->pdo->prepare("DELETE FROM sales_order_line_items WHERE sales_order_id = :id");
         $del->execute([':id' => $soId]);
 
@@ -242,7 +283,39 @@ class SalesOrderRepository
                 ':line_total'     => $line['line_total']     ?? 0,
                 ':sort_order'     => $i + 1,
             ]);
+
+            // Hand back whatever this product had already had done to it. Capped at what
+            // is now ordered, so cutting a line from 10 to 4 cannot leave 10 picked
+            // against it - which would read as over-picked for ever.
+            $key = !empty($line['product_id'])
+                ? 'p' . (int)$line['product_id']
+                : 'd' . md5((string)($line['description'] ?? ''));
+
+            if (empty($carry[$key])) {
+                continue;
+            }
+
+            $old     = array_shift($carry[$key]);
+            $ordered = (float)($line['qty_ordered'] ?? 0);
+
+            Database::statement(
+                "UPDATE sales_order_line_items
+                 SET qty_picked = ?, qty_packed = ?, qty_shipped = ?, pick_note = ?, pack_note = ?
+                 WHERE id = ?",
+                [
+                    min($ordered, (float)$old['qty_picked']),
+                    min($ordered, (float)$old['qty_packed']),
+                    min($ordered, (float)$old['qty_shipped']),
+                    $old['pick_note'] ?: null,
+                    $old['pack_note'] ?: null,
+                    (int)$this->pdo->lastInsertId(),
+                ]
+            );
         }
+
+        // Status has to follow the quantities. Leaving it alone is exactly how an order
+        // ends up wearing a Picked badge over an empty pack screen.
+        $this->refreshPickStatus($soId);
     }
 
     /**
