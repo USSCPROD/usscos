@@ -21,6 +21,36 @@ $plNum  = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
     </div>
 </div>
 
+<?php if (!empty($changes)): ?>
+    <!--
+        Above the list, not inside it. Remove a picked line and the rest of the order may
+        be complete, so it has no outstanding work and never appears below — taking the
+        warning with it, while the paint sits on a bench.
+    -->
+    <div class="card" style="padding:0;margin-bottom:1.25rem;border:1px solid #fcd34d;background:#fffbeb">
+        <div style="padding:.75rem 1.1rem;border-bottom:1px solid #fcd34d;font-size:.8rem;font-weight:700;
+                    text-transform:uppercase;letter-spacing:.05em;color:#92400e">
+            <?= count($changes) ?> order<?= count($changes) === 1 ? '' : 's' ?> changed after picking — stock to put back
+        </div>
+        <?php foreach ($changes as $ch): ?>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;
+                        padding:.65rem 1.1rem;border-bottom:1px solid #fde68a">
+                <div style="font-size:.88rem;color:#92400e">
+                    <a href="/shipping/<?= (int)$ch['id'] ?>/pick" style="color:#92400e;font-weight:700;text-decoration:none">
+                        SO #<?= e($ch['so_number']) ?>
+                    </a>
+                    <span style="color:#b45309">— <?= e($ch['company_name'] ?? '') ?></span>
+                    <div style="margin-top:.2rem"><?= e($ch['picked_change_note']) ?></div>
+                </div>
+                <form method="POST" action="/shipping/<?= (int)$ch['id'] ?>/ack-change" style="flex-shrink:0">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn--secondary btn--sm">Put back</button>
+                </form>
+            </div>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
 <?php if (empty($list)): ?>
     <div class="card" style="padding:2rem;text-align:center;color:#6b7280">
         Nothing to pull. Every open order is fully picked.

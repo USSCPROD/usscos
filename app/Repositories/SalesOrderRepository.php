@@ -238,7 +238,8 @@ class SalesOrderRepository
         $carry = [];
 
         foreach (Database::select(
-            "SELECT product_id, description, qty_picked, qty_packed, qty_shipped, pick_note, pack_note
+            "SELECT product_id, description, qty_ordered, qty_picked, qty_packed, qty_shipped,
+                    pick_note, pack_note
              FROM sales_order_line_items WHERE sales_order_id = ? ORDER BY sort_order, id",
             [$soId]
         ) as $old) {
@@ -634,6 +635,28 @@ class SalesOrderRepository
         });
 
         return array_values($byProduct);
+    }
+
+    /**
+     * Orders changed after the warehouse had picked them.
+     *
+     * Kept apart from the pull list rather than hung off it, because the orders that most
+     * need saying are the ones that have dropped off it: remove a picked line and the
+     * rest of the order may be complete, so it has no outstanding work and vanishes from
+     * the list — taking the warning with it. The paint is still on the bench.
+     *
+     * @return list<array>
+     */
+    public function pickedChanges(): array
+    {
+        return Database::select("
+            SELECT so.id, so.so_number, so.picked_change_note, so.picked_change_at,
+                   c.company_name
+            FROM sales_orders so
+            JOIN customers c ON c.id = so.customer_id
+            WHERE so.picked_change_note IS NOT NULL
+            ORDER BY so.picked_change_at DESC
+        ");
     }
 
     /**

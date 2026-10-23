@@ -265,8 +265,9 @@ class ShippingController extends Controller
         $list = $this->repo->pullList();
 
         return $this->view('shipping.pull', [
-            'title'  => 'Pull list',
-            'list'   => $list,
+            'title'   => 'Pull list',
+            'changes' => $this->repo->pickedChanges(),
+            'list'    => $list,
             'short'  => array_values(array_filter($list, fn($p) => $p['qty_on_hand'] < $p['total_needed'])),
         ]);
     }
