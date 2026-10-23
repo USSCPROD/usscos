@@ -5,7 +5,9 @@ $cell = 'padding:.9rem .8rem;font-size:1rem;vertical-align:middle';
 $head = 'padding:.6rem .8rem;font-size:.75rem;font-weight:700;text-transform:uppercase;'
       . 'letter-spacing:.04em;color:#6b7280;background:#f8f9fb;border-bottom:1px solid #e5e7eb;text-align:left';
 
-$qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
+// Whole units. USSC does not sell partial cases, and a stepper that moved in
+// hundredths made the arrow keys useless - twenty presses to reach 0.20.
+$qty = fn($n) => (string)(int)round((float)$n);
 
 // Only lines that were actually picked need to be in the box. A line picked at zero is a
 // deliberate short, not something to verify.
@@ -133,7 +135,7 @@ $samePerson = !empty($order['picked_by']) && !empty($order['packed_by'])
                         <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/pack/line" style="display:inline-flex;gap:.4rem;align-items:center">
                             <?= csrf_field() ?>
                             <input type="hidden" name="line_id" value="<?= (int)$l['id'] ?>">
-                            <input type="number" name="qty" step="0.01" min="0" value="<?= $qty($packed) ?>"
+                            <input type="number" name="qty" step="1" min="0" value="<?= $qty($packed) ?>"
                                    style="width:5.5rem;padding:.6rem;font-size:1rem;border:1px solid #d1d5db;border-radius:6px;text-align:right">
                             <button type="submit" class="btn btn--secondary" style="padding:.6rem 1rem;font-size:.95rem">Set</button>
                         </form>

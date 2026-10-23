@@ -10,7 +10,9 @@ $totalOrdered = array_sum(array_map(fn($l) => (float)$l['qty_ordered'], $lines))
 $totalPicked  = array_sum(array_map(fn($l) => (float)$l['qty_picked'], $lines));
 $pctDone      = $totalOrdered > 0 ? min(100, round($totalPicked / $totalOrdered * 100)) : 0;
 
-$qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
+// Whole units. USSC does not sell partial cases, and a stepper that moved in
+// hundredths made the arrow keys useless - twenty presses to reach 0.20.
+$qty = fn($n) => (string)(int)round((float)$n);
 ?>
 
 <div class="page-header">
@@ -91,7 +93,7 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
                     <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/pick/line" style="display:inline-flex;gap:.4rem;align-items:center">
                         <?= csrf_field() ?>
                         <input type="hidden" name="line_id" value="<?= (int)$l['id'] ?>">
-                        <input type="number" name="qty" step="0.01" min="0" value="<?= $qty($picked) ?>"
+                        <input type="number" name="qty" step="1" min="0" value="<?= $qty($picked) ?>"
                                style="width:5.5rem;padding:.6rem;font-size:1rem;border:1px solid #d1d5db;border-radius:6px;text-align:right">
                         <button type="submit" class="btn btn--secondary" style="padding:.6rem 1rem;font-size:.95rem">Set</button>
                     </form>
@@ -108,6 +110,8 @@ $qty = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
         <span style="color:#166534">Now verify the box against the pick before it is sealed.</span>
         <a href="/shipping/<?= (int)$order['id'] ?>/pack" class="btn btn--primary"
            style="margin-left:.6rem;padding:.5rem 1.1rem">Pack &amp; Verify</a>
+        <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--secondary"
+           style="margin-left:.5rem">Label &amp; ship</a>
     </div>
 <?php endif; ?>
 

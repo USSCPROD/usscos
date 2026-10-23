@@ -184,6 +184,9 @@ if ($activeTab === 'all') {
                             <a href="/shipping/<?= (int)$o['id'] ?>/pack"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Pack</a>
+                            <a href="/shipping/<?= (int)$o['id'] ?>/label"
+                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
+                               onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Label</a>
                             <a href="/sales-orders/<?= (int)$o['id'] ?>/packing-slip" target="_blank"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #d1d5db;border-radius:5px;color:#374151;text-decoration:none"
                                onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Packing Slip</a>
