@@ -193,6 +193,10 @@ if ($activeTab === 'all') {
                             <a href="/shipping/<?= (int)$o['id'] ?>/pack"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Pack</a>
+                            <a href="/shipping/release"
+                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #16a34a;border-radius:5px;color:#16a34a;text-decoration:none;margin-right:.4rem"
+                               onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''"
+                               title="Invoice what is picked — the step between packing and labelling">Release</a>
                             <a href="/shipping/<?= (int)$o['id'] ?>/label"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Label</a>

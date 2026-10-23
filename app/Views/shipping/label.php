@@ -42,11 +42,47 @@ $suggestedPackages = max(1, count($packages));
 <?php endif; ?>
 
 <?php if (empty($invoice)): ?>
-    <div class="alert" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;margin-top:1rem">
-        <strong>No invoice yet.</strong> FedEx ships against the invoice — it carries the delivery
-        address and it is where the tracking number belongs. Ship and invoice the order first,
-        or a parcel goes on the road with nothing recording it.
-    </div>
+    <?php
+        // How much is ready to go. An order that has been picked does not need sending
+        // away to find a different screen - the missing step can be taken from here.
+        $readyQty = 0.0;
+        foreach (($lines ?? []) as $l) {
+            $readyQty += (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0);
+        }
+    ?>
+    <?php if ($readyQty > 0): ?>
+        <!--
+            This used to be a flat refusal. Somebody who has picked and packed an order
+            and come here to print a label does not need telling that a step they have
+            never seen is missing - they need the step. The button is the same release
+            the shipping clerk uses, so the decision and the record are identical
+            whichever screen it is taken from.
+        -->
+        <div class="alert" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;margin-top:1rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem">
+                <div>
+                    <strong>Not invoiced yet.</strong>
+                    FedEx ships against the invoice — it carries the delivery address and it is
+                    where the tracking number belongs. This order has
+                    <?= e(rtrim(rtrim(number_format($readyQty, 2), '0'), '.')) ?> picked and ready.
+                    Releasing it invoices exactly that much and leaves anything still owed on
+                    the order.
+                </div>
+                <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/release" style="flex-shrink:0">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn--primary"
+                            onclick="return confirm('Invoice the <?= e(rtrim(rtrim(number_format($readyQty, 2), '0'), '.')) ?> picked and ship it?')">
+                        Release &amp; invoice
+                    </button>
+                </form>
+            </div>
+        </div>
+    <?php else: ?>
+        <div class="alert" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;margin-top:1rem">
+            <strong>Nothing picked.</strong> There is nothing to invoice or label yet —
+            <a href="/shipping/<?= (int)$order['id'] ?>/pick" style="color:#991b1b;font-weight:600">pick it first</a>.
+        </div>
+    <?php endif; ?>
 <?php endif; ?>
 
 <div style="margin-top:1.25rem">
