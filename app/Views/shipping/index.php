@@ -29,12 +29,19 @@ $hasUnassigned = !empty($grouped['none']);
 $activeTab = $_GET['tab'] ?? 'all';
 ?>
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+<!--
+    The header is already a flex row with space-between. The buttons belong in its right
+    hand side, not floated out of the left one - a float with a negative top margin does
+    not reserve any space, so it landed on top of the heading rather than beside it.
+-->
+<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem">
     <div>
         <h1 class="page-title">Shipping Queue</h1>
-        <a href="/shipping/release" class="btn btn--primary" style="float:right;margin-top:-2.2rem">Ready to ship</a>
-        <a href="/shipping/pull" class="btn btn--secondary" style="float:right;margin-top:-2.2rem;margin-right:.5rem">Pull list</a>
         <p class="page-subtitle"><?= count($orders) ?> order<?= count($orders) !== 1 ? 's' : '' ?> ready to ship</p>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-shrink:0">
+        <a href="/shipping/pull" class="btn btn--secondary">Pull list</a>
+        <a href="/shipping/release" class="btn btn--primary">Ready to ship</a>
     </div>
 </div>
 
