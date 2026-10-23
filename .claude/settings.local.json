@@ -412,7 +412,8 @@
       "Bash(php -l app/Views/shipping/release.php)",
       "Bash(scp -q /tmp/sb2.php root@159.223.177.58:/tmp/sb2.php)",
       "Bash(scp -q /tmp/d22.php root@159.223.177.58:/tmp/d22.php)",
-      "Bash(php -l database/refresh_pick_statuses.php)"
+      "Bash(php -l database/refresh_pick_statuses.php)",
+      "Bash(php -l database/migrations/100_picked_order_changed.sql)"
     ]
   }
 }

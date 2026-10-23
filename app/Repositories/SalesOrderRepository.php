@@ -255,6 +255,10 @@ class SalesOrderRepository
             $carry[$key][] = $old;
         }
 
+        // A second copy that is not consumed as lines are matched, so the diff can still
+        // see what a surviving line used to look like.
+        $before = $carry;
+
         // A line that has shipped cannot simply be removed. The goods are with the
         // customer and an invoice bills them: taking the line off the order would leave
         // stock deducted, revenue booked and nothing recording why. That is a credit
@@ -344,9 +348,93 @@ class SalesOrderRepository
             );
         }
 
+        // Anything still in $carry was picked and is no longer on the order, and anything
+        // cut below what was picked leaves stock on a bench. Say so, in words, for
+        // whoever next walks to that bay.
+        $this->notePickedChange($soId, $carry, $lines, $before);
+
         // Status has to follow the quantities. Leaving it alone is exactly how an order
         // ends up wearing a Picked badge over an empty pack screen.
         $this->refreshPickStatus($soId);
+    }
+
+    /**
+     * Leave a note for the warehouse about an order they had already picked.
+     *
+     * Plain text on purpose. The reader is a person holding a pallet, and "DSW cut from
+     * 10 to 4 — 6 to go back" is what they need, not a structured diff they have to
+     * interpret. Silence is the thing to avoid: the order looks tidy, the shelf does
+     * not, and the difference turns up weeks later as a count that will not reconcile.
+     *
+     * @param array $carry   picked lines left over — these are no longer on the order
+     * @param array $lines   what the order now contains
+     * @param array $before  what it contained, keyed as $carry is
+     */
+    private function notePickedChange(int $soId, array $carry, array $lines, array $before): void
+    {
+        $notes = [];
+
+        // Removed outright, with a pick against them.
+        foreach ($carry as $leftover) {
+            foreach ($leftover as $old) {
+                if ((float)$old['qty_picked'] > 0) {
+                    $notes[] = sprintf('%s removed — %s picked, put it back',
+                        self::shortName($old['description']),
+                        self::trimNum($old['qty_picked']));
+                }
+            }
+        }
+
+        // Cut below what was already picked.
+        foreach ($lines as $line) {
+            $key = !empty($line['product_id'])
+                ? 'p' . (int)$line['product_id']
+                : 'd' . md5((string)($line['description'] ?? ''));
+
+            if (!isset($before[$key])) {
+                continue;
+            }
+
+            $wasPicked  = (float)$before[$key][0]['qty_picked'];
+            $wasOrdered = (float)$before[$key][0]['qty_ordered'];
+            $nowOrdered = (float)($line['qty_ordered'] ?? 0);
+
+            if ($wasPicked > $nowOrdered && $wasPicked > 0) {
+                $notes[] = sprintf('%s cut from %s to %s — %s to go back',
+                    self::shortName($line['description'] ?? $before[$key][0]['description']),
+                    self::trimNum($wasOrdered), self::trimNum($nowOrdered),
+                    self::trimNum($wasPicked - $nowOrdered));
+            }
+        }
+
+        if ($notes === []) {
+            return;
+        }
+
+        Database::statement(
+            "UPDATE sales_orders SET picked_change_note = ?, picked_change_at = NOW() WHERE id = ?",
+            [substr(implode('. ', $notes), 0, 600), $soId]
+        );
+    }
+
+    /** Clear the warning once somebody has dealt with it. */
+    public function acknowledgePickedChange(int $soId): void
+    {
+        Database::statement(
+            "UPDATE sales_orders SET picked_change_note = NULL, picked_change_at = NULL WHERE id = ?",
+            [$soId]
+        );
+    }
+
+    private static function shortName(?string $d): string
+    {
+        $d = trim((string)$d);
+        return $d === '' ? 'A line' : (strlen($d) > 40 ? substr($d, 0, 40) . '…' : $d);
+    }
+
+    private static function trimNum($n): string
+    {
+        return rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
     }
 
     /**
@@ -471,6 +559,7 @@ class SalesOrderRepository
                    so.so_number,
                    so.priority,
                    so.ship_by,
+                   so.picked_change_note,
                    c.company_name,
                    li.id        AS line_id,
                    li.qty_ordered,
@@ -521,6 +610,7 @@ class SalesOrderRepository
                 'qty_picked'     => (float)$r['qty_picked'],
                 'priority'       => $r['priority'],
                 'ship_by'        => $r['ship_by'],
+                'picked_change_note' => $r['picked_change_note'],
             ];
 
             if ($r['ship_by'] !== null

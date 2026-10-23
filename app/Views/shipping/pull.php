@@ -73,6 +73,19 @@ $plNum  = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
             <!-- who wants it, so the split is done before anyone is at the bay -->
             <table style="width:100%;border-collapse:collapse">
                 <?php foreach ($p['orders'] as $o): ?>
+                    <?php if (!empty($o['picked_change_note'])): ?>
+                        <tr style="background:#fffbeb">
+                            <td colspan="5" style="padding:.5rem 1.1rem;border-bottom:1px solid #fcd34d;font-size:.82rem;color:#92400e">
+                                <strong>SO #<?= e($o['so_number']) ?> changed after picking:</strong>
+                                <?= e($o['picked_change_note']) ?>
+                                <form method="POST" action="/shipping/<?= (int)$o['sales_order_id'] ?>/ack-change"
+                                      style="display:inline;margin-left:.5rem">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn--secondary btn--sm">Done</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endif; ?>
                     <tr style="border-bottom:1px solid #f6f7f9">
                         <td style="padding:.55rem 1.1rem;width:7rem">
                             <a href="/shipping/<?= (int)$o['sales_order_id'] ?>/pick"

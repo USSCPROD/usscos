@@ -178,6 +178,7 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/shipping/{id}/release', [ShippingController::class, 'releaseOrder'])->name('shipping.release.go');
     Router::post('/shipping/{id}/hold',    [ShippingController::class, 'holdOrder'])->name('shipping.hold');
     Router::post('/shipping/pull/pick', [ShippingController::class, 'pullPick'])->name('shipping.pull.pick');
+    Router::post('/shipping/{id}/ack-change', [ShippingController::class, 'ackChange'])->name('shipping.ack_change');
     Router::get('/shipping/{id}/pick',       [ShippingController::class, 'pick'])->name('shipping.pick');
     Router::post('/shipping/{id}/pick/scan', [ShippingController::class, 'scan'])->name('shipping.scan');
     Router::post('/shipping/{id}/pick/line', [ShippingController::class, 'setLine'])->name('shipping.pick.line');

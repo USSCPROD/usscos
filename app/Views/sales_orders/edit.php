@@ -40,6 +40,22 @@ $hasShipAddr = !empty($so['ship_address_1']);
     </div>
 </div>
 
+<?php
+// What the warehouse has already done to this order. Shown before the form, because the
+// moment to say "somebody has pulled this" is before the edit, not after it.
+$soPicked = 0.0;
+foreach (($line_items ?? []) as $li) { $soPicked += (float)($li['qty_picked'] ?? 0); }
+?>
+<?php if ($soPicked > 0): ?>
+    <div class="alert" style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;margin-bottom:1.25rem">
+        <strong>The warehouse has already picked this order.</strong>
+        <?= e(rtrim(rtrim(number_format($soPicked, 2), '0'), '.')) ?> already off the shelf.
+        Cutting a quantity or removing a line means somebody has to carry paint back — the
+        order will tidy itself up, the shelf will not. Anything you change here is flagged
+        for the warehouse so they know to return it.
+    </div>
+<?php endif; ?>
+
 <form method="post" action="/sales-orders/<?= (int)$so['id'] ?>/edit" id="soForm">
 <?= csrf_field() ?>
 

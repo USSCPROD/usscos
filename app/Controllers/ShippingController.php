@@ -146,6 +146,15 @@ class ShippingController extends Controller
         ]);
     }
 
+    /** The warehouse has dealt with a change — stop shouting about it. */
+    public function ackChange(Request $request, Response $response, string $id = '0'): Response
+    {
+        $this->repo->acknowledgePickedChange((int)$id);
+        Session::flash('success', 'Noted — the warning is cleared.');
+
+        return $response->redirect('/shipping/pull');
+    }
+
     /**
      * The shipping clerk's release queue.
      *
