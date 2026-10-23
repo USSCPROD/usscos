@@ -147,6 +147,103 @@ class ShippingController extends Controller
     }
 
     /**
+     * The shipping clerk's release queue.
+     *
+     * Hers, not the warehouse's. The guys pull whatever they can reach and she decides
+     * what actually goes out — full, partial, or wait for the rest — which is why this
+     * runs alongside the pull list rather than after it.
+     */
+    public function release(Request $request, Response $response): Response
+    {
+        return $this->view('shipping.release', [
+            'title'  => 'Ready to ship',
+            'orders' => $this->repo->releaseQueue(),
+        ]);
+    }
+
+    /**
+     * Release an order: invoice what has been picked, and leave the rest owed.
+     *
+     * shipAndInvoice already bills qty_picked minus qty_shipped, so a partial is not a
+     * special case here — invoicing a half-picked order produces an invoice for that
+     * half and leaves the remainder on the order. What this adds is the clerk's
+     * intent: she is saying "send what we have", and the order has to show afterwards
+     * that something is still owed rather than looking finished.
+     */
+    public function releaseOrder(Request $request, Response $response, string $id = '0'): Response
+    {
+        $soId   = (int)$id;
+        $userId = (int)(\App\Core\Auth::user()['id'] ?? 0);
+
+        $outstanding = Database::selectOne("
+            SELECT SUM(li.qty_ordered - COALESCE(li.qty_picked,0)) AS remaining,
+                   SUM(COALESCE(li.qty_picked,0) - COALESCE(li.qty_shipped,0)) AS to_ship
+            FROM sales_order_line_items li WHERE li.sales_order_id = ?
+        ", [$soId]);
+
+        if ((float)($outstanding['to_ship'] ?? 0) <= 0) {
+            Session::flash('error', 'Nothing picked that has not already shipped — there is nothing to invoice.');
+            return $response->redirect('/shipping/release');
+        }
+
+        try {
+            $invoiceId = (new \App\Services\InvoiceService())->shipAndInvoice($soId, $userId, $_POST);
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+            return $response->redirect('/shipping/release');
+        }
+
+        // Still owed? Say so on the order itself. An order that reads 'shipped' while
+        // paint is still owed is how a backorder gets forgotten, and the customer finds
+        // out before anybody here does.
+        $remaining = (float)($outstanding['remaining'] ?? 0);
+
+        if ($remaining > 0) {
+            Database::statement(
+                "UPDATE sales_orders SET status='partially_shipped' WHERE id=?", [$soId]
+            );
+        }
+
+        $inv = Database::selectOne("SELECT invoice_number FROM invoices WHERE id=?", [$invoiceId]);
+
+        Session::flash('success', sprintf(
+            'Invoice %s created.%s Create the label next.',
+            $inv['invoice_number'] ?? ('#' . $invoiceId),
+            $remaining > 0
+                ? sprintf(' %s still owed on this order — it stays open.',
+                    rtrim(rtrim(number_format($remaining, 2), '0'), '.'))
+                : ''
+        ));
+
+        return $response->redirect('/shipping/' . $soId . '/label');
+    }
+
+    /**
+     * Hold an order back, with the reason attached.
+     *
+     * A hold with no reason is indistinguishable from an order nobody got to, and the
+     * difference matters to whoever picks the queue up tomorrow.
+     */
+    public function holdOrder(Request $request, Response $response, string $id = '0'): Response
+    {
+        $reason = trim((string)($_POST['reason'] ?? ''));
+
+        if ($reason === '') {
+            Session::flash('error', 'Say why it is being held — "on hold" with no reason tells the next person nothing.');
+            return $response->redirect('/shipping/release');
+        }
+
+        Database::statement(
+            "UPDATE sales_orders SET pick_note = ? WHERE id = ?",
+            ['HOLD: ' . $reason, (int)$id]
+        );
+
+        Session::flash('success', 'Held — the reason is on the order.');
+
+        return $response->redirect('/shipping/release');
+    }
+
+    /**
      * The warehouse pull list — everything owed, totalled by product.
      *
      * Deliberately not a per-order screen. The warehouse and the shipping clerk work at

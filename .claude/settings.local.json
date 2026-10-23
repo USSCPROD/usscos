@@ -408,7 +408,8 @@
       "Bash(scp -q /tmp/v.php root@159.223.177.58:/tmp/v.php)",
       "Bash(scp -q /tmp/f.php root@159.223.177.58:/tmp/f.php)",
       "Bash(php -l app/Views/shipping/pull.php)",
-      "Bash(php -l database/seed_test_orders.php)"
+      "Bash(php -l database/seed_test_orders.php)",
+      "Bash(php -l app/Views/shipping/release.php)"
     ]
   }
 }

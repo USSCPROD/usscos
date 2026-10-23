@@ -32,7 +32,8 @@ $activeTab = $_GET['tab'] ?? 'all';
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
     <div>
         <h1 class="page-title">Shipping Queue</h1>
-        <a href="/shipping/pull" class="btn btn--primary" style="float:right;margin-top:-2.2rem">Pull list</a>
+        <a href="/shipping/release" class="btn btn--primary" style="float:right;margin-top:-2.2rem">Ready to ship</a>
+        <a href="/shipping/pull" class="btn btn--secondary" style="float:right;margin-top:-2.2rem;margin-right:.5rem">Pull list</a>
         <p class="page-subtitle"><?= count($orders) ?> order<?= count($orders) !== 1 ? 's' : '' ?> ready to ship</p>
     </div>
 </div>

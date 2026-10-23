@@ -16,7 +16,8 @@ $plNum  = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
         </p>
     </div>
     <div>
-        <a href="/shipping" class="btn btn--secondary">Shipping queue</a>
+        <a href="/shipping/release" class="btn btn--primary">Ready to ship</a>
+        <a href="/shipping" class="btn btn--secondary">Queue</a>
     </div>
 </div>
 

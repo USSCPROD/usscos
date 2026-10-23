@@ -442,6 +442,60 @@ class SalesOrderRepository
         return array_values($byProduct);
     }
 
+    /**
+     * The shipping clerk's queue — every open order, and how close it is to shippable.
+     *
+     * Her decision is full, partial, or hold, and it rests on one comparison: what was
+     * ordered against what is actually on the shelf for it. So both figures are here,
+     * per order, rather than requiring her to open each one to find out.
+     *
+     * lines_short counts lines where the pick is incomplete AND there is not enough on
+     * hand to finish it. A line that is merely unpicked is not short - somebody just has
+     * not walked to the bay yet - and conflating the two would have her holding orders
+     * that could ship today.
+     *
+     * @return list<array>
+     */
+    public function releaseQueue(): array
+    {
+        return Database::select("
+            SELECT so.id,
+                   so.so_number,
+                   so.status,
+                   so.priority,
+                   so.ship_by,
+                   so.pick_status,
+                   so.pick_note,
+                   so.channel,
+                   so.total_amount,
+                   c.company_name,
+
+                   COUNT(li.id)                                        AS line_count,
+                   SUM(li.qty_ordered)                                 AS qty_ordered,
+                   SUM(COALESCE(li.qty_picked, 0))                     AS qty_picked,
+                   SUM(COALESCE(li.qty_shipped, 0))                    AS qty_shipped,
+
+                   SUM(CASE WHEN COALESCE(li.qty_picked,0) >= li.qty_ordered THEN 1 ELSE 0 END) AS lines_complete,
+
+                   -- Short means it CANNOT be finished, not merely that it has not been.
+                   SUM(CASE
+                         WHEN COALESCE(li.qty_picked,0) < li.qty_ordered
+                          AND COALESCE(p.qty_on_hand,0) < (li.qty_ordered - COALESCE(li.qty_picked,0))
+                         THEN 1 ELSE 0 END)                            AS lines_short,
+
+                   (SELECT COUNT(*) FROM invoices i WHERE i.sales_order_id = so.id) AS invoice_count
+
+            FROM sales_orders so
+            JOIN customers c             ON c.id  = so.customer_id
+            LEFT JOIN sales_order_line_items li ON li.sales_order_id = so.id
+            LEFT JOIN products p         ON p.id  = li.product_id
+            WHERE so.status IN ('confirmed','processing','partially_shipped')
+            GROUP BY so.id
+            ORDER BY FIELD(so.priority,'urgent','high','normal'),
+                     so.ship_by IS NULL, so.ship_by, so.id
+        ");
+    }
+
     public function getPickLines(int $salesOrderId): array
     {
         $stmt = $this->pdo->prepare("
