@@ -336,7 +336,20 @@ class ShippingController extends Controller
 
         $fedex = new FedExShippingService();
         $lines = $this->repo->getPickLines((int)$id);
-        $plan  = (new CartonizerService())->pack($lines);
+
+        // The cartonizer wants a plain `qty` — how many of this product are going in
+        // boxes — and getPickLines returns qty_ordered, qty_picked, qty_packed and
+        // qty_shipped, none of which is called that. It was silently skipping every
+        // line and returning no packages at all, which read as missing product data
+        // rather than as a mismatch between two function signatures.
+        //
+        // Picked minus shipped is the right figure: it is what this shipment contains,
+        // and it is the same quantity the release invoices, so the label and the invoice
+        // describe the same parcel.
+        $plan = (new CartonizerService())->pack(array_map(
+            fn(array $l) => $l + ['qty' => max(0.0, (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0))],
+            $lines
+        ));
 
         // The invoice is what FedEx ships against - it carries the delivery address and
         // it is what the tracking number belongs on. No invoice means the order has not

@@ -416,7 +416,8 @@
       "Bash(php -l database/migrations/100_picked_order_changed.sql)",
       "Bash(scp -q /tmp/wn.php root@159.223.177.58:/tmp/wn.php)",
       "Bash(scp -q /tmp/wn2.php root@159.223.177.58:/tmp/wn2.php)",
-      "Bash(scp -q /tmp/s11.php root@159.223.177.58:/tmp/s11.php)"
+      "Bash(scp -q /tmp/s11.php root@159.223.177.58:/tmp/s11.php)",
+      "Bash(scp -q /tmp/t11.php root@159.223.177.58:/tmp/t11.php)"
     ]
   }
 }
