@@ -12,8 +12,192 @@ function kpiTrend(float $pct): string {
     if ($pct < 0)  return '<span class="kpi-card__trend kpi-card__trend--down">▼ ' . number_format(abs($pct), 1) . '%</span>';
     return '<span class="kpi-card__trend kpi-card__trend--neutral">— 0%</span>';
 }
+
+// Which panels this role gets. A variable, not a view-local function - see CLAUDE.md.
+$panels = $d['panels'] ?? [];
+$shows  = fn(string $p): bool => in_array($p, $panels, true);
+
+$dcard  = 'background:#fff;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:1.25rem;overflow:hidden';
+$dhead  = 'display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.1rem;'
+        . 'border-bottom:1px solid #eef0f3;font-size:.78rem;font-weight:700;text-transform:uppercase;'
+        . 'letter-spacing:.05em;color:#6b7280';
+$dnum   = fn($n) => '$' . number_format((float)$n, 0);
 ?>
 
+<?php if ($shows('kpis_mine')): ?>
+    <?php
+        $mine = $d['my'] ?? ['linked' => false];
+    ?>
+    <?php if (empty($mine['linked'])): ?>
+        <!--
+            Said in words rather than shown as zeroes. A rep looking at "$0 pipeline"
+            concludes they have had a quiet month; one told their login is not linked
+            to a rep record asks somebody to fix it.
+        -->
+        <div class="alert" style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;margin-bottom:1.5rem">
+            <strong>Your login isn't linked to a sales rep record yet.</strong>
+            Until it is, this page can't tell which accounts, leads and quotes are yours,
+            so it is showing nothing rather than guessing. Ask an admin to link it.
+        </div>
+    <?php else: ?>
+        <div class="kpi-grid" style="margin-bottom:1.5rem">
+            <div class="kpi-card">
+                <div class="kpi-card__header"><span class="kpi-card__label">My sales (MTD)</span></div>
+                <div class="kpi-card__value"><?= $dnum($mine['sales_mtd'] ?? 0) ?></div>
+                <div class="kpi-card__meta">
+                    <?= kpiTrend((float)($mine['sales_trend'] ?? 0)) ?>
+                    <span class="kpi-card__trend kpi-card__trend--neutral">vs last month</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card__header"><span class="kpi-card__label">Invoices this month</span></div>
+                <div class="kpi-card__value"><?= (int)($mine['sales_count'] ?? 0) ?></div>
+                <div class="kpi-card__meta">
+                    <span class="kpi-card__trend kpi-card__trend--neutral">on my accounts</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card__header"><span class="kpi-card__label">My accounts</span></div>
+                <div class="kpi-card__value"><?= number_format((int)($mine['accounts'] ?? 0)) ?></div>
+                <div class="kpi-card__meta">
+                    <span class="kpi-card__trend kpi-card__trend--neutral">customers assigned to me</span>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card__header"><span class="kpi-card__label">Last month</span></div>
+                <div class="kpi-card__value"><?= $dnum($mine['sales_last'] ?? 0) ?></div>
+                <div class="kpi-card__meta">
+                    <span class="kpi-card__trend kpi-card__trend--neutral">for comparison</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.25rem">
+
+            <?php if ($shows('my_pipeline')): ?>
+                <div style="<?= $dcard ?>">
+                    <div style="<?= $dhead ?>"><span>My pipeline</span><a href="/pipeline" style="font-size:.75rem">Open</a></div>
+                    <?php $pipe = $d['my_pipeline'] ?? []; ?>
+                    <?php if ($pipe === []): ?>
+                        <div style="padding:1.25rem;color:#9ca3af;font-size:.88rem">No open opportunities.</div>
+                    <?php else: ?>
+                        <table style="width:100%;border-collapse:collapse">
+                            <?php foreach ($pipe as $row): ?>
+                                <tr style="border-top:1px solid #f3f4f6">
+                                    <td style="padding:.6rem 1.1rem;font-size:.9rem;text-transform:capitalize"><?= e(str_replace('_',' ', (string)$row['stage'])) ?></td>
+                                    <td style="padding:.6rem;text-align:right;color:#6b7280;font-size:.82rem"><?= (int)$row['n'] ?></td>
+                                    <td style="padding:.6rem 1.1rem;text-align:right;font-family:monospace;font-weight:700"><?= $dnum($row['total']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($shows('my_quotes')): ?>
+                <div style="<?= $dcard ?>">
+                    <div style="<?= $dhead ?>"><span>Quotes awaiting an answer</span><a href="/quotes" style="font-size:.75rem">Open</a></div>
+                    <?php $qs = $d['my_quotes'] ?? []; ?>
+                    <?php if ($qs === []): ?>
+                        <div style="padding:1.25rem;color:#9ca3af;font-size:.88rem">Nothing outstanding.</div>
+                    <?php else: ?>
+                        <table style="width:100%;border-collapse:collapse">
+                            <?php foreach ($qs as $q): ?>
+                                <tr style="border-top:1px solid #f3f4f6">
+                                    <td style="padding:.6rem 1.1rem;font-size:.88rem">
+                                        <a href="/quotes/<?= (int)$q['id'] ?>" style="font-weight:600"><?= e($q['quote_number']) ?></a>
+                                        <div style="color:#6b7280;font-size:.8rem"><?= e($q['company_name'] ?? '') ?></div>
+                                    </td>
+                                    <td style="padding:.6rem;text-align:right;font-size:.78rem;color:<?= ($q['days_left'] ?? null) !== null && (int)$q['days_left'] < 0 ? '#b91c1c' : '#6b7280' ?>">
+                                        <?php if (($q['days_left'] ?? null) === null): ?>—
+                                        <?php elseif ((int)$q['days_left'] < 0): ?>expired
+                                        <?php else: ?><?= (int)$q['days_left'] ?>d left<?php endif; ?>
+                                    </td>
+                                    <td style="padding:.6rem 1.1rem;text-align:right;font-family:monospace"><?= $dnum($q['total_amount']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($shows('my_overdue')): ?>
+                <div style="<?= $dcard ?>">
+                    <div style="<?= $dhead ?>"><span>Overdue on my accounts</span></div>
+                    <?php $od = $d['my_overdue'] ?? []; ?>
+                    <?php if ($od === []): ?>
+                        <div style="padding:1.25rem;color:#9ca3af;font-size:.88rem">Nothing overdue.</div>
+                    <?php else: ?>
+                        <table style="width:100%;border-collapse:collapse">
+                            <?php foreach ($od as $iv): ?>
+                                <tr style="border-top:1px solid #f3f4f6">
+                                    <td style="padding:.6rem 1.1rem;font-size:.88rem">
+                                        <a href="/invoices/<?= (int)$iv['id'] ?>" style="font-weight:600"><?= e($iv['invoice_number']) ?></a>
+                                        <div style="color:#6b7280;font-size:.8rem"><?= e($iv['company_name'] ?? '') ?></div>
+                                    </td>
+                                    <td style="padding:.6rem;text-align:right;font-size:.78rem;color:#b91c1c"><?= (int)$iv['days_over'] ?>d</td>
+                                    <td style="padding:.6rem 1.1rem;text-align:right;font-family:monospace;font-weight:700"><?= $dnum($iv['balance_due']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($shows('my_quiet')): ?>
+                <div style="<?= $dcard ?>">
+                    <div style="<?= $dhead ?>"><span>Accounts gone quiet</span></div>
+                    <?php $qt = $d['my_quiet'] ?? []; ?>
+                    <?php if ($qt === []): ?>
+                        <div style="padding:1.25rem;color:#9ca3af;font-size:.88rem">Everyone has ordered recently.</div>
+                    <?php else: ?>
+                        <table style="width:100%;border-collapse:collapse">
+                            <?php foreach ($qt as $c): ?>
+                                <tr style="border-top:1px solid #f3f4f6">
+                                    <td style="padding:.6rem 1.1rem;font-size:.88rem">
+                                        <a href="/customers/<?= (int)$c['id'] ?>"><?= e($c['company_name']) ?></a>
+                                    </td>
+                                    <td style="padding:.6rem 1.1rem;text-align:right;font-size:.82rem;color:#92400e">
+                                        <?= (int)$c['days_quiet'] ?> days
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($shows('my_leads')): ?>
+                <div style="<?= $dcard ?>">
+                    <div style="<?= $dhead ?>"><span>My leads to follow up</span><a href="/leads" style="font-size:.75rem">Open</a></div>
+                    <?php $ld = $d['my_leads'] ?? []; ?>
+                    <?php if ($ld === []): ?>
+                        <div style="padding:1.25rem;color:#9ca3af;font-size:.88rem">No open leads.</div>
+                    <?php else: ?>
+                        <table style="width:100%;border-collapse:collapse">
+                            <?php foreach ($ld as $l): ?>
+                                <tr style="border-top:1px solid #f3f4f6">
+                                    <td style="padding:.6rem 1.1rem;font-size:.88rem">
+                                        <a href="/leads/<?= (int)$l['id'] ?>" style="font-weight:600"><?= e($l['company_name']) ?></a>
+                                        <?php if (trim((string)$l['contact_name']) !== ''): ?>
+                                            <div style="color:#6b7280;font-size:.8rem"><?= e($l['contact_name']) ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="padding:.6rem 1.1rem;text-align:right;font-size:.8rem;color:#6b7280">
+                                        <?= (int)$l['age_days'] ?>d old
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+        </div>
+    <?php endif; ?>
+<?php endif; ?>
+
+<?php if ($shows('kpis_company') || $shows('kpis_finance')): ?>
 <!-- KPI Cards -->
 <div class="kpi-grid">
 
@@ -116,10 +300,13 @@ function kpiTrend(float $pct): string {
     </div>
 
 </div>
+<?php endif; // company KPIs ?>
 
+<?php if ($shows('chart') || $shows('focus')): ?>
 <!-- Main Grid: Chart + Focus Items -->
 <div class="dashboard-grid" style="margin-bottom:var(--space-6)">
 
+    <?php if ($shows('chart')): ?>
     <!-- Business Overview Chart -->
     <div class="chart-card">
         <div class="chart-card__header">
@@ -149,6 +336,9 @@ function kpiTrend(float $pct): string {
         </div>
     </div>
 
+    <?php endif; // chart ?>
+
+    <?php if ($shows('focus')): ?>
     <!-- Things to Focus On -->
     <div class="focus-card">
         <div class="focus-card__header">
@@ -181,7 +371,9 @@ function kpiTrend(float $pct): string {
         </div>
     </div>
 
+    <?php endif; // focus ?>
 </div>
+<?php endif; // chart + focus ?>
 
 <!-- My Tasks -->
 <?php
@@ -259,9 +451,11 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
     <?php endif; ?>
 </div>
 
+<?php if ($shows('activity') || $shows('top_products') || $shows('ai')): ?>
 <!-- Bottom Grid: Activity + Products + AI -->
 <div class="dashboard-grid--3col">
 
+    <?php if ($shows('activity')): ?>
     <!-- Recent Activity -->
     <div class="activity-card">
         <div class="activity-card__header">
@@ -314,6 +508,9 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
         </div>
     </div>
 
+    <?php endif; // activity ?>
+
+    <?php if ($shows('top_products')): ?>
     <!-- Top Selling Products -->
     <div class="products-card">
         <div class="products-card__header">
@@ -358,6 +555,9 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
         </div>
     </div>
 
+    <?php endif; // top products ?>
+
+    <?php if ($shows('ai')): ?>
     <!-- AI Assistant -->
     <div class="ai-card">
         <div class="ai-card__header">
@@ -400,8 +600,10 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
             </button>
         </div>
     </div>
+    <?php endif; // ai ?>
 
 </div>
+<?php endif; // activity + products + AI ?>
 
 <?php
 $content = ob_get_clean();

@@ -29,20 +29,62 @@ use App\Repositories\TaskRepository;
  */
 class DashboardService extends Service
 {
+    /**
+     * Assemble only what this audience's dashboard will actually draw.
+     *
+     * Company figures are not fetched and then hidden - they are not fetched. Hiding
+     * a panel in the view leaves its numbers sitting in the page data, one debug dump,
+     * JSON endpoint or view tweak away from being visible to somebody who should not
+     * see them. Not asking the question is the only version that holds.
+     */
     public function load(): array
     {
         $userId   = (int)(Auth::user()['id'] ?? 0);
         $taskRepo = new TaskRepository();
+        $audience = DashboardAudience::forCurrentUser();
+        $shows    = fn(string $p): bool => DashboardAudience::shows($p, $audience);
 
-        return [
-            'kpis'            => $this->getKpis(),
-            'recent_activity' => $this->getRecentActivity(),
-            'focus_items'     => $this->getFocusItems(),
-            'revenue_chart'   => $this->getRevenueChart(),
-            'top_products'    => $this->getTopProducts(),
-            'my_tasks'        => $userId ? $taskRepo->getForUser($userId) : [],
-            'my_task_stats'   => $userId ? $taskRepo->getStats($userId)   : [],
+        $data = [
+            'audience'      => $audience,
+            'heading'       => DashboardAudience::heading($audience),
+            'panels'        => DashboardAudience::panels($audience),
+            'my_tasks'      => $userId ? $taskRepo->getForUser($userId) : [],
+            'my_task_stats' => $userId ? $taskRepo->getStats($userId)   : [],
         ];
+
+        if ($shows('kpis_company') || $shows('kpis_finance')) {
+            $data['kpis'] = $this->getKpis();
+        }
+
+        if ($shows('chart')) {
+            $data['revenue_chart'] = $this->getRevenueChart();
+        }
+
+        if ($shows('focus')) {
+            $data['focus_items'] = $this->getFocusItems();
+        }
+
+        if ($shows('activity')) {
+            $data['recent_activity'] = $this->getRecentActivity();
+        }
+
+        if ($shows('top_products')) {
+            $data['top_products'] = $this->getTopProducts();
+        }
+
+        if ($shows('kpis_mine')) {
+            $sales = new SalesDashboardService();
+            $repId = $sales->repId();
+
+            $data['my']          = $sales->kpis($repId);
+            $data['my_pipeline'] = $sales->pipeline($repId);
+            $data['my_leads']    = $sales->leads($repId);
+            $data['my_quotes']   = $sales->quotes($repId);
+            $data['my_overdue']  = $sales->overdue($repId);
+            $data['my_quiet']    = $sales->quiet($repId);
+        }
+
+        return $data;
     }
 
     /**

@@ -24,7 +24,9 @@ class DashboardController extends Controller
         $data = $this->dashboardService->load();
 
         return $this->view('dashboard.index', [
-            'title'     => 'Dashboard',
+            // The heading names the audience, so nobody has to wonder whether the
+            // figures in front of them are theirs or the company's.
+            'title'     => $data['heading'] ?? 'Dashboard',
             'dashboard' => $data,
         ]);
     }
