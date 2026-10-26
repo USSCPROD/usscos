@@ -283,7 +283,10 @@ $colStyle  = 'vertical-align:top;padding:0';
                     <tr>
                         <td class="text-muted" style="width:42%;padding:.45rem .6rem;font-size:.875rem;vertical-align:top">Long Description</td>
                         <td style="padding:.45rem .6rem;font-size:.83rem;color:#4b5563;line-height:1.55;vertical-align:top">
-                            <?php if (!empty($pr['long_description'])): ?>
+                            <?php if (!empty($pr['website_description'])): ?>
+                                <!-- Sanitised on save, so shown as the website shows it. -->
+                                <?= $pr['website_description'] ?>
+                            <?php elseif (!empty($pr['long_description'])): ?>
                                 <?= nl2br(e($pr['long_description'])) ?>
                             <?php else: ?>
                                 <span class="text-muted">—</span>
@@ -462,10 +465,11 @@ $colStyle  = 'vertical-align:top;padding:0';
                         </td>
                     </tr>
                     <?php endif; ?>
-                    <?php if (!empty($pr['long_description'])): ?>
+                    <?php if (!empty($pr['website_description']) || !empty($pr['long_description'])): ?>
                     <tr>
                         <td class="text-muted" style="padding:.45rem .6rem;font-size:.875rem;vertical-align:top">Long / Website</td>
-                        <td style="padding:.45rem .6rem;font-size:.85rem;line-height:1.55"><?= nl2br(e($pr['long_description'])) ?></td>
+                        <td style="padding:.45rem .6rem;font-size:.85rem;line-height:1.55"><?= !empty($pr['website_description'])
+                            ? $pr['website_description'] : nl2br(e($pr['long_description'])) ?></td>
                     </tr>
                     <?php endif; ?>
                 </table>

@@ -188,8 +188,11 @@ if (!function_exists('peTextarea')) {
                 <?php
                 peTextarea('Sales Description',   'short_description',    $pr['short_description'], 2,
                            'Short — used on quotes &amp; invoices');
-                peTextarea('Long Description',    'long_description',     $pr['long_description'] ?? '', 5,
-                           'Website &amp; catalog copy');
+                // Long Description was removed from this card: it claimed to be
+                // 'Website & catalog copy' while the Website card's rich text editor
+                // is what the site actually reads, and two fields for one job is how
+                // somebody writes copy into the one nothing displays. Imported values
+                // are still shown on the site as a fallback.
                 peTextarea('Purchase Description','purchase_description', $pr['purchase_description'], 2,
                            'Shown on POs');
                 peInput('EDI Description',        'edi_description',      $pr['edi_description'] ?? '', 'text',
