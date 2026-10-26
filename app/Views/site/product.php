@@ -24,10 +24,32 @@ $spec = function (string $label, $value, string $suffix = '') {
 <div class="wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:2.5rem;padding-bottom:3rem">
 
   <div>
-    <?php if (\App\Repositories\StorefrontRepository::isImageUrl($pr['website_image_url'] ?? null)): ?>
-      <img src="<?= e($pr['website_image_url']) ?>" alt="<?= e($pr['name']) ?>"
-           style="border:1px solid var(--line);border-radius:10px;aspect-ratio:1;object-fit:cover"
+    <?php $main = \App\Repositories\StorefrontRepository::imageFor($pr); ?>
+    <?php if ($main !== null): ?>
+      <img id="pimg" src="<?= e($main) ?>" alt="<?= e($pr['name']) ?>"
+           style="border:1px solid var(--line);border-radius:10px;aspect-ratio:1;object-fit:contain;background:#fff;width:100%"
            onerror="this.outerHTML='&lt;div class=\'ph\' style=\'aspect-ratio:1;border:1px solid var(--line);border-radius:10px\'&gt;No photo yet&lt;/div&gt;'">
+
+      <?php if (count($images) > 1): ?>
+        <!--
+            Thumbnails swap the main image in place. Every image is in the markup, so
+            the page works with JavaScript off: the others are simply not reachable,
+            rather than the page being broken.
+        -->
+        <div style="display:flex;gap:.5rem;margin-top:.7rem;flex-wrap:wrap">
+          <?php foreach ($images as $ix => $im): ?>
+            <button type="button"
+                    onclick="document.getElementById('pimg').src='<?= e($im['file_path']) ?>';
+                             [].forEach.call(this.parentNode.children, function(b){ b.style.borderColor='var(--line)'; });
+                             this.style.borderColor='var(--blue)';"
+                    style="padding:0;width:62px;height:62px;border:2px solid <?= $ix === 0 ? 'var(--blue)' : 'var(--line)' ?>;
+                           border-radius:7px;overflow:hidden;background:#fff;cursor:pointer">
+              <img src="<?= e($im['file_path']) ?>" alt=""
+                   style="width:100%;height:100%;object-fit:contain" loading="lazy">
+            </button>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     <?php else: ?>
       <div class="ph" style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px">
         No photo yet

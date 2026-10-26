@@ -33,7 +33,11 @@ class StorefrontRepository extends Repository
         p.id, p.sku, p.name, p.short_description, p.website_price, p.website_image_url,
         p.gross_weight, p.weight_unit, p.uom_code, p.units_per_case, p.qty_on_hand,
         p.variant_group, p.variant_label, p.variant_order,
-        b.name AS brand_name";
+        b.name AS brand_name,
+        (SELECT pi.file_path FROM product_images pi
+          WHERE pi.product_id = p.id
+          ORDER BY pi.is_primary DESC, pi.sort_order, pi.id
+          LIMIT 1) AS primary_image";
 
     /** Products never shown publicly, whatever category they are filed under. */
     private const PUBLIC_WHERE = "
@@ -314,5 +318,39 @@ class StorefrontRepository extends Repository
 
         // Never return an empty title because the whole name happened to match.
         return ($stripped === null || trim($stripped) === '') ? $name : rtrim($stripped, " \t—–-");
+    }
+    /**
+     * Every image for a product, primary first, for the gallery on its page.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function imagesOf(int $productId): array
+    {
+        return Database::select("
+            SELECT file_path, file_name, caption
+            FROM product_images
+            WHERE product_id = ?
+            ORDER BY is_primary DESC, sort_order, id
+        ", [$productId]);
+    }
+
+    /**
+     * The image to show for a row, or null when there is honestly none.
+     *
+     * An uploaded file wins over website_image_url: the uploaded one is ours and we
+     * know it is an image, while that column holds links to PAGES on the old
+     * WordPress sites for every product that has it set.
+     */
+    public static function imageFor(array $row): ?string
+    {
+        $uploaded = trim((string)($row['primary_image'] ?? ''));
+
+        if ($uploaded !== '') {
+            return $uploaded;
+        }
+
+        return self::isImageUrl($row['website_image_url'] ?? null)
+            ? (string)$row['website_image_url']
+            : null;
     }
 }

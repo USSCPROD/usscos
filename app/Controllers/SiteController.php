@@ -90,6 +90,7 @@ class SiteController extends Controller
             'nav'      => $nav,
             'product'  => $product,
             'variants' => $this->shop->variantsOf($product),
+            'images'   => $this->shop->imagesOf((int)$product['id']),
         ]);
     }
 
