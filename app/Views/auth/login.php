@@ -30,14 +30,26 @@ $success = \App\Core\Session::getFlash('success');
         <?= csrf_field() ?>
 
         <div class="form-group">
-            <label for="email" class="form-label">Email address</label>
+            <label for="email" class="form-label">Email or username</label>
+            <!--
+                type="text", not "email". Warehouse staff sign in with a username, and
+                the browser silently refuses to submit anything without an @ in an email
+                input - the form simply would not go, with no message the person could
+                act on.
+
+                autocapitalize and autocorrect are off because this is typed on a tablet,
+                where both would helpfully turn 'daquan' into 'Daquan' and fail the login.
+            -->
             <input
-                type="email"
+                type="text"
                 id="email"
                 name="email"
                 class="form-input <?= isset($errors['email']) ? 'is-error' : '' ?>"
                 value="<?= e(old('email')) ?>"
-                autocomplete="email"
+                autocomplete="username"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
                 autofocus
                 required
             >
