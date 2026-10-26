@@ -31,7 +31,10 @@ class ProductController extends Controller
         $filter  = $request->query('filter') ?? 'active';
         $category = trim((string)($request->query('category') ?? ''));
 
-        $data = $this->service->list($page, $perPage, $search, $brand, $filter, $category);
+        // ?exact=1 means "only this category", for auditing what is filed where.
+        $exact = (string)($request->query('exact') ?? '') === '1';
+
+        $data = $this->service->list($page, $perPage, $search, $brand, $filter, $category, $exact);
 
         return $this->view('products.index', ['title' => 'Products', ...$data]);
     }

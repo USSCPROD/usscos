@@ -11,6 +11,8 @@ if (!function_exists('catRow')) {
     function catRow(array $c, bool $isChild = false): void {
         $indent  = $isChild ? 'padding-left:2.4rem' : 'padding-left:.75rem';
         $count   = (int)$c['product_count'];
+        $allCount = (int)($c['product_count_all'] ?? $count);
+        $inactive = max(0, $allCount - $count);
         $hidden  = (int)$c['show_on_website'] === 0;
         $off     = (int)$c['is_active'] === 0;
         ?>
@@ -28,13 +30,32 @@ if (!function_exists('catRow')) {
             </td>
             <td style="padding:.6rem .75rem;font-family:monospace;font-size:.78rem;color:#6b7280"><?= e($c['slug']) ?></td>
             <td style="padding:.6rem .75rem;text-align:right;font-size:.85rem">
-                <?= $count ? number_format($count) : '<span class="text-muted">—</span>' ?>
+                <?php if ($count || $inactive): ?>
+                    <!--
+                        exact=1, so this lists what is filed in THIS category and not in
+                        its children. A parent that swept in its children's products
+                        would bury the one misfiled item somebody opened this to find.
+                    -->
+                    <a href="/products?category=<?= (int)$c['id'] ?>&exact=1"
+                       title="List the products filed directly in this category">
+                        <?= number_format($count) ?>
+                    </a>
+                    <?php if ($inactive > 0): ?>
+                        <a href="/products?category=<?= (int)$c['id'] ?>&exact=1&filter=inactive"
+                           style="color:#9ca3af;font-size:.76rem;margin-left:.3rem"
+                           title="<?= (int)$inactive ?> inactive product(s) also filed here">
+                            +<?= (int)$inactive ?>
+                        </a>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <span class="text-muted">—</span>
+                <?php endif; ?>
             </td>
             <td style="padding:.6rem .75rem;text-align:center;font-size:.85rem;color:#6b7280"><?= (int)$c['sort_order'] ?></td>
             <td style="padding:.6rem .75rem;text-align:right;white-space:nowrap">
                 <a href="/categories/<?= (int)$c['id'] ?>/edit" class="btn btn--xs btn--secondary">Edit</a>
                 <form method="POST" action="/categories/<?= (int)$c['id'] ?>/delete" style="display:inline"
-                      onsubmit="return confirm('Delete <?= e($c['name']) ?>?<?= $count ? "\\n\\n" . $count . " product(s) will become uncategorised." : "" ?>')">
+                      onsubmit="return confirm('Delete <?= e($c['name']) ?>?<?= $allCount ? "\\n\\n" . $allCount . " product(s) will become uncategorised." : "" ?>')">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn--xs btn--secondary"
                             style="color:#dc2626;margin-left:.25rem">Delete</button>

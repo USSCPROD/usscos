@@ -14,7 +14,10 @@ class CategoryRepository
         return Database::select("
             SELECT c.*,
                    pa.name AS parent_name,
-                   (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count,
+                   (SELECT COUNT(*) FROM product_categories pc
+                     JOIN products p ON p.id = pc.product_id AND p.is_active = 1
+                    WHERE pc.category_id = c.id) AS product_count,
+                   (SELECT COUNT(*) FROM product_categories pc WHERE pc.category_id = c.id) AS product_count_all,
                    (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id)           AS child_count
             FROM categories c
             LEFT JOIN categories pa ON pa.id = c.parent_id

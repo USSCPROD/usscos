@@ -79,7 +79,7 @@ class ProductRepository extends Repository
         return 'products';
     }
 
-    public function paginateWithBrand(int $page, int $perPage, string $search = '', string $brand = '', string $filter = 'active', string $category = ''): array
+    public function paginateWithBrand(int $page, int $perPage, string $search = '', string $brand = '', string $filter = 'active', string $category = '', bool $exactCategory = false): array
     {
         $params     = [];
         $conditions = ["p.item_type != 'raw_material'"];
@@ -97,6 +97,15 @@ class ProductRepository extends Repository
 
         if ($category === 'none') {
             $conditions[] = 'NOT EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id)';
+        } elseif ($category !== '' && $exactCategory) {
+            // Exactly this category, children excluded. Used when the point is to
+            // audit what is filed HERE - a parent that swept in its children's
+            // products would hide the one misfiled item being looked for.
+            $conditions[] = 'EXISTS (
+                SELECT 1 FROM product_categories pc
+                WHERE pc.product_id = p.id AND pc.category_id = ?
+            )';
+            $params[] = (int)$category;
         } elseif ($category !== '') {
             // Selecting a parent also matches everything in its children
             $conditions[] = 'EXISTS (

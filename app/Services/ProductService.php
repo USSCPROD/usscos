@@ -15,13 +15,13 @@ class ProductService
         $this->repo = new ProductRepository();
     }
 
-    public function list(int $page, int $perPage, string $search, string $brand, string $filter, string $category = ''): array
+    public function list(int $page, int $perPage, string $search, string $brand, string $filter, string $category = '', bool $exactCategory = false): array
     {
-        $paginated    = $this->repo->paginateWithBrand($page, $perPage, $search, $brand, $filter, $category);
+        $paginated    = $this->repo->paginateWithBrand($page, $perPage, $search, $brand, $filter, $category, $exactCategory);
         $brands       = $this->repo->getAllBrands();
         $categoryTree = (new \App\Repositories\CategoryRepository())->tree();
 
-        return compact('paginated', 'brands', 'search', 'brand', 'filter', 'category', 'categoryTree');
+        return compact('paginated', 'brands', 'search', 'brand', 'filter', 'category', 'categoryTree', 'exactCategory');
     }
 
     public function show(int $id): array
