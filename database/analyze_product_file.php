@@ -141,7 +141,11 @@ foreach ($sheets->getSheetNames() as $sheetName) {
             }
         }
 
-        if ($any) {
+        // Match import_products.php, which skips a row with a SKU but no product name:
+        // those are the sheet's own section dividers ('DURASTRIPE 2 PACKS'), not goods.
+        // Reporting them as unmatched products would be this tool crying wolf about
+        // rows the importer was never going to touch.
+        if ($any && trim((string)($rec['product name'] ?? '')) !== '') {
             $rec['_sheet'] = $sheetName;
             $rows[] = $rec;
         }
