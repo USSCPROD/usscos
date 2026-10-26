@@ -38,7 +38,7 @@ use App\Core\Database;
 
 $args   = array_slice($argv, 1);
 $commit = in_array('--commit', $args, true);
-$opt    = ['username' => null, 'first' => null, 'last' => null, 'password-file' => null];
+$opt    = ['username' => null, 'first' => null, 'last' => null, 'password-file' => null, 'password' => null];
 
 foreach ($args as $a) {
     foreach ($opt as $k => $_) {
@@ -48,9 +48,11 @@ foreach ($args as $a) {
     }
 }
 
-foreach (['username', 'first', 'last'] as $required) {
+// Last name is optional: warehouse staff are often known by a first name only, and
+// inventing a surname to satisfy a column is worse than leaving it blank.
+foreach (['username', 'first'] as $required) {
     if (($opt[$required] ?? '') === '' || $opt[$required] === null) {
-        fwrite(STDERR, "Usage: php database/create_warehouse_user.php --username=jose --first=Jose --last=Ramirez [--commit]\n");
+        fwrite(STDERR, "Usage: php database/create_warehouse_user.php --username=jose --first=Jose [--last=Ramirez] [--password=...] [--commit]\n");
         exit(1);
     }
 }
@@ -79,7 +81,7 @@ $company = Database::selectOne("SELECT id FROM users WHERE company_id IS NOT NUL
 $companyId = (int)(Database::selectOne("SELECT company_id FROM users ORDER BY id LIMIT 1")['company_id'] ?? 1);
 
 printf("%sWould create:\n", $commit ? '' : "DRY RUN — nothing will be written. Add --commit to apply.\n\n");
-printf("  name     : %s %s\n", $opt['first'], $opt['last']);
+printf("  name     : %s\n", trim($opt['first'] . ' ' . (string)$opt['last']));
 printf("  username : %s\n", $username);
 printf("  role     : warehouse  (pull list, shipping, receiving — nothing else)\n");
 printf("  email    : %s@warehouse.invalid  (placeholder, never used)\n", $username);
@@ -89,20 +91,26 @@ if (!$commit) {
     exit(0);
 }
 
-// Four words beat a short random string: it can be read aloud across a warehouse and
-// typed on a tablet without a password manager, which is the actual situation here.
-$words = ['anchor', 'basin', 'cobalt', 'draft', 'ember', 'forge', 'gravel', 'harbor',
-          'indigo', 'jasper', 'kettle', 'lantern', 'marble', 'nickel', 'orchard',
-          'pewter', 'quarry', 'ribbon', 'saddle', 'timber', 'umber', 'velvet',
-          'walnut', 'yarrow', 'zinc'];
+$supplied = ($opt['password'] ?? '') !== '';
 
-$password = '';
+if ($supplied) {
+    $password = (string)$opt['password'];
+} else {
+    // Three words and two digits beat a short random string: it has to be read aloud
+    // across a warehouse and typed on a tablet without a password manager.
+    $words = ['anchor', 'basin', 'cobalt', 'draft', 'ember', 'forge', 'gravel', 'harbor',
+              'indigo', 'jasper', 'kettle', 'lantern', 'marble', 'nickel', 'orchard',
+              'pewter', 'quarry', 'ribbon', 'saddle', 'timber', 'umber', 'velvet',
+              'walnut', 'yarrow', 'zinc'];
 
-for ($i = 0; $i < 3; $i++) {
-    $password .= ($i ? '-' : '') . $words[random_int(0, count($words) - 1)];
+    $password = '';
+
+    for ($i = 0; $i < 3; $i++) {
+        $password .= ($i ? '-' : '') . $words[random_int(0, count($words) - 1)];
+    }
+
+    $password .= '-' . random_int(10, 99);
 }
-
-$password .= '-' . random_int(10, 99);
 
 $file = $opt['password-file'] ?? (BASE_PATH . '/storage/warehouse-logins.txt');
 
@@ -116,7 +124,7 @@ try {
     )->execute([
         $companyId,
         trim($opt['first']),
-        trim($opt['last']),
+        trim((string)$opt['last']),
         $username . '@warehouse.invalid',
         $username,
         password_hash($password, PASSWORD_DEFAULT),
@@ -124,12 +132,14 @@ try {
 
     $id = (int)$pdo->lastInsertId();
 
+    // A supplied password is already known to whoever supplied it, so it is not
+    // written to the file. Storing it again would only create another copy to leak.
     $line = sprintf(
         "%s  %-14s %-24s %s\n",
         date('Y-m-d H:i'),
         $username,
-        trim($opt['first'] . ' ' . $opt['last']),
-        $password
+        trim($opt['first'] . ' ' . (string)$opt['last']),
+        $supplied ? '(set by hand — not recorded)' : $password
     );
 
     if (@file_put_contents($file, $line, FILE_APPEND | LOCK_EX) === false) {
@@ -141,8 +151,13 @@ try {
     $pdo->commit();
 
     printf("\nCreated user %d.\n", $id);
-    printf("The password is in %s — it is NOT shown here on purpose.\n", $file);
-    echo "Read it, give it to them, and delete the file when every account is handed out.\n";
+
+    if ($supplied) {
+        echo "Password set to the one you supplied — not printed and not stored.\n";
+    } else {
+        printf("The password is in %s — it is NOT shown here on purpose.\n", $file);
+        echo "Read it, give it to them, and delete the file when every account is handed out.\n";
+    }
 } catch (\Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
