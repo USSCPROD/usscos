@@ -55,7 +55,10 @@ img{max-width:100%;display:block}
 
 /* ---- category nav ---- */
 .catnav{background:var(--soft);border-bottom:1px solid var(--line)}
-.catnav .wrap{display:flex;gap:.25rem;overflow-x:auto;scrollbar-width:none}
+.catnav .wrap{display:flex;gap:.25rem}
+/* No overflow-x here. It creates a clipping context, which cut the dropdown off
+   at the bar - the panel was in the page and invisible. Horizontal scrolling is
+   restored below 760px, where the dropdowns are suppressed anyway. */
 .catnav .wrap::-webkit-scrollbar{display:none}
 .catnav a{padding:.8rem .85rem;font-size:.84rem;font-weight:600;color:var(--ink);white-space:nowrap;border-bottom:3px solid transparent}
 .catnav a:hover{color:var(--blue);border-bottom-color:var(--blue);text-decoration:none}
@@ -83,6 +86,8 @@ img{max-width:100%;display:block}
   /* No hover on a phone, and a panel pinned under a scrolling bar would be unusable.
      The section page lists the same categories as chips, which is the mobile answer. */
   .drop{display:none !important}
+  .catnav .wrap{overflow-x:auto;scrollbar-width:none}
+  .catnav .wrap::-webkit-scrollbar{display:none}
 }
 
 /* ---- buttons ---- */

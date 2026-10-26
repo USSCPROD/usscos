@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * The public storefront's own shape.
  *
- * WHY THIS IS NOT THE PRODUCTS TREE. Our internal categories are organised the way
+ * WHY THIS IS NOT THE PRODUCTS TREE. Our internal categories are organized the way
  * the business is run — 'Toll Manufacturing', 'Resale' — and a customer looking for
  * endzone stencils does not think in those terms, nor should they see that we make
  * some things for other people. The storefront gets a tree built the way a buyer
@@ -39,7 +39,7 @@ return [
             // Children come from this live-tree category, not from a list here.
             'tree'  => 'field-marking-paints',
             'label' => 'Field Marking Paints',
-            'blurb' => 'Aerosol and bulk paint for athletic fields, in high-visibility colours that last.',
+            'blurb' => 'Aerosol and bulk paint for athletic fields, in high-visibility colors that last.',
             // Names from the imported website tree — our old 'Field Marking Paint',
             // 'Aerosol' and 'Liquid' were merged into these.
             'categories' => ['Field Marking Paints', 'Aerosol Field Marking Paints',
@@ -164,7 +164,7 @@ return [
      */
     'promos' => [
         ['title' => 'Best price aerosol field marking paint',
-         'body'  => 'Direct from the manufacturer, in a dozen colours.',
+         'body'  => 'Direct from the manufacturer, in a dozen colors.',
          'cta'   => 'Shop DuraStripe', 'href' => '/shop/field-marking-paint'],
         ['title' => 'Autonomous turf marking field robots',
          'body'  => 'Paint built for the machines that paint your field.',
@@ -179,7 +179,7 @@ return [
 
     /** The three promises the current site leads with. */
     'pillars' => [
-        ['title' => 'High-visibility colour',  'body' => 'Mixed for contrast that reads from the stands and on camera.'],
+        ['title' => 'High-visibility color',  'body' => 'Mixed for contrast that reads from the stands and on camera.'],
         ['title' => 'Long lasting durability', 'body' => 'Formulated to survive mowing, rain and a full season of play.'],
         ['title' => 'American made quality',   'body' => 'Manufactured in Georgia since 1989.'],
     ],
