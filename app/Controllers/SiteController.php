@@ -115,6 +115,8 @@ class SiteController extends Controller
             'product'  => $product,
             'variants' => $this->shop->variantsOf($product),
             'images'   => $this->shop->imagesOf((int)$product['id']),
+            'docs'     => $this->shop->documentsFor((int)$product['id']),
+            'videos'   => $this->shop->videosFor($product),
         ]);
     }
 

@@ -208,7 +208,8 @@ class StorefrontRepository extends Repository
     {
         return Database::selectOne("
             SELECT " . self::PUBLIC_COLUMNS . ", p.description, p.gs1_description,
-                   p.height, p.width, p.depth, p.dim_unit, p.net_weight
+                   p.height, p.width, p.depth, p.dim_unit, p.net_weight, p.video_urls,
+                   p.long_description, p.website_description, p.spec_notes
             FROM products p
             LEFT JOIN product_brands b ON b.id = p.brand_id
             WHERE " . self::PUBLIC_WHERE . " AND p.sku = ?
@@ -472,5 +473,77 @@ class StorefrontRepository extends Repository
         }
 
         return $names;
+    }
+    /**
+     * Public documents for a product, grouped into the tabs they belong in.
+     *
+     * Only is_public rows: a product's file store also holds internal things like
+     * certificates of analysis for a particular batch, which are not a customer's to
+     * read and would otherwise appear the moment somebody uploaded one.
+     *
+     * @return array<string,array<int,array<string,mixed>>>
+     */
+    public function documentsFor(int $productId): array
+    {
+        $rows = Database::select("
+            SELECT doc_type, title, file_path, file_name, mime_type, file_size
+            FROM product_documents
+            WHERE product_id = ? AND is_public = 1
+            ORDER BY sort_order, id
+        ", [$productId]);
+
+        $tabs = ['color-deck' => [], 'specs' => [], 'literature' => []];
+
+        foreach ($rows as $r) {
+            $tab = match ($r['doc_type']) {
+                'color_chart'               => 'color-deck',
+                'tds', 'sds', 'spec_sheet',
+                'certificate'               => 'specs',
+                'sales_flyer', 'catalog'    => 'literature',
+                default                     => 'literature',
+            };
+
+            $tabs[$tab][] = $r;
+        }
+
+        return $tabs;
+    }
+
+    /**
+     * Video URLs for a product, one per line in the field.
+     *
+     * YouTube links are rewritten to their embed form here rather than in the view,
+     * because a watch URL in an iframe renders as a refusal page and the person
+     * pasting the link has no reason to know that.
+     *
+     * @return array<int,array{url:string,embed:?string}>
+     */
+    public function videosFor(array $product): array
+    {
+        $raw = trim((string)($product['video_urls'] ?? ''));
+
+        if ($raw === '') {
+            return [];
+        }
+
+        $out = [];
+
+        foreach (preg_split('/[\r\n]+/', $raw) ?: [] as $line) {
+            $url = trim($line);
+
+            if ($url === '' || !preg_match('~^https?://~i', $url)) {
+                continue;
+            }
+
+            $embed = null;
+
+            if (preg_match('~(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([A-Za-z0-9_-]{6,})~i', $url, $m)) {
+                $embed = 'https://www.youtube-nocookie.com/embed/' . $m[1];
+            }
+
+            $out[] = ['url' => $url, 'embed' => $embed];
+        }
+
+        return $out;
     }
 }

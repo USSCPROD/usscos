@@ -179,21 +179,147 @@ $spec = function (string $label, $value, string $suffix = '') {
       <p style="font-size:.9rem;color:var(--mut);margin:0 0 1.5rem"><?= nl2br(e($pr['description'])) ?></p>
     <?php endif; ?>
 
-    <table style="border-collapse:collapse;width:100%">
-      <?php
-        $spec('Unit',        $pr['uom_code'] ?? '');
-        $spec('Units/case',  $pr['units_per_case'] ?? null);
-        $spec('Ship weight', $pr['gross_weight'] ?? null, ' ' . ($pr['weight_unit'] ?: 'lb'));
-        $spec('Net weight',  $pr['net_weight'] ?? null, ' ' . ($pr['weight_unit'] ?: 'lb'));
-        if ((float)($pr['height'] ?? 0) > 0) {
-            $d = fn($k) => rtrim(rtrim(number_format((float)($pr[$k] ?? 0), 2), '0'), '.');
-            $spec('Dimensions', $d('height') . ' × ' . $d('width') . ' × ' . $d('depth'),
-                  ' ' . ($pr['dim_unit'] ?: 'in'));
-        }
-      ?>
-    </table>
   </div>
 </div>
+
+<?php
+/*
+    Tabs below the buy area.
+
+    Built from what the product actually has: a tab with nothing in it is not drawn,
+    and when only one has content the strip is skipped entirely and the content shown
+    plainly. An empty tab bar is a promise of information that is not there.
+*/
+$longText = trim((string)($pr['website_description'] ?? '')) ?: trim((string)($pr['long_description'] ?? ''));
+$colorList = [];
+
+foreach ($variants as $v) {
+    if (strcasecmp((string)($pr['variant_axis'] ?? ''), 'Color') === 0 && ($v['variant_label'] ?? '') !== '') {
+        $colorList[] = (string)$v['variant_label'];
+    }
+}
+
+$hasAdditional = (float)($pr['gross_weight'] ?? 0) > 0 || (float)($pr['height'] ?? 0) > 0
+              || $colorList !== [] || ($pr['uom_code'] ?? '') !== '';
+
+$tabs = [];
+if ($longText !== '')                 { $tabs['description']  = 'Description'; }
+if ($hasAdditional)                   { $tabs['additional']   = 'Additional information'; }
+if (!empty($docs['color-deck']))      { $tabs['color-deck']   = 'Color deck'; }
+if (!empty($docs['specs']))           { $tabs['specs']        = 'Specs'; }
+if (!empty($docs['literature']))      { $tabs['literature']   = 'Literature'; }
+if (!empty($videos))                  { $tabs['videos']       = 'Videos'; }
+
+$tabKeys  = array_keys($tabs);
+$firstTab = $tabKeys[0] ?? null;
+
+$docList = function (array $rows): void {
+    foreach ($rows as $d) {
+        $kb = (int)($d['file_size'] ?? 0) > 0 ? ' · ' . number_format($d['file_size'] / 1024) . ' KB' : '';
+        printf(
+            '<div style="padding:.6rem 0;border-bottom:1px solid #f3f4f6">'
+            . '<a href="%s" target="_blank" rel="noopener" style="font-weight:600">%s</a>'
+            . '<span style="color:#6b7280;font-size:.82rem">%s</span></div>',
+            e((string)$d['file_path']),
+            e((string)($d['title'] ?: $d['file_name'])),
+            e($kb)
+        );
+    }
+};
+?>
+
+<?php if ($firstTab !== null): ?>
+<div class="wrap" style="padding-bottom:3rem">
+
+  <?php if (count($tabs) > 1): ?>
+    <div style="display:flex;gap:.25rem;border-bottom:1px solid var(--line);overflow-x:auto" id="ptabs">
+      <?php foreach ($tabs as $key => $label): ?>
+        <button type="button" data-tab="<?= e($key) ?>"
+                style="appearance:none;background:none;border:0;border-bottom:3px solid <?= $key === $firstTab ? 'var(--blue)' : 'transparent' ?>;
+                       padding:.8rem 1rem;font:inherit;font-size:.82rem;font-weight:700;cursor:pointer;
+                       text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;
+                       color:<?= $key === $firstTab ? 'var(--blue)' : 'var(--mut)' ?>">
+          <?= e($label) ?>
+        </button>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <div style="padding-top:1.5rem;max-width:62rem">
+
+    <?php foreach ($tabs as $key => $label): ?>
+      <section data-panel="<?= e($key) ?>" style="<?= $key === $firstTab ? '' : 'display:none' ?>">
+        <?php if ($key === 'description'): ?>
+          <div style="font-size:.95rem;color:#374151;line-height:1.7"><?= nl2br(e($longText)) ?></div>
+
+        <?php elseif ($key === 'additional'): ?>
+          <table style="border-collapse:collapse;width:100%;max-width:40rem">
+            <?php
+              $spec('Unit',        $pr['uom_code'] ?? '');
+              $spec('Units/case',  $pr['units_per_case'] ?? null);
+              $spec('Ship weight', $pr['gross_weight'] ?? null, ' ' . ($pr['weight_unit'] ?: 'lb'));
+              $spec('Net weight',  $pr['net_weight'] ?? null, ' ' . ($pr['weight_unit'] ?: 'lb'));
+              if ((float)($pr['height'] ?? 0) > 0) {
+                  $d = fn($k) => rtrim(rtrim(number_format((float)($pr[$k] ?? 0), 2), '0'), '.');
+                  $spec('Dimensions', $d('height') . ' × ' . $d('width') . ' × ' . $d('depth'),
+                        ' ' . ($pr['dim_unit'] ?: 'in'));
+              }
+            ?>
+            <?php if ($colorList !== []): ?>
+              <tr>
+                <th style="text-align:left;padding:.5rem .9rem .5rem 0;font-weight:600;color:#6b7280;
+                           font-size:.84rem;vertical-align:top;white-space:nowrap">Colors</th>
+                <td style="padding:.5rem 0;font-size:.9rem;line-height:1.7"><?= e(implode(', ', $colorList)) ?></td>
+              </tr>
+            <?php endif; ?>
+          </table>
+
+        <?php elseif ($key === 'videos'): ?>
+          <?php foreach ($videos as $v): ?>
+            <?php if ($v['embed'] !== null): ?>
+              <div style="position:relative;padding-top:56.25%;margin-bottom:1.25rem;max-width:44rem">
+                <iframe src="<?= e($v['embed']) ?>" title="Product video" loading="lazy"
+                        allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
+                        allowfullscreen
+                        style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px"></iframe>
+              </div>
+            <?php else: ?>
+              <div style="padding:.6rem 0">
+                <a href="<?= e($v['url']) ?>" target="_blank" rel="noopener">Watch video</a>
+              </div>
+            <?php endif; ?>
+          <?php endforeach; ?>
+
+        <?php else: ?>
+          <?php $docList($docs[$key] ?? []); ?>
+        <?php endif; ?>
+      </section>
+    <?php endforeach; ?>
+
+  </div>
+</div>
+
+<?php if (count($tabs) > 1): ?>
+<script>
+(function () {
+  var bar = document.getElementById('ptabs');
+  if (!bar) { return; }
+  bar.addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-tab]');
+    if (!btn) { return; }
+    bar.querySelectorAll('button').forEach(function (b) {
+      var on = b === btn;
+      b.style.borderBottomColor = on ? 'var(--blue)' : 'transparent';
+      b.style.color = on ? 'var(--blue)' : 'var(--mut)';
+    });
+    document.querySelectorAll('section[data-panel]').forEach(function (s) {
+      s.style.display = s.dataset.panel === btn.dataset.tab ? '' : 'none';
+    });
+  });
+}());
+</script>
+<?php endif; ?>
+<?php endif; ?>
 
 <?php
 $content = ob_get_clean();
