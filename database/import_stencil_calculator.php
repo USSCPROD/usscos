@@ -119,12 +119,13 @@ printf("%d stencil SKU(s) in the price sheet.\n", count($rows));
 
 $existing = [];
 
-foreach (Database::select("SELECT id, sku, gross_weight, net_weight, cost, dist_price, price, website_price FROM products") as $p) {
+foreach (Database::select("SELECT id, sku, gross_weight, net_weight, case_weight_gross, units_per_case,
+                   cost, dist_price, price, website_price FROM products") as $p) {
     $existing[strtoupper($p['sku'])] = $p;
 }
 
 $updates = $inserts = [];
-$stats = ['weight' => 0, 'gross' => 0, 'cost' => 0, 'wholesale' => 0, 'retail' => 0];
+$stats = ['weight' => 0, 'gross' => 0, 'case' => 0, 'cost' => 0, 'wholesale' => 0, 'retail' => 0];
 
 foreach ($rows as $key => $r) {
     if (!isset($existing[$key])) {
@@ -146,8 +147,27 @@ foreach ($rows as $key => $r) {
             $stats['gross']++;
         }
 
+        // THE COLUMN THE CARTONIZER ACTUALLY READS. It selects case_weight_gross,
+        // not gross_weight, so filling gross_weight alone leaves every stencil
+        // reported as 'has no case weight' and the packing plan unweighed. A stencil
+        // is sold Each, so its case is the item itself and the two are the same
+        // number; this is set only where units_per_case says the product is not
+        // genuinely cased, and never over a value somebody has already measured.
+        if ((float)($cur['case_weight_gross'] ?? 0) <= 0 && (float)($cur['units_per_case'] ?? 0) <= 1) {
+            $set['case_weight_gross'] = $r['weight'];
+            $stats['case']++;
+        }
+
         $set['weight_unit'] = 'Pounds';
     }
+
+    /*
+     * NO DIMENSIONS. A stencil is a thin sheet that gets rolled, so a 74" x 20" sheet
+     * ships in a tube far smaller than its flat size — deriving case dimensions from
+     * the artwork would hand FedEx a parcel nobody has ever shipped. Which box a
+     * rolled stencil goes in is a packing rule against a real shipping_boxes row,
+     * set by the people who roll them, not arithmetic over the cut size.
+     */
 
     if ($r['cost'] !== null)      { $set['cost'] = $r['cost'];            $stats['cost']++; }
     if ($r['wholesale'] !== null) { $set['dist_price'] = $r['wholesale']; $stats['wholesale']++; }
@@ -169,6 +189,7 @@ printf("  not yet loaded    : %d%s\n", count($inserts), $insertNew ? '  (would b
 echo "\n  Fields filled or refreshed on the loaded ones:\n";
 printf("    net weight      %4d\n", $stats['weight']);
 printf("    gross weight    %4d   (only where it was empty)\n", $stats['gross']);
+printf("    CASE weight     %4d   (what the cartonizer reads)\n", $stats['case']);
 printf("    cost            %4d\n", $stats['cost']);
 printf("    wholesale       %4d\n", $stats['wholesale']);
 printf("    retail price    %4d\n", $stats['retail']);
@@ -213,8 +234,9 @@ try {
         $ins = $pdo->prepare(
             "INSERT INTO products
                 (sku, name, short_description, quickbooks_item, item_type, pack_level, brand_id,
-                 cost, dist_price, price, website_price, net_weight, gross_weight, weight_unit, is_active)
-             VALUES (?,?,?,?,'inventory_part','Each',?,?,?,?,?,?,?,'Pounds',1)"
+                 cost, dist_price, price, website_price, net_weight, gross_weight,
+                 case_weight_gross, weight_unit, is_active)
+             VALUES (?,?,?,?,'inventory_part','Each',?,?,?,?,?,?,?,?,'Pounds',1)"
         );
 
         $map = $pdo->prepare("INSERT IGNORE INTO product_categories (product_id, category_id, is_primary) VALUES (?,?,1)");
@@ -229,7 +251,7 @@ try {
                 'US SPECIALTY COATINGS:' . $r['sku'],
                 $brand ? (int)$brand['id'] : null,
                 $r['cost'], $r['wholesale'], $r['retail'], $r['retail'],
-                $r['weight'], $r['weight'],
+                $r['weight'], $r['weight'], $r['weight'],
             ]);
 
             if ($cat) {
