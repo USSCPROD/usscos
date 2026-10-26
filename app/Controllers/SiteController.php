@@ -110,7 +110,9 @@ class SiteController extends Controller
         }
 
         return $this->view('site.product', [
-            'title'    => $product['name'],
+            // The browser tab and any shared link read the website name too, so the
+            // page is called one thing everywhere a customer sees it.
+            'title'    => trim((string)($product['website_name'] ?? '')) ?: $product['name'],
             'nav'      => $nav,
             'product'  => $product,
             'variants' => $this->shop->variantsOf($product),

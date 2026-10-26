@@ -17,7 +17,8 @@ $spec = function (string $label, $value, string $suffix = '') {
 
 <div class="wrap" style="padding-top:1.5rem">
   <div style="font-size:.8rem;color:var(--mut);margin-bottom:1.5rem">
-    <a href="/shop">Home</a> &nbsp;/&nbsp; <?= e($pr['name']) ?>
+    <a href="/shop">Home</a> &nbsp;/&nbsp;
+    <?= e(trim((string)($pr['website_name'] ?? '')) ?: $pr['name']) ?>
   </div>
 </div>
 
