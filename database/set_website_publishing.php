@@ -72,6 +72,17 @@ const NEVER_PUBLISH = [
  */
 const PLACEHOLDER = "p.name NOT LIKE '%(Parent)%'";
 
+/**
+ * Mixed and mix cases - a box of assorted colors.
+ *
+ * Not sold through the website. Matched by pattern rather than listed by SKU because
+ * there are five spellings of it already ('Mix Case', 'Mixed Case', 'MIXCASE') and a
+ * sixth will arrive with the next product file.
+ */
+const MIXED_CASE = "(p.name NOT LIKE '%Mix Case%' AND p.name NOT LIKE '%Mixed Case%'
+                     AND COALESCE(p.color,'') NOT LIKE '%Mix Case%'
+                     AND COALESCE(p.color,'') NOT LIKE '%Mixed Case%')";
+
 $counts = [
     'active'        => "p.is_active = 1",
     'two-pack'      => "p.is_active = 1 AND " . TWO_PACK,
@@ -79,6 +90,7 @@ $counts = [
     'raw material'  => "p.is_active = 1 AND COALESCE(p.item_type,'') = 'raw_material'",
     'never-publish' => "p.is_active = 1 AND p.sku IN ('" . implode("','", NEVER_PUBLISH) . "')",
     'placeholder'   => "p.is_active = 1 AND NOT " . PLACEHOLDER,
+    'mixed case'    => "p.is_active = 1 AND NOT " . MIXED_CASE,
 ];
 
 foreach ($counts as $label => $where) {
@@ -93,7 +105,7 @@ $never = NEVER_PUBLISH === []
 
 $publishWhere = "p.is_active = 1 AND NOT " . TWO_PACK . " AND NOT " . TOLL
               . " AND COALESCE(p.item_type,'') <> 'raw_material'"
-              . " AND {$never} AND " . PLACEHOLDER;
+              . " AND {$never} AND " . PLACEHOLDER . " AND " . MIXED_CASE;
 
 $toPublish = (int)Database::selectOne("SELECT COUNT(*) c FROM products p WHERE {$publishWhere}")['c'];
 $total     = (int)Database::selectOne("SELECT COUNT(*) c FROM products")['c'];
