@@ -45,7 +45,7 @@ class SiteController extends Controller
         ]);
     }
 
-    public function section(Request $request, Response $response, string $slug = ''): Response
+    public function section(Request $request, Response $response, string $slug = '', string $child = ''): Response
     {
         $nav     = config('site.nav') ?? [];
         $section = null;
@@ -61,12 +61,50 @@ class SiteController extends Controller
             return $this->view('site.404', ['title' => 'Not found', 'nav' => $nav], 404);
         }
 
+        // Count every subcategory so the ones holding nothing can be hidden rather
+        // than offered as a filter that leads to an empty page.
+        $children = [];
+
+        foreach ($section['children'] ?? [] as $c) {
+            $n = $this->shop->sectionCount($c['categories'] ?? [], $c['brands'] ?? [], $c['name_like'] ?? []);
+
+            if ($n > 0) {
+                $children[] = $c + ['count' => $n];
+            }
+        }
+
+        // A subcategory narrows the section; the section's own rules no longer apply,
+        // because a child is defined by what it contains, not by its parent's net.
+        $active = null;
+
+        if ($child !== '') {
+            foreach ($children as $c) {
+                if ($c['slug'] === $child) {
+                    $active = $c;
+                    break;
+                }
+            }
+
+            if ($active === null) {
+                return $this->view('site.404', ['title' => 'Not found', 'nav' => $nav], 404);
+            }
+
+            $section = array_merge($section, [
+                'categories' => $active['categories'] ?? [],
+                'brands'     => $active['brands'] ?? [],
+                'name_like'  => $active['name_like'] ?? [],
+                'blurb'      => $active['blurb'] ?? $section['blurb'] ?? '',
+            ]);
+        }
+
         // The total, not the size of the page. count($products) is the LIMIT, so a
         // 208-product section was telling customers it held 60.
         return $this->view('site.section', [
-            'title'    => $section['label'],
+            'title'    => $active !== null ? $active['label'] . ' — ' . $section['label'] : $section['label'],
             'nav'      => $nav,
             'section'  => $section,
+            'children' => $children,
+            'active'   => $active,
             'total'    => $this->shop->sectionCount(
                 $section['categories'] ?? [], $section['brands'] ?? [], $section['name_like'] ?? []
             ),

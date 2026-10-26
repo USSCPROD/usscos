@@ -53,6 +53,26 @@ return [
             // No internal category gathers these; the name is what identifies them.
             'categories' => ['Stencils'],
             'name_like'  => ['stencil'],
+
+            /*
+             * Subcategories. Each one narrows the section, and points at the child
+             * categories created under 'Stencils' from the listing plan's own
+             * Category column — so moving a product between them is a change in
+             * USSCOS, not a deploy.
+             *
+             * A child listing nothing simply does not appear, which is why a bucket
+             * can be defined before the products that belong in it are loaded.
+             */
+            'children' => [
+                ['slug' => 'parking-lot', 'label' => 'Parking lot',
+                 'categories' => ['Words', 'EV parking', 'Bike lane', 'Lines & stop bars']],
+                ['slug' => 'handicap',    'label' => 'Handicap',  'categories' => ['Handicap']],
+                ['slug' => 'arrows',      'label' => 'Arrows',    'categories' => ['Arrows']],
+                ['slug' => 'numbers',     'label' => 'Numbers',   'categories' => ['Number kits']],
+                ['slug' => 'alphabets',   'label' => 'Alphabets',
+                 'categories' => ['Alphabet kits', 'Single characters']],
+                ['slug' => 'sports',      'label' => 'Sports fields', 'categories' => ['Sports fields']],
+            ],
         ],
         [
             'slug' => 'striping-machines',

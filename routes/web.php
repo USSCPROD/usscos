@@ -383,6 +383,7 @@ Router::get('/shop',            [SiteController::class, 'home'])->name('site.hom
 Router::get('/search',          [SiteController::class, 'search'])->name('site.search');
 Router::get('/product/{sku}',   [SiteController::class, 'product'])->name('site.product');
 Router::get('/shop/{slug}',     [SiteController::class, 'section'])->name('site.section');
+Router::get('/shop/{slug}/{child}', [SiteController::class, 'section'])->name('site.subsection');
 Router::get('/page/{slug}',     [SiteController::class, 'page'])->name('site.page');
 
 // Flat pages the shell links to directly.
