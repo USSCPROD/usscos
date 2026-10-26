@@ -22,7 +22,17 @@ $price = (float)($p['website_price'] ?? 0);
             <p class="desc"><?= e($p['short_description']) ?></p>
         <?php endif; ?>
         <?php if ($price > 0): ?>
-            <div class="price"><?= money($price) ?></div>
+            <div class="price">
+                <?php if ((int)($p['variant_count'] ?? 1) > 1): ?>
+                    <span style="font-size:.72rem;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em">from</span>
+                <?php endif; ?>
+                <?= money($price) ?>
+            </div>
+            <?php if ((int)($p['variant_count'] ?? 1) > 1): ?>
+                <div style="font-size:.74rem;color:var(--mut);margin-top:.2rem">
+                    <?= (int)$p['variant_count'] ?> thicknesses
+                </div>
+            <?php endif; ?>
         <?php else: ?>
             <div class="callfor">Call or email for best price</div>
         <?php endif; ?>

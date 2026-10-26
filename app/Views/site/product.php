@@ -58,6 +58,38 @@ $spec = function (string $label, $value, string $suffix = '') {
       </div>
     <?php endif; ?>
 
+    <?php if (count($variants) > 1): ?>
+      <!--
+          Real links, one per thickness, not a <select> that needs JavaScript to do
+          anything. Each thickness is a separate product with its own SKU and price,
+          so each deserves its own URL: it can be linked to, shared and indexed, and
+          the price on screen always belongs to the SKU shown above it.
+      -->
+      <div style="margin-bottom:1.5rem">
+        <div style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+                    color:var(--mut);margin-bottom:.5rem">
+          Thickness
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <?php foreach ($variants as $v): ?>
+            <?php $on = $v['sku'] === $pr['sku']; ?>
+            <a href="/product/<?= e(rawurlencode((string)$v['sku'])) ?>"
+               aria-current="<?= $on ? 'true' : 'false' ?>"
+               style="display:block;padding:.55rem .9rem;border-radius:7px;text-decoration:none;
+                      border:2px solid <?= $on ? 'var(--blue)' : 'var(--line)' ?>;
+                      background:<?= $on ? '#eff4ff' : '#fff' ?>;min-width:5.5rem;text-align:center">
+              <div style="font-weight:700;font-size:.95rem;color:<?= $on ? 'var(--blue)' : 'var(--ink)' ?>">
+                <?= e($v['variant_label'] ?: $v['sku']) ?>
+              </div>
+              <div style="font-size:.78rem;color:var(--mut);margin-top:.1rem">
+                <?= (float)$v['website_price'] > 0 ? money((float)$v['website_price']) : 'ask' ?>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endif; ?>
+
     <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.75rem">
       <a class="b b-p" href="/quote?sku=<?= e(rawurlencode((string)$pr['sku'])) ?>">Request a quote</a>
       <a class="b b-s" href="tel:<?= e(preg_replace('/\D/','',config('site.company.phone'))) ?>">

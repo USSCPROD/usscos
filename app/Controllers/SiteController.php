@@ -86,9 +86,10 @@ class SiteController extends Controller
         }
 
         return $this->view('site.product', [
-            'title'   => $product['name'],
-            'nav'     => $nav,
-            'product' => $product,
+            'title'    => $product['name'],
+            'nav'      => $nav,
+            'product'  => $product,
+            'variants' => $this->shop->variantsOf($product),
         ]);
     }
 

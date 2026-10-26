@@ -32,6 +32,7 @@ class StorefrontRepository extends Repository
     private const PUBLIC_COLUMNS = "
         p.id, p.sku, p.name, p.short_description, p.website_price, p.website_image_url,
         p.gross_weight, p.weight_unit, p.uom_code, p.units_per_case, p.qty_on_hand,
+        p.variant_group, p.variant_label, p.variant_order,
         b.name AS brand_name";
 
     /** Products never shown publicly, whatever category they are filed under. */
@@ -61,14 +62,67 @@ class StorefrontRepository extends Repository
 
         // Priced items first: a page that opens on a wall of "call for pricing" reads
         // as a catalogue nobody maintains, even when the prices exist further down.
-        return Database::select("
+        $rows = Database::select("
             SELECT " . self::PUBLIC_COLUMNS . "
             FROM products p
             LEFT JOIN product_brands b ON b.id = p.brand_id
             WHERE " . self::PUBLIC_WHERE . " AND {$sql}
             ORDER BY (COALESCE(p.website_price,0) > 0) DESC, p.name
-            LIMIT {$limit} OFFSET {$offset}
         ", $params);
+
+        return array_slice($this->collapseVariants($rows), $offset, $limit);
+    }
+
+    /**
+     * One card per listing, not one per variant.
+     *
+     * The members of a group are the same stencil in three thicknesses; showing all
+     * three is how a catalogue of 107 things looks like 208. The cheapest priced
+     * member leads the card, and 'from' tells the customer the others cost more.
+     *
+     * Collapsing happens here rather than in SQL because the paging has to count
+     * listings: a GROUP BY would still let LIMIT 60 return 60 rows that are really
+     * 30 products, and the page would say one thing while showing another.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array<int,array<string,mixed>>
+     */
+    private function collapseVariants(array $rows): array
+    {
+        $out = [];
+
+        foreach ($rows as $r) {
+            $key = $r['variant_group'] ?? null;
+
+            if ($key === null || $key === '') {
+                $out[] = $r;
+                continue;
+            }
+
+            $key = 'g:' . $key;
+            $price = (float)($r['website_price'] ?? 0);
+
+            if (!isset($out[$key])) {
+                $out[$key] = $r + ['variant_count' => 1, 'variant_from' => $price > 0];
+                continue;
+            }
+
+            $out[$key]['variant_count']++;
+
+            // Lead with the cheapest priced member. An unpriced variant must never
+            // displace a priced one, or the card reads "call for price" while the
+            // listing actually has one.
+            $cur = (float)($out[$key]['website_price'] ?? 0);
+
+            if ($price > 0 && ($cur <= 0 || $price < $cur)) {
+                $out[$key] = $r + [
+                    'variant_count' => $out[$key]['variant_count'],
+                    'variant_from'  => true,
+                ];
+            }
+        }
+
+        return array_values($out);
     }
 
     /** How many products a section holds, for the nav counts and paging. */
@@ -80,8 +134,11 @@ class StorefrontRepository extends Repository
             return 0;
         }
 
+        // Counts listings, matching what the page shows: COUNT(*) would report 208
+        // stencils under a heading above 107 cards.
         return (int)Database::selectOne("
-            SELECT COUNT(*) c FROM products p
+            SELECT COUNT(DISTINCT COALESCE(p.variant_group, CONCAT('#', p.id))) c
+            FROM products p
             WHERE " . self::PUBLIC_WHERE . " AND {$sql}
         ", $params)['c'];
     }
@@ -202,5 +259,25 @@ class StorefrontRepository extends Repository
         $path = parse_url($url, PHP_URL_PATH) ?? '';
 
         return (bool)preg_match('/\.(jpe?g|png|gif|webp|avif|svg)$/i', $path);
+    }
+    /**
+     * The other thicknesses of the same stencil, for the picker on a product page.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function variantsOf(array $product): array
+    {
+        $group = trim((string)($product['variant_group'] ?? ''));
+
+        if ($group === '') {
+            return [];
+        }
+
+        return Database::select("
+            SELECT p.sku, p.name, p.website_price, p.variant_label, p.variant_order
+            FROM products p
+            WHERE " . self::PUBLIC_WHERE . " AND p.variant_group = ?
+            ORDER BY p.variant_order, p.sku
+        ", [$group]);
     }
 }
