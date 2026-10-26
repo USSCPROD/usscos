@@ -24,9 +24,10 @@ $spec = function (string $label, $value, string $suffix = '') {
 <div class="wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:2.5rem;padding-bottom:3rem">
 
   <div>
-    <?php if (!empty($pr['website_image_url'])): ?>
+    <?php if (\App\Repositories\StorefrontRepository::isImageUrl($pr['website_image_url'] ?? null)): ?>
       <img src="<?= e($pr['website_image_url']) ?>" alt="<?= e($pr['name']) ?>"
-           style="border:1px solid var(--line);border-radius:10px;aspect-ratio:1;object-fit:cover">
+           style="border:1px solid var(--line);border-radius:10px;aspect-ratio:1;object-fit:cover"
+           onerror="this.outerHTML='&lt;div class=\'ph\' style=\'aspect-ratio:1;border:1px solid var(--line);border-radius:10px\'&gt;No photo yet&lt;/div&gt;'">
     <?php else: ?>
       <div class="ph" style="aspect-ratio:1;border:1px solid var(--line);border-radius:10px">
         No photo yet

@@ -166,4 +166,25 @@ class StorefrontRepository extends Repository
             LIMIT {$limit}
         ", [$like, $like, $like]);
     }
+    /**
+     * Is this value actually usable as an <img src>?
+     *
+     * products.website_image_url is populated for 36 products and every one of them
+     * holds a link to a PAGE on the old WordPress sites, not to an image file. Feeding
+     * those to an <img> renders a broken-image icon and the product's name as alt text,
+     * which looks far worse than an honest "no photo yet" tile. So the column is
+     * believed only when it actually names an image.
+     */
+    public static function isImageUrl(?string $url): bool
+    {
+        $url = trim((string)$url);
+
+        if ($url === '' || !preg_match('~^https?://~i', $url)) {
+            return false;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+
+        return (bool)preg_match('/\.(jpe?g|png|gif|webp|avif|svg)$/i', $path);
+    }
 }

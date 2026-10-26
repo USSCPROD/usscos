@@ -8,9 +8,10 @@
 $price = (float)($p['website_price'] ?? 0);
 ?>
 <div class="card">
-    <?php if (!empty($p['website_image_url'])): ?>
+    <?php if (\App\Repositories\StorefrontRepository::isImageUrl($p['website_image_url'] ?? null)): ?>
         <img src="<?= e($p['website_image_url']) ?>" alt="<?= e($p['name']) ?>"
-             style="aspect-ratio:4/3;object-fit:cover;border-bottom:1px solid var(--line)" loading="lazy">
+             style="aspect-ratio:4/3;object-fit:cover;border-bottom:1px solid var(--line)" loading="lazy"
+             onerror="this.outerHTML='&lt;div class=\'ph\'&gt;No photo yet&lt;/div&gt;'">
     <?php else: ?>
         <div class="ph">No photo yet</div>
     <?php endif; ?>

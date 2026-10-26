@@ -36,7 +36,7 @@ img{max-width:100%;display:block}
 
 /* ---- utility bar ---- */
 .util{background:var(--navy);color:#c7d2fe;font-size:.78rem}
-.util .wrap{display:flex;justify-content:space-between;align-items:center;gap:1rem;height:38px;flex-wrap:wrap}
+.util .wrap{display:flex;justify-content:space-between;align-items:center;gap:.4rem 1rem;min-height:38px;padding-block:.35rem;flex-wrap:wrap}
 .util a{color:#e0e7ff}
 .util nav{display:flex;gap:1.1rem;flex-wrap:wrap}
 .util strong{color:#fff}
@@ -123,6 +123,10 @@ img{max-width:100%;display:block}
 .note{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;padding:.7rem 1rem;border-radius:8px;font-size:.84rem;margin-bottom:1.5rem}
 
 @media (max-width:760px){
+  /* On a phone the utility bar's right-hand text wrapped under a fixed height and
+     was clipped mid-line. The phone number is already in the masthead below it. */
+  .util .wrap > div:last-child{display:none}
+  .catnav a{padding:.7rem .6rem;font-size:.8rem}
   .mast .wrap{flex-wrap:wrap}
   .srch{order:3;flex-basis:100%;max-width:none}
   .mast-cta{margin-left:0}
