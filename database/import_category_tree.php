@@ -167,10 +167,41 @@ $pdo = Database::connection();
 $pdo->beginTransaction();
 
 try {
-    $slugOf = function (string $name, string $ref): string {
+    /*
+     * categories.slug is unique, and the tree holds the same label in two places -
+     * 'Synthetic Turf Cleaners and Deodorizers' appears both as a product category and
+     * as a discovery entry. A plain slug collides and aborts the whole import.
+     *
+     * The second one takes the external ref as a suffix rather than a counter: '-2'
+     * tells nobody which of the two it is, while the ref says exactly where it came
+     * from in the tree.
+     */
+    $taken = [];
+
+    foreach (Database::select("SELECT slug FROM categories") as $c) {
+        $taken[strtolower($c['slug'])] = true;
+    }
+
+    $slugOf = function (string $name, string $ref) use (&$taken): string {
         $slug = trim(strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $name) ?? ''), '-');
 
-        return $slug !== '' ? $slug : strtolower($ref);
+        if ($slug === '') {
+            $slug = strtolower($ref);
+        }
+
+        if (isset($taken[$slug])) {
+            $suffix = trim(strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $ref) ?? ''), '-');
+            $slug   = substr($slug . '-' . $suffix, 0, 150);
+        }
+
+        // Still taken means two refs produced one slug; fall back to the ref alone.
+        if (isset($taken[$slug])) {
+            $slug = substr(strtolower($ref), 0, 150);
+        }
+
+        $taken[$slug] = true;
+
+        return $slug;
     };
 
     $ins = $pdo->prepare(
