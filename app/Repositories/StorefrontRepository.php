@@ -436,10 +436,12 @@ class StorefrontRepository extends Repository
     {
         $n = 0;
 
+        // Same visibility rule as the pages themselves. Counting products the shop
+        // will not show is how a chip came to read 14 over a page of 9.
         foreach (Database::select("
             SELECT p.id, p.variant_group FROM product_categories pc
-            JOIN products p ON p.id = pc.product_id AND p.is_active = 1
-            WHERE pc.category_id = ?
+            JOIN products p ON p.id = pc.product_id
+            WHERE pc.category_id = ? AND " . self::PUBLIC_WHERE . "
         ", [$id]) as $row) {
             $key = ($row['variant_group'] ?? '') !== '' ? 'g:' . $row['variant_group'] : 'p:' . $row['id'];
 

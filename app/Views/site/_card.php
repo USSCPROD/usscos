@@ -29,9 +29,20 @@ $price = (float)($p['website_price'] ?? 0);
             -->
             <div class="price"><?= money($price) ?></div>
             <?php if ((int)($p['variant_count'] ?? 1) > 1): ?>
+                <?php
+                    // 'thicknesses' was hardcoded when stencils were the only grouped
+                    // thing. A card for paint read '7 thicknesses' over a row of colors.
+                    $axis  = strtolower(trim((string)($p['variant_axis'] ?? '')));
+                    $plural = match ($axis) {
+                        'color'     => 'colors',
+                        'thickness' => 'thicknesses',
+                        ''          => 'options',
+                        default     => $axis . 's',
+                    };
+                ?>
                 <div style="font-size:.74rem;color:var(--mut);margin-top:.2rem">
                     <?= e($p['variant_label'] ?? '') ?>
-                    &nbsp;·&nbsp; <?= (int)$p['variant_count'] ?> thicknesses
+                    &nbsp;·&nbsp; <?= (int)$p['variant_count'] ?> <?= e($plural) ?>
                 </div>
             <?php endif; ?>
         <?php else: ?>
