@@ -84,7 +84,10 @@ $get = fn(array $r, string $h): string => isset($col[$h]) ? trim((string)($r[$co
 
 $rows = [];
 
-foreach (array_slice($data, $headerRow + 1, null, true) as $r) {
+/* Keyed, not positional. toArray() numbers rows from 1, so the header at key H sits
+   at POSITION H-1 - array_slice(offset: H+1) therefore skipped the first data row
+   of every sheet, silently. Filtering on the key cannot drift that way. */
+foreach (array_filter($data, fn($k) => $k > $headerRow, ARRAY_FILTER_USE_KEY) as $r) {
     $ref  = $get($r, 'Category ID');
     $name = $get($r, 'Category Name');
 
