@@ -494,12 +494,25 @@ class StorefrontRepository extends Repository
      */
     public function documentsFor(int $productId): array
     {
+        /*
+         * Across the whole variant group, not just this product.
+         *
+         * A TDS and an SDS describe the paint, not the color: uploading one to White
+         * and nothing to Red is the normal way this gets filled in, and Red should
+         * still show the datasheet. Deduplicated by file path, so the same document
+         * uploaded to several colors appears once.
+         */
         $rows = Database::select("
-            SELECT doc_type, title, file_path, file_name, mime_type, file_size
-            FROM product_documents
-            WHERE product_id = ? AND is_public = 1
-            ORDER BY sort_order, id
-        ", [$productId]);
+            SELECT DISTINCT d.doc_type, d.title, d.file_path, d.file_name, d.mime_type,
+                            d.file_size, d.sort_order
+            FROM product_documents d
+            JOIN products p ON p.id = d.product_id
+            WHERE d.is_public = 1
+              AND (p.id = ?
+                   OR (p.variant_group IS NOT NULL
+                       AND p.variant_group = (SELECT variant_group FROM products WHERE id = ?)))
+            ORDER BY d.sort_order, d.file_path
+        ", [$productId, $productId]);
 
         $tabs = ['color-deck' => [], 'specs' => [], 'literature' => []];
 

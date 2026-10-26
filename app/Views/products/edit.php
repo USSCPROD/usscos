@@ -236,6 +236,15 @@ if (!function_exists('peTextarea')) {
             </table>
 
             <div style="padding:1rem">
+                <?php if (!empty($pr['variant_group'])): ?>
+                    <div style="background:#eff4ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:7px;
+                                padding:.6rem .8rem;font-size:.82rem;margin-bottom:1rem">
+                        This copy is shared with every
+                        <?= e(strtolower((string)($pr['variant_axis'] ?? 'variant'))) ?> in
+                        <strong><?= e($pr['variant_title'] ?: 'this listing') ?></strong>.
+                        Saving here updates them all — they are one product on the website.
+                    </div>
+                <?php endif; ?>
                 <?php
                 $rtName  = 'website_short_description';
                 $rtLabel = 'Short description (under the title)';

@@ -293,7 +293,68 @@ class ProductRepository extends Repository
             'UPDATE products SET ' . implode(', ', $set) . ' WHERE id = :id'
         );
         $stmt->execute($params);
+
+        $this->shareListingCopy((int)$id, $data);
+
         return $stmt->rowCount();
+    }
+
+    /**
+     * Fields that describe the LISTING rather than the individual variant.
+     *
+     * DuraStripe T-Tip is one thing to buy in 30 colors. Its description, its name on
+     * the website and its videos are true of all of them - only the SKU, price and
+     * stock differ. Written against one color they would vanish when a customer
+     * clicked another, which is both wrong and invisible until somebody notices the
+     * page has emptied.
+     */
+    private const SHARED_WITH_VARIANTS = [
+        'website_name', 'website_short_description', 'website_description', 'video_urls',
+    ];
+
+    /**
+     * Copy listing-level copy to every variant in the same group.
+     *
+     * Copied rather than read through a join: every page that shows a product would
+     * otherwise have to know to look sideways at its siblings, and the one that
+     * forgets shows a blank description with no hint why.
+     */
+    private function shareListingCopy(int $productId, array $data): void
+    {
+        $touched = array_values(array_intersect(array_keys($data), self::SHARED_WITH_VARIANTS));
+
+        if ($touched === []) {
+            return;
+        }
+
+        $row = Database::selectOne(
+            "SELECT variant_group FROM products WHERE id = ?", [$productId]
+        );
+
+        $group = trim((string)($row['variant_group'] ?? ''));
+
+        if ($group === '') {
+            return;   // not part of a listing: nothing to share with
+        }
+
+        $sets   = [];
+        $params = [];
+
+        foreach ($touched as $col) {
+            $sets[]   = "{$col} = ?";
+            $params[] = in_array($col, self::HTML_FIELDS, true)
+                ? \App\Services\RichText::clean(is_string($data[$col]) ? $data[$col] : null)
+                : (is_string($data[$col]) ? (trim($data[$col]) ?: null) : $data[$col]);
+        }
+
+        $params[] = $group;
+        $params[] = $productId;
+
+        Database::query(
+            "UPDATE products SET " . implode(', ', $sets) . "
+             WHERE variant_group = ? AND id <> ?",
+            $params
+        );
     }
 
     // ---------------------------------------------------------------- Images
