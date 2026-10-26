@@ -22,8 +22,14 @@ use App\Core\Auth;
  */
 class WarehouseScope
 {
-    /** Roles that see only the warehouse. */
-    private const ROLES = ['shipping'];
+    /**
+     * Roles that see only the warehouse.
+     *
+     * NOT 'shipping'. That role is the shipping department - it carries inventory
+     * adjustment rights and belongs to the manager, who also enters orders and needs
+     * most of the application. Putting it here locked her out of her own job.
+     */
+    private const ROLES = ['warehouse'];
 
     /**
      * Everything a warehouse login may reach.

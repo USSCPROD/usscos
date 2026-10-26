@@ -11,6 +11,7 @@ $roleLabels = [
     'bookkeeper'  => 'Bookkeeper',
     'manager'     => 'Manager',
     'shipping'    => 'Shipping',
+    'warehouse'   => 'Warehouse',
     'employee'    => 'Employee',
     'rep'         => 'Sales Rep',
     'distributor' => 'Distributor',

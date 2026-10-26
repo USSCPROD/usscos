@@ -8,8 +8,9 @@ declare(strict_types=1);
  *   php database/create_warehouse_user.php --username=jose --first=Jose --last=Ramirez
  *   php database/create_warehouse_user.php --username=jose --first=Jose --last=Ramirez --commit
  *
- * The account gets the 'shipping' role, which WarehouseScope limits to the pull list,
- * shipping and receiving.
+ * The account gets the 'warehouse' role, which WarehouseScope limits to the pull
+ * list, shipping and receiving. Not 'shipping' - that is the department role, held by
+ * the shipping manager, who also enters orders and needs far more than this.
  *
  * THE PASSWORD IS NEVER PRINTED. It is generated here and written to a file that
  * only the person running this can read, and the script reports the path rather than
@@ -80,7 +81,7 @@ $companyId = (int)(Database::selectOne("SELECT company_id FROM users ORDER BY id
 printf("%sWould create:\n", $commit ? '' : "DRY RUN — nothing will be written. Add --commit to apply.\n\n");
 printf("  name     : %s %s\n", $opt['first'], $opt['last']);
 printf("  username : %s\n", $username);
-printf("  role     : shipping  (pull list, shipping, receiving — nothing else)\n");
+printf("  role     : warehouse  (pull list, shipping, receiving — nothing else)\n");
 printf("  email    : %s@warehouse.invalid  (placeholder, never used)\n", $username);
 
 if (!$commit) {
@@ -111,7 +112,7 @@ $pdo->beginTransaction();
 try {
     $pdo->prepare(
         "INSERT INTO users (company_id, first_name, last_name, email, username, password, role, is_active)
-         VALUES (?,?,?,?,?,?,'shipping',1)"
+         VALUES (?,?,?,?,?,?,'warehouse',1)"
     )->execute([
         $companyId,
         trim($opt['first']),

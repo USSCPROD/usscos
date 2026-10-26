@@ -17,6 +17,7 @@ $roles = [
     'manager'     => 'Manager — Sales, customers, products',
     'employee'    => 'Employee — Create SOs and invoices',
     'shipping'    => 'Shipping — Inventory adjustments + fulfillment',
+    'warehouse'   => 'Warehouse — Pull list, shipping and receiving only',
     'rep'         => 'Sales Rep — Rep portal, assigned customers',
     'distributor' => 'Distributor — Distributor portal',
     'readonly'    => 'Read Only — View only',
