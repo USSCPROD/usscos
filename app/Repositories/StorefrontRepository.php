@@ -300,7 +300,11 @@ class StorefrontRepository extends Repository
             return $name;
         }
 
-        $bare = rtrim($label, '"\u{201D}');
+        // str_replace, not rtrim. rtrim's second argument is a SET OF CHARACTERS, and
+        // '\u{201D}' in single quotes is not a curly quote - it is the literal
+        // characters \, u, {, 2, 0, 1, D, }. Trimming '3/32"' against that set strips
+        // the quote and then the 2, leaving '3/3', which matches nothing.
+        $bare = str_replace(['"', '”', '″'], '', $label);
 
         $stripped = preg_replace(
             '/[\s]*[—–-]?[\s]*' . preg_quote($bare, '/') . '["\x{201D}]?\s*$/u',
