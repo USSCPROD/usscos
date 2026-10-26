@@ -107,7 +107,11 @@ $plan = [];
 foreach ($groups as $key => $members) {
     [$brand, $line, $pack] = explode('|', $key);
 
-    $title = trim($brand . ' ' . $line) . ', ' . $pack;
+    // Brand and line only. The pack stays in the GROUP key - a 2-pack is a different
+    // product at a different price - but it does not belong in the title: the brand is
+    // what a customer is choosing between, and 'DuraStripe Fat Can' says it where
+    // 'DuraStripe Fat Can, Case (12 x 26 oz)' buries it.
+    $title = trim($brand . ' ' . $line);
 
     usort($members, function ($a, $b) {
         $ai = array_search($a['color'], LEAD_COLORS, true);

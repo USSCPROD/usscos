@@ -42,6 +42,7 @@ class StorefrontRepository extends Repository
     /** Products never shown publicly, whatever category they are filed under. */
     private const PUBLIC_WHERE = "
         p.is_active = 1
+        AND p.publish_to_website = 1
         AND COALESCE(p.item_type,'') <> 'raw_material'
         AND NOT EXISTS (
             SELECT 1 FROM product_categories pc
