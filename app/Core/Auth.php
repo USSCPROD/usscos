@@ -10,16 +10,33 @@ class Auth
 {
     private static ?array $user = null;
 
-    public static function attempt(string $email, string $password, bool $remember = false): bool
+    /**
+     * Sign in with either an email address or a username.
+     *
+     * Warehouse staff have no company email, so they are given a username and sign in
+     * with that. $identifier is whatever was typed into the one login field.
+     *
+     * Both columns are matched in a single query rather than one lookup then another:
+     * two queries would take measurably longer when the identifier is a username,
+     * which is a timing signal for which accounts exist.
+     */
+    public static function attempt(string $identifier, string $password, bool $remember = false): bool
     {
-        $cfg  = Config::get('auth');
+        $cfg   = Config::get('auth');
+        $given = strtolower(trim($identifier));
+
         $user = Database::selectOne(
-            'SELECT * FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1',
-            [strtolower(trim($email))]
+            'SELECT * FROM users
+             WHERE (email = ? OR (username IS NOT NULL AND LOWER(username) = ?))
+               AND deleted_at IS NULL
+             LIMIT 1',
+            [$given, $given]
         );
 
         if (!$user || !password_verify($password, $user['password'])) {
-            Logger::warning('Failed login attempt', ['email' => $email]);
+            // The identifier is logged, the password never is - a failed attempt is
+            // very often a correct password against the wrong account.
+            Logger::warning('Failed login attempt', ['identifier' => $identifier]);
             return false;
         }
 

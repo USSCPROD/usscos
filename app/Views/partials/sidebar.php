@@ -42,6 +42,39 @@ function isActiveExcept(string $prefix, array $children): string {
 
 <div class="sidebar__scroll">
 
+<?php if (\App\Services\WarehouseScope::isWarehouse()): ?>
+
+    <!--
+        Warehouse logins get their three screens and nothing else. The links are hidden
+        here and the routes are refused by WarehouseOnlyMiddleware - hiding alone would
+        leave a typed URL or a bookmarked tab wide open.
+    -->
+    <div class="sidebar__section-label">Warehouse</div>
+
+    <a href="/shipping/pull" class="sidebar__link <?= isActive('/shipping/pull') ?>">
+        <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+        </svg>
+        <span class="sidebar__link-text">Pull List</span>
+    </a>
+
+    <a href="/shipping" class="sidebar__link <?= isActiveExcept('/shipping', ['/shipping/pull']) ?>">
+        <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1"/>
+        </svg>
+        <span class="sidebar__link-text">Shipping</span>
+    </a>
+
+    <a href="/receiving" class="sidebar__link <?= isActive('/receiving') ?>">
+        <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v9m0 0l-3.5-3.5M12 12l3.5-3.5M4 14v4a2 2 0 002 2h12a2 2 0 002-2v-4"/>
+        </svg>
+        <span class="sidebar__link-text">Receiving</span>
+    </a>
+
+<?php else: ?>
+
     <!-- Main -->
     <a href="/dashboard" class="sidebar__link <?= isActive('/dashboard') ?>">
         <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -276,6 +309,8 @@ function isActiveExcept(string $prefix, array $children): string {
         <span class="sidebar__link-text">My Profile</span>
     </a>
     <?php endif; ?>
+
+<?php endif; // end warehouse / everyone-else ?>
 
 </div>
 

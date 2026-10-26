@@ -50,7 +50,7 @@ Router::group(['middleware' => ['guest', 'csrf']], function () {
 // Authenticated routes
 // -------------------------------------------------------------------------
 
-Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
+Router::group(['middleware' => ['auth', 'internal', 'warehouse', 'csrf']], function () {
 
     // Root redirect
     Router::get('/', [DashboardController::class, 'index'])->name('home');

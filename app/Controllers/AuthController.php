@@ -25,8 +25,10 @@ class AuthController extends Controller
     {
         $data = $request->only(['email', 'password', 'remember']);
 
+        // Not |email any more: the same field now takes a username, and validating it
+        // as an address would refuse every warehouse login before it reached Auth.
         $validator = new Validator($data, [
-            'email'    => 'required|email',
+            'email'    => 'required',
             'password' => 'required|min:1',
         ]);
 
@@ -42,7 +44,14 @@ class AuthController extends Controller
             return $response->redirect('/login');
         }
 
-        $intended = Session::getFlash('intended', '/dashboard');
+        // Warehouse staff have no dashboard to land on - it is the first page they are
+        // not allowed to open - so they start where their work is.
+        $home = \App\Services\WarehouseScope::isWarehouse() ? '/shipping' : '/dashboard';
+        $intended = Session::getFlash('intended', $home);
+
+        if (\App\Services\WarehouseScope::isWarehouse() && !\App\Services\WarehouseScope::isAllowed($intended)) {
+            $intended = '/shipping';
+        }
         return $response->redirect($intended);
     }
 
