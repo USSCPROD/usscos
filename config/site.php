@@ -38,13 +38,16 @@ return [
             'slug' => 'field-marking-paint',
             'label' => 'Field Marking Paints',
             'blurb' => 'Aerosol and bulk paint for athletic fields, in high-visibility colours that last.',
-            'categories' => ['Field Marking Paint', 'Aerosol', 'Liquid'],
+            // Names from the imported website tree — our old 'Field Marking Paint',
+            // 'Aerosol' and 'Liquid' were merged into these.
+            'categories' => ['Field Marking Paints', 'Aerosol Field Marking Paints',
+                             'Bulk Field Marking Paints'],
         ],
         [
             'slug' => 'robot-paint',
             'label' => 'Paints for Field Robots',
             'blurb' => 'Concentrate and ready-to-spray formulations made for autonomous line markers.',
-            'categories' => ['Robotic'],
+            'categories' => ['Field Marking Robot Paints'],
         ],
         [
             'slug' => 'stencils',
