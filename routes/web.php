@@ -29,6 +29,7 @@ use App\Controllers\PurchaseOrderController;
 use App\Controllers\SalesOrderController;
 use App\Controllers\WebhookController;
 use App\Controllers\ShippingController;
+use App\Controllers\SiteController;
 use App\Controllers\ReceivingController;
 use App\Controllers\VendorController;
 
@@ -369,6 +370,25 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 });
+
+// -------------------------------------------------------------------------
+// Public storefront — no auth at all. Served to anyone.
+//
+// Mounted under /shop rather than / because / is the staff dashboard on this
+// host. When the site moves to its own vhost these become the root paths and
+// nothing else about them changes.
+// -------------------------------------------------------------------------
+
+Router::get('/shop',            [SiteController::class, 'home'])->name('site.home');
+Router::get('/search',          [SiteController::class, 'search'])->name('site.search');
+Router::get('/product/{sku}',   [SiteController::class, 'product'])->name('site.product');
+Router::get('/shop/{slug}',     [SiteController::class, 'section'])->name('site.section');
+Router::get('/page/{slug}',     [SiteController::class, 'page'])->name('site.page');
+
+// Flat pages the shell links to directly.
+foreach (['about', 'contact', 'quote', 'catalogs', 'privacy', 'terms'] as $siteSlug) {
+    Router::get('/' . $siteSlug, [SiteController::class, 'page'])->name('site.page.' . $siteSlug);
+}
 
 // Public webhook — website lead intake (no CSRF, no auth)
 Router::post('/webhook/lead', [WebhookController::class, 'lead'])->name('webhook.lead');

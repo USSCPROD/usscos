@@ -15,10 +15,16 @@ abstract class Controller
         $this->response = app()->getResponse();
     }
 
-    protected function view(string $view, array $data = []): Response
+    /**
+     * $status was always being passed by the 404 call sites and always ignored, so
+     * every "Not Found" page in the application has been served as HTTP 200. That is
+     * invisible to a person looking at the screen and wrong to everything that is
+     * not — a crawler indexing a missing product, a monitor counting error rates.
+     */
+    protected function view(string $view, array $data = [], int $status = 200): Response
     {
         $html = View::render($view, $data);
-        return $this->response->html($html);
+        return $this->response->html($html, $status);
     }
 
     protected function json(array $data, int $status = 200): Response
