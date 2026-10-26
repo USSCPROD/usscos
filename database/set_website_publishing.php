@@ -57,6 +57,9 @@ const NEVER_PUBLISH = [
     'DS-20/20-W',       // 20/20 White, 20 oz by weight
     'UMAECOMIX',        // UMA Ecostripe Mixed Case
     'DURASTRIPE 20/20', // placeholder row: no category, no price
+    'DSWHITE-S',        // White-S
+    'DSWLP',            // White (Low Pressure)
+    'ESWLP',            // White (Low Pressure)
 ];
 
 /**

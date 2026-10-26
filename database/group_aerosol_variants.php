@@ -89,18 +89,14 @@ foreach ($rows as $r) {
     $groups[$key][] = $r + ['brand' => $brand, 'line' => $line, 'pack' => $pack];
 }
 
-// A group of one is not a variation; leaving it grouped renders a picker with a
-// single button, which looks broken.
-$single = 0;
+// Single-member groups are KEPT. They render no picker - the product page only
+// draws one when there is more than one variant - but they still get a title, which
+// is how DuraGlow ends up labelled 'DuraStripe DuraGlow' rather than inheriting the
+// product name 'T-Tip — White (Extra Glow), Case (12 × 18 oz)' from a line it does
+// not belong to.
+$single = count(array_filter($groups, fn($v) => count($v) < 2));
 
-foreach ($groups as $k => $v) {
-    if (count($v) < 2) {
-        $single++;
-        unset($groups[$k]);
-    }
-}
-
-printf("\n  %d listing(s), %d left ungrouped as one-offs.\n\n", count($groups), $single);
+printf("\n  %d listing(s), %d of them a single product.\n\n", count($groups), $single);
 
 $plan = [];
 

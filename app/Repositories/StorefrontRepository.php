@@ -312,18 +312,17 @@ class StorefrontRepository extends Repository
         $name  = (string)($row['name'] ?? '');
         $label = trim((string)($row['variant_label'] ?? ''));
 
-        if ($label === '' || (int)($row['variant_count'] ?? 1) < 2) {
-            return $name;
-        }
-
-        // A stored title wins. Stripping the label off the end only works when the
-        // name ends in it: aerosol names carry the color in the middle, and none of
-        // them say the brand, so 'T-Tip — Augusta Green' leaves a customer unable to
-        // tell DuraStripe from EcoStripe however it is trimmed.
+        // A stored title wins, however many variants there are. It is only ever set
+        // deliberately, and a product line with one member today still deserves its
+        // own name: DuraGlow is not a shade of DuraStripe T-Tip.
         $title = trim((string)($row['variant_title'] ?? ''));
 
         if ($title !== '') {
             return $title;
+        }
+
+        if ($label === '' || (int)($row['variant_count'] ?? 1) < 2) {
+            return $name;
         }
 
         // str_replace, not rtrim. rtrim's second argument is a SET OF CHARACTERS, and
