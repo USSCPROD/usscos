@@ -151,6 +151,9 @@ class SalesDashboardService
             return [];
         }
 
+        // clause() returns its own leading AND, and an empty string when no A/R opening
+        // date is set. Adding another AND in front produces 'AND  AND' and a syntax
+        // error the moment the cutover is unset — which is exactly how it ships.
         $period = new ArPeriod();
         [$clause, $params] = $period->clause('i');
 
@@ -158,7 +161,7 @@ class SalesDashboardService
             SELECT i.id, i.invoice_number, i.total_amount, i.balance_due, i.due_date,
                    DATEDIFF(CURDATE(), i.due_date) days_over, c.company_name
             FROM invoices i JOIN customers c ON c.id = i.customer_id
-            WHERE c.sales_rep_id = ? AND {$clause}
+            WHERE c.sales_rep_id = ? {$clause}
               AND i.status <> 'void' AND COALESCE(i.balance_due,0) > 0
               AND i.due_date < CURDATE()
             ORDER BY i.due_date
