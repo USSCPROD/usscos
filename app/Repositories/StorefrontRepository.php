@@ -32,7 +32,7 @@ class StorefrontRepository extends Repository
     private const PUBLIC_COLUMNS = "
         p.id, p.sku, p.name, p.short_description, p.website_price, p.website_image_url,
         p.gross_weight, p.weight_unit, p.uom_code, p.units_per_case, p.qty_on_hand,
-        p.variant_group, p.variant_label, p.variant_order,
+        p.variant_group, p.variant_label, p.variant_order, p.variant_title,
         b.name AS brand_name,
         (SELECT pi.file_path FROM product_images pi
           WHERE pi.product_id = p.id
@@ -289,7 +289,7 @@ class StorefrontRepository extends Repository
         }
 
         return Database::select("
-            SELECT p.sku, p.name, p.website_price, p.variant_label, p.variant_order
+            SELECT p.sku, p.name, p.website_price, p.variant_label, p.variant_order, p.variant_title
             FROM products p
             WHERE " . self::PUBLIC_WHERE . " AND p.variant_group = ?
             ORDER BY p.variant_order, p.sku
@@ -313,6 +313,16 @@ class StorefrontRepository extends Repository
 
         if ($label === '' || (int)($row['variant_count'] ?? 1) < 2) {
             return $name;
+        }
+
+        // A stored title wins. Stripping the label off the end only works when the
+        // name ends in it: aerosol names carry the color in the middle, and none of
+        // them say the brand, so 'T-Tip — Augusta Green' leaves a customer unable to
+        // tell DuraStripe from EcoStripe however it is trimmed.
+        $title = trim((string)($row['variant_title'] ?? ''));
+
+        if ($title !== '') {
+            return $title;
         }
 
         // str_replace, not rtrim. rtrim's second argument is a SET OF CHARACTERS, and
