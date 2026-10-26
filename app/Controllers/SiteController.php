@@ -47,7 +47,7 @@ class SiteController extends Controller
 
     public function section(Request $request, Response $response, string $slug = '', string $child = ''): Response
     {
-        $nav     = config('site.nav') ?? [];
+        $nav     = $this->stockedNav();
         $section = null;
 
         foreach ($nav as $s) {
@@ -116,7 +116,7 @@ class SiteController extends Controller
 
     public function product(Request $request, Response $response, string $sku = ''): Response
     {
-        $nav     = config('site.nav') ?? [];
+        $nav     = $this->stockedNav();
         $product = $this->shop->productBySku($sku);
 
         if ($product === false) {
@@ -138,7 +138,7 @@ class SiteController extends Controller
 
         return $this->view('site.search', [
             'title'    => $q === '' ? 'Search' : 'Search: ' . $q,
-            'nav'      => config('site.nav') ?? [],
+            'nav'      => $this->stockedNav(),
             'q'        => $q,
             'products' => $q === '' ? [] : $this->shop->searchProducts($q),
         ]);
@@ -167,7 +167,7 @@ class SiteController extends Controller
             $slug = trim($request->path(), '/');
         }
 
-        $nav = config('site.nav') ?? [];
+        $nav = $this->stockedNav();
 
         if (!isset($pages[$slug])) {
             return $this->view('site.404', ['title' => 'Not found', 'nav' => $nav], 404);
@@ -180,5 +180,29 @@ class SiteController extends Controller
             'blurb'   => $pages[$slug][1],
             'sku'     => trim((string)($request->query('sku') ?? '')),
         ]);
+    }
+    /**
+     * The sections that actually have something in them.
+     *
+     * A nav entry leading to "nothing is filed under this section yet" is worse than
+     * no entry: it reads as a broken shop rather than a catalogue that does not carry
+     * that line. Counted once per request and handed to every page, so the nav, the
+     * homepage tiles and the footer cannot disagree about what exists.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function stockedNav(): array
+    {
+        $out = [];
+
+        foreach (config('site.nav') ?? [] as $s) {
+            $n = $this->shop->sectionCount($s['categories'] ?? [], $s['brands'] ?? [], $s['name_like'] ?? []);
+
+            if ($n > 0) {
+                $out[] = $s + ['count' => $n];
+            }
+        }
+
+        return $out;
     }
 }
