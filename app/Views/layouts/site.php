@@ -50,7 +50,7 @@ img{max-width:100%;display:block}
 .srch input{flex:1;padding:.6rem .85rem;border:1px solid var(--line);border-right:0;border-radius:6px 0 0 6px;font:inherit;font-size:.9rem}
 .srch button{padding:.6rem 1.1rem;border:0;border-radius:0 6px 6px 0;background:var(--navy);color:#fff;font:inherit;font-weight:600;font-size:.9rem;cursor:pointer}
 .mast-cta{margin-left:auto;text-align:right;white-space:nowrap}
-.mast-cta .ph{font-weight:800;font-size:1.05rem;color:var(--navy)}
+.mast-cta .tel{font-weight:800;font-size:1.05rem;color:var(--navy)}
 .mast-cta .lb{font-size:.72rem;color:var(--mut)}
 
 /* ---- category nav ---- */
@@ -152,7 +152,7 @@ img{max-width:100%;display:block}
       <button type="submit">Search</button>
     </form>
     <div class="mast-cta">
-      <div class="ph"><?= e($co['phone']) ?></div>
+      <div class="tel"><?= e($co['phone']) ?></div>
       <div class="lb"><?= e($co['hours']) ?></div>
     </div>
   </div>
