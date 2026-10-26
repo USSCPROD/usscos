@@ -56,17 +56,8 @@ class SiteController extends Controller
             return $this->view('site.404', ['title' => 'Not found', 'nav' => $nav], 404);
         }
 
-        // Count every subcategory so the ones holding nothing can be hidden rather
-        // than offered as a filter that leads to an empty page.
-        $children = [];
-
-        foreach ($section['children'] ?? [] as $c) {
-            $n = $this->shop->sectionCount($c['categories'] ?? [], $c['brands'] ?? [], $c['name_like'] ?? []);
-
-            if ($n > 0) {
-                $children[] = $c + ['count' => $n];
-            }
-        }
+        // Children already arrive counted and filtered from stockedNav().
+        $children = $section['children'] ?? [];
 
         // A subcategory narrows the section; the section's own rules no longer apply,
         // because a child is defined by what it contains, not by its parent's net.
@@ -193,9 +184,24 @@ class SiteController extends Controller
         foreach (config('site.nav') ?? [] as $s) {
             $n = $this->shop->sectionCount($s['categories'] ?? [], $s['brands'] ?? [], $s['name_like'] ?? []);
 
-            if ($n > 0) {
-                $out[] = $s + ['count' => $n];
+            if ($n <= 0) {
+                continue;
             }
+
+            // Children from the category tree, so the menu follows the data. A section
+            // that still lists its own children in config keeps them - the stencil
+            // groupings are ours, not the website's, and have no tree to come from.
+            $children = $s['children'] ?? [];
+
+            if (!empty($s['tree'])) {
+                $fromTree = $this->shop->treeChildren((string)$s['tree']);
+
+                if ($fromTree !== []) {
+                    $children = $fromTree;
+                }
+            }
+
+            $out[] = $s + ['count' => $n, 'children' => $children];
         }
 
         return $out;

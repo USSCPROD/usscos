@@ -364,4 +364,80 @@ class StorefrontRepository extends Repository
             ? (string)$row['website_image_url']
             : null;
     }
+    /**
+     * The child categories of a live-tree section that actually hold something.
+     *
+     * Read from the category tree rather than listed in config, so the menu cannot
+     * drift from the categories it points at: file products into a category and it
+     * appears, empty one and it goes.
+     *
+     * The count follows descendants, because a child with its own children owns
+     * nothing directly and would otherwise look empty and be hidden.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function treeChildren(string $parentSlug): array
+    {
+        $parent = Database::selectOne(
+            "SELECT id FROM categories WHERE external_ref = ? AND is_active = 1 LIMIT 1",
+            ['WC:' . $parentSlug]
+        );
+
+        if (!$parent) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach (Database::select(
+            "SELECT id, name, slug FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY name",
+            [(int)$parent['id']]
+        ) as $child) {
+            $n = $this->categoryReach((int)$child['id']);
+
+            if ($n > 0) {
+                $out[] = [
+                    'slug'       => $child['slug'],
+                    'label'      => $child['name'],
+                    'categories' => $this->categoryNamesBeneath((int)$child['id']),
+                    'count'      => $n,
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /** Active products in a category and everything beneath it. */
+    private function categoryReach(int $id): int
+    {
+        $n = (int)Database::selectOne("
+            SELECT COUNT(DISTINCT p.id) c FROM product_categories pc
+            JOIN products p ON p.id = pc.product_id AND p.is_active = 1
+            WHERE pc.category_id = ?
+        ", [$id])['c'];
+
+        foreach (Database::select("SELECT id FROM categories WHERE parent_id = ?", [$id]) as $k) {
+            $n += $this->categoryReach((int)$k['id']);
+        }
+
+        return $n;
+    }
+
+    /**
+     * A category's name plus every descendant's, for matching products.
+     *
+     * @return string[]
+     */
+    private function categoryNamesBeneath(int $id): array
+    {
+        $row   = Database::selectOne("SELECT name FROM categories WHERE id = ?", [$id]);
+        $names = $row ? [$row['name']] : [];
+
+        foreach (Database::select("SELECT id FROM categories WHERE parent_id = ?", [$id]) as $k) {
+            $names = array_merge($names, $this->categoryNamesBeneath((int)$k['id']));
+        }
+
+        return $names;
+    }
 }

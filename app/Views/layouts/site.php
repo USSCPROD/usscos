@@ -61,6 +61,30 @@ img{max-width:100%;display:block}
 .catnav a:hover{color:var(--blue);border-bottom-color:var(--blue);text-decoration:none}
 .catnav a.on{color:var(--blue);border-bottom-color:var(--blue)}
 
+/* ---- category dropdowns ---- */
+.catnav .item{position:relative}
+.catnav .item > a{display:block}
+.drop{
+  position:absolute;left:0;top:100%;z-index:40;min-width:17rem;max-width:min(92vw,30rem);
+  background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;
+  box-shadow:0 10px 30px #0f172a1f;padding:.5rem 0;
+  display:none;
+}
+/* Shown on hover for a mouse, and on keyboard focus so it is reachable by tabbing -
+   a menu that only answers to a pointer is closed to anyone using a keyboard. */
+.catnav .item:hover > .drop,
+.catnav .item:focus-within > .drop{display:block}
+.drop a{display:flex;justify-content:space-between;gap:1rem;padding:.5rem 1rem;font-size:.86rem;
+        font-weight:500;color:var(--ink);border:0;white-space:normal}
+.drop a:hover{background:var(--soft);color:var(--blue);text-decoration:none}
+.drop .n{color:var(--mut);font-size:.78rem;font-variant-numeric:tabular-nums}
+.drop .all{border-top:1px solid var(--line);margin-top:.35rem;padding-top:.6rem;font-weight:700;color:var(--blue)}
+@media (max-width:760px){
+  /* No hover on a phone, and a panel pinned under a scrolling bar would be unusable.
+     The section page lists the same categories as chips, which is the mobile answer. */
+  .drop{display:none !important}
+}
+
 /* ---- buttons ---- */
 .b{display:inline-block;padding:.65rem 1.25rem;border-radius:6px;font-weight:600;font-size:.88rem;cursor:pointer;border:1px solid transparent}
 .b:hover{text-decoration:none}
@@ -165,8 +189,25 @@ img{max-width:100%;display:block}
 <nav class="catnav">
   <div class="wrap">
     <?php foreach ($siteNav as $s): ?>
-      <a href="/shop/<?= e($s['slug']) ?>"
-         class="<?= (($activeSlug ?? '') === $s['slug']) ? 'on' : '' ?>"><?= e($s['label']) ?></a>
+      <?php $kids = $s['children'] ?? []; ?>
+      <div class="item">
+        <a href="/shop/<?= e($s['slug']) ?>"
+           class="<?= (($activeSlug ?? '') === $s['slug']) ? 'on' : '' ?>"><?= e($s['label']) ?></a>
+        <?php if ($kids !== []): ?>
+          <div class="drop">
+            <?php foreach ($kids as $k): ?>
+              <a href="/shop/<?= e($s['slug']) ?>/<?= e($k['slug']) ?>">
+                <span><?= e($k['label']) ?></span>
+                <span class="n"><?= (int)$k['count'] ?></span>
+              </a>
+            <?php endforeach; ?>
+            <a class="all" href="/shop/<?= e($s['slug']) ?>">
+              <span>All <?= e($s['label']) ?></span>
+              <span class="n"><?= (int)($s['count'] ?? 0) ?></span>
+            </a>
+          </div>
+        <?php endif; ?>
+      </div>
     <?php endforeach; ?>
   </div>
 </nav>

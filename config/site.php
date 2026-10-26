@@ -36,6 +36,8 @@ return [
     'nav' => [
         [
             'slug' => 'field-marking-paint',
+            // Children come from this live-tree category, not from a list here.
+            'tree'  => 'field-marking-paints',
             'label' => 'Field Marking Paints',
             'blurb' => 'Aerosol and bulk paint for athletic fields, in high-visibility colours that last.',
             // Names from the imported website tree — our old 'Field Marking Paint',
@@ -45,6 +47,8 @@ return [
         ],
         [
             'slug' => 'robot-paint',
+            // Children come from this live-tree category, not from a list here.
+            'tree'  => 'paints-for-field-robots',
             // 'Robot Paints' is what the live site calls it; ours said 'Paints for
             // Field Robots', so a customer moving between the two saw two names for
             // one thing.
@@ -54,6 +58,8 @@ return [
         ],
         [
             'slug' => 'traffic-paint',
+            // Children come from this live-tree category, not from a list here.
+            'tree'  => 'traffic-paints',
             'label' => 'Traffic Paints',
             'blurb' => 'Federal-spec traffic striping paint for lots, roads and warehouses.',
             'categories' => ['Traffic Paints', 'Water-Based Traffic Paints',
@@ -62,6 +68,8 @@ return [
         ],
         [
             'slug' => 'striping-machines',
+            // Children come from this live-tree category, not from a list here.
+            'tree'  => 'striping-machines',
             'label' => 'Striping Machines',
             'blurb' => 'Walk-behind and aerosol striping machines, wands and replacement parts.',
             // By BRAND, not by name: 'machine' as a name pattern would sweep in every
@@ -87,6 +95,8 @@ return [
         ],
         [
             'slug' => 'stencils',
+            // Children come from this live-tree category, not from a list here.
+            'tree'  => 'stencils',
             'label' => 'Stencils',
             'blurb' => 'Endzone, midfield and numbering stencils. Most are made to order — ask for a quote.',
             // No internal category gathers these; the name is what identifies them.
@@ -120,6 +130,8 @@ return [
         ],
         [
             'slug' => 'specialty-coatings',
+            // Children come from this live-tree category, not from a list here.
+            'tree'  => 'specialty-coatings-manufacturer',
             'label' => 'Specialty Coatings',
             'blurb' => 'Direct-to-metal, concrete and floor coatings, sealers and turf colorants.',
             'categories' => [
@@ -132,6 +144,8 @@ return [
         ],
         [
             'slug' => 'janitorial',
+            // Children come from this live-tree category, not from a list here.
+            'tree'  => 'janitorial-products',
             'label' => 'Janitorial Products',
             'blurb' => 'Jansan products at wholesale prices.',
             // Live-tree names. The spreadsheet's 'Cleaners and Deodorizers',
