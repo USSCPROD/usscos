@@ -19,6 +19,12 @@
 /storage/sessions/*
 !/storage/*/.gitkeep
 
+# Generated warehouse passwords. This file holds plaintext credentials when the
+# password is generated rather than supplied, and .gitignore only listed the storage
+# SUBDIRECTORIES, so a file at the storage root was untracked but committable - one
+# `git add -A` away from putting passwords in the history permanently.
+/storage/warehouse-logins.txt
+
 # ---------------------------------------------------------------
 # User-uploaded content — lives on the server, not in the repo
 # ---------------------------------------------------------------
