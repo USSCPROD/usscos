@@ -403,7 +403,8 @@ class StorefrontRepository extends Repository
             "SELECT id, name, slug FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY name",
             [(int)$parent['id']]
         ) as $child) {
-            $n = $this->categoryReach((int)$child['id']);
+            $seen = [];
+            $n = $this->categoryReach((int)$child['id'], $seen);
 
             if ($n > 0) {
                 $out[] = [
@@ -418,17 +419,37 @@ class StorefrontRepository extends Repository
         return $out;
     }
 
-    /** Active products in a category and everything beneath it. */
-    private function categoryReach(int $id): int
+    /**
+     * LISTINGS in a category and everything beneath it, not products.
+     *
+     * Counting products made a menu chip read 195 above a page showing 14 cards: the
+     * page collapses a product's colors into one listing and the chip did not. A
+     * number that contradicts what is beneath it is worse than no number.
+     *
+     * Variant groups are gathered across the whole subtree before counting, because a
+     * group split over a parent and its child would otherwise be counted twice.
+     *
+     * @param array<string,bool> $seen carries group keys up through the recursion
+     */
+    private function categoryReach(int $id, array &$seen = []): int
     {
-        $n = (int)Database::selectOne("
-            SELECT COUNT(DISTINCT p.id) c FROM product_categories pc
+        $n = 0;
+
+        foreach (Database::select("
+            SELECT p.id, p.variant_group FROM product_categories pc
             JOIN products p ON p.id = pc.product_id AND p.is_active = 1
             WHERE pc.category_id = ?
-        ", [$id])['c'];
+        ", [$id]) as $row) {
+            $key = ($row['variant_group'] ?? '') !== '' ? 'g:' . $row['variant_group'] : 'p:' . $row['id'];
+
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+                $n++;
+            }
+        }
 
         foreach (Database::select("SELECT id FROM categories WHERE parent_id = ?", [$id]) as $k) {
-            $n += $this->categoryReach((int)$k['id']);
+            $n += $this->categoryReach((int)$k['id'], $seen);
         }
 
         return $n;
