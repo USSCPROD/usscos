@@ -46,11 +46,24 @@ const TWO_PACK = "(COALESCE(p.uom_code,'') LIKE '%2-Pack%' OR COALESCE(p.uom_cod
 const TOLL = "EXISTS (SELECT 1 FROM product_categories pc JOIN categories c ON c.id = pc.category_id
               WHERE pc.product_id = p.id AND c.name = 'Toll Manufacturing')";
 
+/**
+ * Individual products kept off the website.
+ *
+ * Listed here rather than only unpublished by hand, because this script sets the
+ * baseline from rules and would otherwise publish them again on its next run - the
+ * manual edit would quietly come undone weeks later with nobody watching.
+ */
+const NEVER_PUBLISH = [
+    'DS-20/20-W',   // 20/20 White, 20 oz by weight
+    'UMAECOMIX',    // UMA Ecostripe Mixed Case
+];
+
 $counts = [
     'active'        => "p.is_active = 1",
     'two-pack'      => "p.is_active = 1 AND " . TWO_PACK,
     'toll mfg'      => "p.is_active = 1 AND " . TOLL,
     'raw material'  => "p.is_active = 1 AND COALESCE(p.item_type,'') = 'raw_material'",
+    'never-publish' => "p.is_active = 1 AND p.sku IN ('" . implode("','", NEVER_PUBLISH) . "')",
 ];
 
 foreach ($counts as $label => $where) {
@@ -58,8 +71,14 @@ foreach ($counts as $label => $where) {
         (int)Database::selectOne("SELECT COUNT(*) c FROM products p WHERE {$where}")['c']);
 }
 
+$never = NEVER_PUBLISH === []
+    ? '1 = 1'
+    : "p.sku NOT IN ('" . implode("','", array_map(
+        fn($s) => str_replace("'", "''", $s), NEVER_PUBLISH)) . "')";
+
 $publishWhere = "p.is_active = 1 AND NOT " . TWO_PACK . " AND NOT " . TOLL
-              . " AND COALESCE(p.item_type,'') <> 'raw_material'";
+              . " AND COALESCE(p.item_type,'') <> 'raw_material'"
+              . " AND {$never}";
 
 $toPublish = (int)Database::selectOne("SELECT COUNT(*) c FROM products p WHERE {$publishWhere}")['c'];
 $total     = (int)Database::selectOne("SELECT COUNT(*) c FROM products")['c'];
