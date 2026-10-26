@@ -165,7 +165,8 @@ if (!function_exists('peTextarea')) {
         </table>
         <table style="width:100%;border-collapse:collapse">
             <?php
-            peMoney('Website Price', 'website_price', $pr['website_price'] ?? '');
+            // Website Price lives in Pricing with every other price. Having it here as
+            // well meant two boxes to keep in step and one of them always stale.
             peInput('Image URL', 'website_image_url', $pr['website_image_url'], 'text',
                     'placeholder="Only used if no image is uploaded"');
             ?>
@@ -191,6 +192,12 @@ if (!function_exists('peTextarea')) {
 
     $rtName = $rtLabel = $rtValue = $rtHint = null;
     ?>
+
+    <p style="margin:0 0 .9rem;font-size:.8rem;color:#6b7280">
+        Photos and datasheets are at the
+        <a href="#web-files" style="color:#0A3D91">bottom of this page</a> —
+        they upload on their own, separately from Save.
+    </p>
 
     <label style="display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;
                   letter-spacing:.05em;color:#6b7280;margin-bottom:.35rem">Video links</label>
@@ -362,6 +369,7 @@ if (!function_exists('peTextarea')) {
                 peMoney('Dist Price (QB)', 'dist_price', $pr['dist_price']);
                 peMoney('Dist Price 2026', 'dist_price_2026', $pr['dist_price_2026']);
                 peMoney('Stocking Dist', 'stocking_dist', $pr['stocking_dist']);
+                peMoney('Website Price', 'website_price', $pr['website_price'] ?? '');
                 
                 peMoney('Amazon Price', 'amazon_price', $pr['amazon_price']  ?? '');
                 peMoney('Cost', 'cost', $pr['cost']);
@@ -513,6 +521,7 @@ if (!function_exists('peTextarea')) {
     They were previously only on the product view page, which meant editing in one
     place and uploading in another.
 -->
+<h2 id="web-files" style="font-size:1rem;margin:2rem 0 .75rem;color:#374151">Photos &amp; documents</h2>
 <?php
     $images    = $images    ?? [];
     $documents = $documents ?? [];
@@ -528,7 +537,9 @@ if (!function_exists('peTextarea')) {
         'other'       => 'Other',
     ];
 
-    peOpen('Images', count($images) === 0, count($images) . ' uploaded');
+    // Open. Collapsed-by-default put them below the Save button AND shut, which is
+    // two reasons not to find them - and the first question asked was where they went.
+    peOpen('Images', true, count($images) . ' uploaded');
 ?>
 <div style="padding:.9rem 1rem">
     <?php if (!empty($images)): ?>
@@ -575,7 +586,7 @@ if (!function_exists('peTextarea')) {
 </div>
 <?php peClose(); ?>
 
-<?php peOpen('Documents — TDS, SDS, flyers', count($documents) === 0, count($documents) . ' uploaded'); ?>
+<?php peOpen('Documents — TDS, SDS, flyers', true, count($documents) . ' uploaded'); ?>
 <div style="padding:.9rem 1rem">
     <?php if (!empty($documents)): ?>
         <table style="width:100%;border-collapse:collapse;margin-bottom:.9rem">
