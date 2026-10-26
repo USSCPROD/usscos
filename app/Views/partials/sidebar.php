@@ -276,7 +276,15 @@ function isActiveExcept(string $prefix, array $children): string {
         <span class="sidebar__link-text">AI Assistant</span>
     </a>
 
-    <a href="/website" class="sidebar__link <?= isActive('/website') ?>">
+    <!--
+        The storefront, which lives at /shop on this host. The old href was /website,
+        a route that has never existed - the link 404'd for everyone who tried it.
+
+        Opens in a new tab: it is the customer-facing view, and somebody checking how
+        a product looks should not lose the screen they were working on. No isActive
+        either, since it is never the page you are on.
+    -->
+    <a href="/shop" target="_blank" rel="noopener" class="sidebar__link">
         <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
         </svg>
