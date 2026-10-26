@@ -61,10 +61,15 @@ class SiteController extends Controller
             return $this->view('site.404', ['title' => 'Not found', 'nav' => $nav], 404);
         }
 
+        // The total, not the size of the page. count($products) is the LIMIT, so a
+        // 208-product section was telling customers it held 60.
         return $this->view('site.section', [
             'title'    => $section['label'],
             'nav'      => $nav,
             'section'  => $section,
+            'total'    => $this->shop->sectionCount(
+                $section['categories'] ?? [], $section['brands'] ?? [], $section['name_like'] ?? []
+            ),
             'products' => $this->shop->section(
                 $section['categories'] ?? [], $section['brands'] ?? [], 60, 0, $section['name_like'] ?? []
             ),

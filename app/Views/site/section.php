@@ -19,7 +19,11 @@
   <?php else: ?>
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem">
       <div style="font-size:.85rem;color:var(--mut)">
-        <?= count($products) ?> product<?= count($products) === 1 ? '' : 's' ?>
+        <?php if ($total > count($products)): ?>
+          Showing <?= count($products) ?> of <?= (int)$total ?> products
+        <?php else: ?>
+          <?= (int)$total ?> product<?= (int)$total === 1 ? '' : 's' ?>
+        <?php endif; ?>
       </div>
     </div>
     <div class="grid g4">
