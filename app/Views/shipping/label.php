@@ -114,7 +114,24 @@ $suggestedPackages = max(1, count($packages));
                 </tr>
                 <?php foreach ($packages as $pkg): ?>
                     <tr style="border-bottom:1px solid #f3f4f6">
-                        <td style="padding:.5rem 0"><?= e($pkg['sku'] ?? '') ?></td>
+                        <td style="padding:.5rem 0">
+                            <?php $inside = $pkg['contents'] ?? []; ?>
+                            <?php if (count($inside) > 1): ?>
+                                <!--
+                                    A double box can hold two different colours. The packer
+                                    needs to read what goes in THIS box, not a SKU that is
+                                    only half its contents.
+                                -->
+                                <?php foreach ($inside as $it): ?>
+                                    <div style="font-family:ui-monospace,monospace;font-size:.82rem">
+                                        <?= e($it['sku']) ?>
+                                        <span style="color:#6b7280">&times;<?= e(rtrim(rtrim(number_format((float)$it['qty'], 2), '0'), '.')) ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <?= e($pkg['sku'] ?? '') ?>
+                            <?php endif; ?>
+                        </td>
                         <td style="padding:.5rem"><?= e($pkg['box'] ?? '—') ?></td>
                         <td style="padding:.5rem;text-align:right;font-family:monospace"><?= e((string)($pkg['qty'] ?? '')) ?></td>
                         <td style="padding:.5rem;text-align:right;font-family:monospace">

@@ -14,8 +14,15 @@ use App\Core\Database;
  * single. Asking FedEx for three packages when two leave is wrong twice over: the customer
  * gets a tracking number for a box that does not exist, and the freight is overpriced.
  *
- * The packing is a greedy fill — biggest box that still fits, repeat — driven from rows
- * rather than code, so a triple box or a different rule for a different product is data.
+ * Cases POOL ACROSS PRODUCTS. A double box holds two cases; it does not care whether
+ * they are the same colour. Three DuraStripe white and one red is four cases and
+ * leaves as two double boxes, not as a double plus two singles. Packing each line on
+ * its own — which is what this used to do — invents a third box that nobody tapes up
+ * and bills the customer for shipping it.
+ *
+ * Which products may share a box is data, not a rule in code: they pool when their
+ * largest packing rule names the same box. That is why fat cans never pair with
+ * T-tips — a fat can's only rule is FATCAN-1 — without fat cans being mentioned here.
  *
  * Nothing here guesses. A product with no packing rule is reported as needing one, and a
  * box with no weight is reported as needing that, rather than being quietly assumed.
@@ -40,6 +47,7 @@ class CartonizerService
         $packages = [];
         $reasons  = [];
         $missing  = [];
+        $pending  = [];
         $freight  = false;
         $weighed  = true;
         $total    = 0.0;
@@ -108,42 +116,97 @@ class CartonizerService
                 continue;
             }
 
-            // Greedy: biggest box that still fits, repeat. Three cases with rules for 2 and
-            // 1 gives a double and a single, which is what actually leaves the bench.
-            $remaining = $qty;
+            // Collected now, packed later: cases pool across every line that shares a
+            // box, so no line can be packed until all of them have been read.
+            $pending[] = [
+                'product_id' => $productId,
+                'product'    => $product,
+                'label'      => $label,
+                'qty'        => $qty,
+                'case_weight'=> $caseWeight,
+                'rules'      => $rules,
+            ];
+        }
 
-            while ($remaining > 0.0001) {
-                $chosen = null;
+        // ------------------------------------------------------------------
+        // Pool by box, then fill
+        // ------------------------------------------------------------------
 
-                foreach ($rules as $rule) {
-                    if ((float)$rule['cases_per_box'] <= $remaining + 0.0001) {
-                        $chosen = $rule;
-                        break;
+        $groups = [];
+
+        foreach ($pending as $i => $pl) {
+            // The largest rule decides the pool. Rules arrive ordered by cases_per_box
+            // descending, so the first is the biggest box this product may travel in.
+            $groups[(string)$pl['rules'][0]['code']][] = $i;
+        }
+
+        foreach ($groups as $members) {
+            $capacity = (float)$pending[$members[0]]['rules'][0]['cases_per_box'];
+            $box      = $pending[$members[0]]['rules'][0];
+
+            // A queue of cases still to pack, in line order, so a box is filled from
+            // the products as they were ordered rather than in some invented order.
+            $queue = [];
+
+            foreach ($members as $i) {
+                $queue[] = ['i' => $i, 'left' => $pending[$i]['qty']];
+            }
+
+            $pooled = 0.0;
+
+            foreach ($queue as $q) {
+                $pooled += $q['left'];
+            }
+
+            $cursor = 0;
+
+            // Full boxes first, drawing across products.
+            while ($pooled >= $capacity - 0.0001 && $capacity > 0) {
+                $contents = [];
+                $room     = $capacity;
+
+                while ($room > 0.0001 && $cursor < count($queue)) {
+                    if ($queue[$cursor]['left'] <= 0.0001) {
+                        $cursor++;
+                        continue;
                     }
+
+                    $take = min($room, $queue[$cursor]['left']);
+                    $queue[$cursor]['left'] -= $take;
+                    $room   -= $take;
+                    $pooled -= $take;
+
+                    $contents[] = ['i' => $queue[$cursor]['i'], 'qty' => $take];
                 }
 
-                // Less left than the smallest box holds — it still needs a box.
-                $chosen ??= $rules[count($rules) - 1];
+                if ($contents === []) {
+                    break;
+                }
 
-                $inBox      = min($remaining, (float)$chosen['cases_per_box']);
-                $boxWeight  = $caseWeight !== null
-                    ? round($caseWeight * $inBox + (float)($chosen['tare_lb'] ?? 0), 2)
-                    : null;
+                [$packages, $total, $freight, $reasons] =
+                    $this->addPackage($packages, $total, $freight, $reasons, $contents, $pending, $box, $capacity);
+            }
 
-                if ($boxWeight !== null && $chosen['max_lb'] !== null && $boxWeight > (float)$chosen['max_lb']) {
-                    $freight   = true;
-                    $reasons[] = sprintf(
-                        '%s: a %s would weigh %s lb, over the %s lb this box takes.',
-                        $label,
-                        $chosen['name'],
-                        $this->fmt($boxWeight),
-                        $this->fmt((float)$chosen['max_lb'])
+            // Whatever is left over is less than a full box, so each product's remainder
+            // goes in the smallest box it has a rule for.
+            foreach ($queue as $q) {
+                $left = $q['left'];
+
+                if ($left <= 0.0001) {
+                    continue;
+                }
+
+                $small = $pending[$q['i']]['rules'][count($pending[$q['i']]['rules']) - 1];
+                $cap   = max(0.0001, (float)$small['cases_per_box']);
+
+                while ($left > 0.0001) {
+                    $take = min($cap, $left);
+                    [$packages, $total, $freight, $reasons] = $this->addPackage(
+                        $packages, $total, $freight, $reasons,
+                        [['i' => $q['i'], 'qty' => $take]], $pending, $small, $cap
                     );
+                    $left -= $take;
                 }
-
-                $packages[] = $this->package($productId, (string)$chosen['code'], $inBox, $boxWeight, $chosen, $product);
-                $total     += $boxWeight ?? 0;
-                $remaining -= $inBox;
             }
         }
 
@@ -154,6 +217,88 @@ class CartonizerService
             'missing'          => array_values(array_unique($missing)),
             'total_weight'     => $weighed && $packages !== [] ? round($total, 2) : null,
         ];
+    }
+
+    /**
+     * Build one package, which may hold cases of more than one product, and fold it
+     * into the running totals.
+     *
+     * Returns the four values it touches rather than mutating them, so the caller's
+     * state stays visible at the call site instead of being changed from in here.
+     *
+     * @param list<array{i:int,qty:float}> $contents
+     * @return array{0:array,1:float,2:bool,3:array}
+     */
+    private function addPackage(
+        array $packages,
+        float $total,
+        bool $freight,
+        array $reasons,
+        array $contents,
+        array $pending,
+        array $box,
+        float $capacity
+    ): array {
+        $weight = 0.0;
+        $known  = true;
+        $items  = [];
+        $labels = [];
+        $qty    = 0.0;
+
+        foreach ($contents as $c) {
+            $pl = $pending[$c['i']];
+
+            if ($pl['case_weight'] === null) {
+                $known = false;
+            } else {
+                $weight += $pl['case_weight'] * $c['qty'];
+            }
+
+            $qty += $c['qty'];
+            $labels[] = $pl['label'];
+            $items[]  = [
+                'product_id' => $pl['product_id'],
+                'sku'        => (string)($pl['product']['sku'] ?? ''),
+                'qty'        => $c['qty'],
+            ];
+        }
+
+        $boxWeight = $known ? round($weight + (float)($box['tare_lb'] ?? 0), 2) : null;
+
+        if ($boxWeight !== null && ($box['max_lb'] ?? null) !== null && $boxWeight > (float)$box['max_lb']) {
+            $freight   = true;
+            $reasons[] = sprintf(
+                '%s: a %s would weigh %s lb, over the %s lb this box takes.',
+                implode(' + ', array_unique($labels)),
+                $box['name'],
+                $this->fmt($boxWeight),
+                $this->fmt((float)$box['max_lb'])
+            );
+        }
+
+        $first = $pending[$contents[0]['i']];
+
+        $pkg = $this->package(
+            $first['product_id'],
+            (string)$box['code'],
+            $qty,
+            $boxWeight,
+            $box,
+            $first['product']
+        );
+
+        // A mixed box has no single SKU. Naming one would put a box on the packing
+        // list under a product that is only part of what is inside it.
+        $pkg['contents'] = $items;
+
+        if (count($items) > 1) {
+            $pkg['sku'] = implode(' + ', array_map(fn($i) => $i['sku'], $items));
+        }
+
+        $packages[] = $pkg;
+        $total     += $boxWeight ?? 0;
+
+        return [$packages, $total, $freight, $reasons];
     }
 
     /** @return array<string,mixed> */
