@@ -77,14 +77,21 @@ if ($existing) {
     exit(1);
 }
 
-$company = Database::selectOne("SELECT id FROM users WHERE company_id IS NOT NULL ORDER BY id LIMIT 1");
 $companyId = (int)(Database::selectOne("SELECT company_id FROM users ORDER BY id LIMIT 1")['company_id'] ?? 1);
+
+// Department is separate from role: the role decides what the account may open, the
+// department is who they work with and is what reports group by. A warehouse login
+// belongs to Shipping on both counts, so it is set here rather than left for somebody
+// to remember in the admin screen afterwards.
+$dept   = Database::selectOne("SELECT id, name FROM departments WHERE name = 'Shipping' AND is_active = 1 LIMIT 1");
+$deptId = $dept ? (int)$dept['id'] : null;
 
 printf("%sWould create:\n", $commit ? '' : "DRY RUN — nothing will be written. Add --commit to apply.\n\n");
 printf("  name     : %s\n", trim($opt['first'] . ' ' . (string)$opt['last']));
 printf("  username : %s\n", $username);
 printf("  role     : warehouse  (pull list, shipping, receiving — nothing else)\n");
 printf("  email    : %s@warehouse.invalid  (placeholder, never used)\n", $username);
+printf("  dept     : %s\n", $dept['name'] ?? '(no Shipping department found — left unset)');
 
 if (!$commit) {
     echo "\nNothing written. Add --commit to create the account.\n";
@@ -119,8 +126,8 @@ $pdo->beginTransaction();
 
 try {
     $pdo->prepare(
-        "INSERT INTO users (company_id, first_name, last_name, email, username, password, role, is_active)
-         VALUES (?,?,?,?,?,?,'warehouse',1)"
+        "INSERT INTO users (company_id, first_name, last_name, email, username, password, role, department_id, is_active)
+         VALUES (?,?,?,?,?,?,'warehouse',?,1)"
     )->execute([
         $companyId,
         trim($opt['first']),
@@ -128,6 +135,7 @@ try {
         $username . '@warehouse.invalid',
         $username,
         password_hash($password, PASSWORD_DEFAULT),
+        $deptId,
     ]);
 
     $id = (int)$pdo->lastInsertId();
