@@ -45,9 +45,42 @@ return [
         ],
         [
             'slug' => 'robot-paint',
-            'label' => 'Paints for Field Robots',
+            // 'Robot Paints' is what the live site calls it; ours said 'Paints for
+            // Field Robots', so a customer moving between the two saw two names for
+            // one thing.
+            'label' => 'Robot Paints',
             'blurb' => 'Concentrate and ready-to-spray formulations made for autonomous line markers.',
             'categories' => ['Field Marking Robot Paints'],
+        ],
+        [
+            'slug' => 'traffic-paint',
+            'label' => 'Traffic Paints',
+            'blurb' => 'Federal-spec traffic striping paint for lots, roads and warehouses.',
+            'categories' => ['Traffic Paints', 'Water-Based Traffic Paints',
+                             'Solvent-Based Traffic Paints', 'Thermoplastic'],
+            'name_like'  => ['traffic paint', 'thermo'],
+        ],
+        [
+            'slug' => 'striping-machines',
+            'label' => 'Striping Machines',
+            'blurb' => 'Walk-behind and aerosol striping machines, wands and replacement parts.',
+            // By BRAND, not by name: 'machine' as a name pattern would sweep in every
+            // jug of iGo Machine Paint, which is paint for a machine, not a machine.
+            'categories' => ['Striping Machines', 'Equipment', 'Field Maintenance',
+                             'Field Markers', 'Turf / Soil Conditioners', 'Paint Machine Cleaner'],
+            'brands'     => ['GRACO MACHINES', 'NEWSTRIPE', 'SHARP STRIPE'],
+
+            // The live site puts Field Maintenance in this menu's second column
+            // rather than giving it its own top-level entry.
+            'children' => [
+                ['slug' => 'machines', 'label' => 'Striping Machines',
+                 'brands' => ['GRACO MACHINES', 'NEWSTRIPE', 'SHARP STRIPE'],
+                 'categories' => ['Striping Machines', 'Equipment']],
+                ['slug' => 'field-maintenance', 'label' => 'Field Maintenance',
+                 'blurb' => 'Markers, drags, soil conditioners and turf cleaners.',
+                 'categories' => ['Field Maintenance', 'Field Markers',
+                                  'Turf / Soil Conditioners', 'Paint Machine Cleaner']],
+            ],
         ],
         [
             'slug' => 'stencils',
@@ -83,23 +116,6 @@ return [
             ],
         ],
         [
-            'slug' => 'striping-machines',
-            'label' => 'Striping Machines',
-            'blurb' => 'Walk-behind and aerosol striping machines, wands and replacement parts.',
-            // By BRAND, not by name: 'machine' as a name pattern would sweep in every
-            // jug of iGo Machine Paint, which is paint for a machine, not a machine.
-            'categories' => ['Striping Machines', 'Equipment'],
-            'brands'     => ['GRACO MACHINES', 'NEWSTRIPE', 'SHARP STRIPE'],
-        ],
-        [
-            'slug' => 'traffic-paint',
-            'label' => 'Traffic Paints',
-            'blurb' => 'Federal-spec traffic striping paint for lots, roads and warehouses.',
-            'categories' => ['Traffic Paints', 'Water-Based Traffic Paints',
-                             'Solvent-Based Traffic Paints', 'Thermoplastic'],
-            'name_like'  => ['traffic paint', 'thermo'],
-        ],
-        [
             'slug' => 'specialty-coatings',
             'label' => 'Specialty Coatings',
             'blurb' => 'Direct-to-metal, concrete and floor coatings, sealers and turf colorants.',
@@ -119,13 +135,7 @@ return [
                              'Cleaners and Deodorizers', 'Floor Care', 'Glass Cleaners',
                              'Odor Eliminators', 'Specialty Janitorial Cleaners'],
         ],
-        [
-            'slug' => 'field-maintenance',
-            'label' => 'Field Maintenance',
-            'blurb' => 'Mulch colorants, marking accessories and everything else that keeps a field ready.',
-            'categories' => ['Field Maintenance', 'Field Markers',
-                             'Turf / Soil Conditioners', 'Paint Machine Cleaner'],
-        ],
+
     ],
 
     /**
