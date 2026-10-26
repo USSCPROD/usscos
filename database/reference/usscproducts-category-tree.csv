@@ -1,0 +1,106 @@
+slug,parent_slug,name,depth
+field-marking-paints,,Field Marking Paints,1
+aerosol-field-marking-paints,field-marking-paints,Aerosol Field Marking Paints,2
+bulk-field-marking-paints,field-marking-paints,Bulk Field Marking Paints,2
+synthetic-turf-marking-paints,field-marking-paints,Synthetic Turf Marking Paints,2
+temporary-removable-paints,field-marking-paints,Temporary Removable Paints,2
+green-natural-grass-colorant-dye-paint,field-marking-paints,Green Grass Colorant Dye Paint,2
+goal-post-paint,field-marking-paints,Goal Post Paint,2
+paints-for-field-robots,,Robot Paints,1
+robot-paint-for-grass,paints-for-field-robots,Robot Paint for Grass,2
+robot-paint-for-artificial-turf,paints-for-field-robots,Robot Paint for Artificial Turf,2
+robot-paint-for-hard-surfaces,paints-for-field-robots,Robot Paint for Hard Surfaces,2
+robot-paint-remover,paints-for-field-robots,Robot Paint Remover,2
+robot-spray-tip-cleaner,paints-for-field-robots,Robot / Spray Tip Cleaner,2
+traffic-paints,,Traffic Paints,1
+adhesive-for-pavement-tape,traffic-paints,Adhesive for Pavement Tape,2
+airport-runway-paints-solvent-base,traffic-paints,Airport Runway Paints Solvent Base,2
+airport-runway-paints-water-base,traffic-paints,Airport Runway Paints Water Base,2
+concrete-repair-products,traffic-paints,Concrete Repair Products,2
+curb-protection,traffic-paints,Curb Protection,2
+epoxy-traffic-line-paints,traffic-paints,Epoxy Traffic Line Paints,2
+layout-paints-aerosol,traffic-paints,Layout Paints Aerosol,2
+non-slip-anti-skid-additives,traffic-paints,Non Slip Anti Skid Additives,2
+permanent-aerosol-line-marking,traffic-paints,Permanent Aerosol Line Marking,2
+reflective-glass-beads,traffic-paints,Reflective Glass Beads for Traffic Paint,2
+road-traffic-paints-solvent-base,traffic-paints,Road Traffic Paints Solvent Base,2
+road-traffic-paints-water-base,traffic-paints,Road Traffic Paints Water Base,2
+thermoplastic-paints-solid,traffic-paints,Thermoplastic Paints Solid,2
+traffic-paint-line-marking-robots,traffic-paints,Traffic Paint Line Marking Robots,2
+warehouse-line-marking-paints,traffic-paints,Warehouse Line Marking Paints,2
+asphalt-repair-products,traffic-paints,Asphalt Repair Products,2
+striping-machines,,Striping Machines,1
+athletic-field-marking-machines,striping-machines,Athletic Field Marking Machines,2
+aerosol-striping-machines,athletic-field-marking-machines,Aerosol Striping Machines,3
+airless-sprayers,athletic-field-marking-machines,Airless Sprayers,3
+baseball-field-chalkers,athletic-field-marking-machines,Baseball Field Chalkers,3
+electric-striping-machines,athletic-field-marking-machines,Electric Striping Machines,3
+riding-striping-machines,athletic-field-marking-machines,Riding Striping Machines,3
+road-street-line-marking-machines,striping-machines,"Road, Street Line Marking Machines",2
+ride-on-paint-sprayers,road-street-line-marking-machines,Ride On Paint Sprayers,3
+walk-behind-paint-sprayers,road-street-line-marking-machines,Walk Behind Paint Sprayers,3
+thermoplastic-paint-sprayers,road-street-line-marking-machines,ThermoPlastic Paint Sprayers,3
+truck-mount-paint-sprayers,road-street-line-marking-machines,Truck Mount Paint Sprayers,3
+paint-scarifiers-for-removing-lines,road-street-line-marking-machines,Paint Scarifiers for removing Lines,3
+field-drags-infield-groomers,striping-machines,Field Drags / Infield Groomers,2
+paint-machine-cleaner,striping-machines,Paint Machine Cleaner,2
+field-maintenance,,Field Maintenance,1
+athletic-field-dimensions,field-maintenance,Athletic Field DIMENSIONS,2
+athletic-field-markers,field-maintenance,Athletic Field Markers,2
+soil-conditioners,field-maintenance,Soil Conditioners,2
+synthetic-turf-cleaners-deodorizer,field-maintenance,Synthetic Turf Cleaners Deodorizer,2
+baseball-field-maintenance,field-maintenance,Baseball Field Maintenance,2
+golf-course-maintenance,field-maintenance,Golf Course Maintenance,2
+stencils,,Stencils,1
+athletic-field-stencils,stencils,Athletic Field Stencils,2
+ribbon-stencils,stencils,Ribbon Stencils,2
+corporate-custom-logo-painting,stencils,Corporate Custom Logo Painting,2
+roof-stencils,stencils,Roof Stencils,2
+traffic-stencils,stencils,Traffic Stencils,2
+residential-yard-stencils,stencils,Residential Yard Stencils,2
+paint-for-stencils,stencils,Paint for stencils,2
+specialty-coatings-manufacturer,,Specialty Coatings,1
+asphalt-repair-products-2,specialty-coatings-manufacturer,Asphalt Repair Products,2
+concrete-densifiers-hardners,specialty-coatings-manufacturer,Concrete Densifiers Hardeners,2
+concrete-protective-coatings,specialty-coatings-manufacturer,Concrete Protective Coatings and Sealers,2
+curb-repair-kit,specialty-coatings-manufacturer,Curb Repair Kit,2
+pot-hole-repair,specialty-coatings-manufacturer,Pot Hole Repair,2
+polyurethane-coatings,specialty-coatings-manufacturer,Polyurethane Coatings,2
+reflective-coatings,specialty-coatings-manufacturer,Reflective Coatings,2
+direct-to-metal-paints,specialty-coatings-manufacturer,Direct to Metal Paints and Coatings,2
+metal-primers,specialty-coatings-manufacturer,Metal Primers,2
+golf-course-putting-green-cup-paint,specialty-coatings-manufacturer,Golf Course Putting Cup Paint,2
+grass-colorants-landscape-dyes-golf-course,specialty-coatings-manufacturer,Grass Colorants Landscape Dyes,2
+green-grass-paints-colorant,specialty-coatings-manufacturer,Green Grass Colorant,2
+green-house-coatings,specialty-coatings-manufacturer,Green House Coatings,2
+mulch-glue-ecobond,specialty-coatings-manufacturer,Mulch Glue EcoBOND,2
+soil-stabilizers,specialty-coatings-manufacturer,Soil Stabilizers,2
+temporary-marking-foam-for-grass,specialty-coatings-manufacturer,Temporary Foam for Grass,2
+brick-masonry-coatings,specialty-coatings-manufacturer,Brick Masonry Coatings,2
+fence-post-paints,specialty-coatings-manufacturer,Fence Post Paints,2
+lumber-marking-paints,specialty-coatings-manufacturer,Lumber Marking Paints,2
+wood-coatings,specialty-coatings-manufacturer,Wood Coatings and Paints,2
+wood-stains,specialty-coatings-manufacturer,Wood Stains,2
+roof-coatings,specialty-coatings-manufacturer,Roof Coatings,2
+antifungal-coatings,specialty-coatings-manufacturer,AntiFungal Coatings,2
+clear-coatings,specialty-coatings-manufacturer,Clear Coatings,2
+coating-for-rubber-mats,specialty-coatings-manufacturer,Coating for Rubber Mats,2
+epoxy-coatings,specialty-coatings-manufacturer,Epoxy Coatings,2
+ev-charging-station-coatings,specialty-coatings-manufacturer,EV Charging Station Coatings,2
+fox-valley-paints,specialty-coatings-manufacturer,Fox Valley Paints,2
+glow-in-dark-paints,specialty-coatings-manufacturer,Glow in Dark Paints,2
+paint-removers,specialty-coatings-manufacturer,Paint Removers,2
+swimming-pool-paints,specialty-coatings-manufacturer,Swimming Pool Paints,2
+tpo-roof-primer,specialty-coatings-manufacturer,TPO roof PRIMER,2
+utility-marking-paints,specialty-coatings-manufacturer,Utility Marking Paints,2
+utility-marking-wands,specialty-coatings-manufacturer,Utility Marking Wands,2
+sport-coat-primer,specialty-coatings-manufacturer,Sport Coat Primer,2
+janitorial-products,,Janitorial,1
+citrus-solvent-cleaners,janitorial-products,Citrus Solvent Cleaners,2
+cleaners-deodorizers,janitorial-products,Cleaners Deodorizers,2
+enzyme-based-odor-eliminators,janitorial-products,Enzyme based odor eliminators,2
+glass-cleaners,janitorial-products,Glass Cleaners,2
+floor-finish-restorer-maintainers,janitorial-products,"Floor Finish Restorer, Maintainers",2
+floor-polish-wax-finish-cleaners,janitorial-products,Floor Polish Wax Finish Cleaners,2
+floor-polish-wax-finish-strippers,janitorial-products,Floor Polish Wax Finish Strippers,2
+floor-polish-wax-finish,janitorial-products,"Floor Polish, Floor Wax",2
