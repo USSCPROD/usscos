@@ -50,19 +50,25 @@ return [
             'slug' => 'stencils',
             'label' => 'Stencils',
             'blurb' => 'Endzone, midfield and numbering stencils. Most are made to order — ask for a quote.',
+            // No internal category gathers these; the name is what identifies them.
             'categories' => ['Stencils'],
+            'name_like'  => ['stencil'],
         ],
         [
             'slug' => 'striping-machines',
             'label' => 'Striping Machines',
             'blurb' => 'Walk-behind and aerosol striping machines, wands and replacement parts.',
+            // By BRAND, not by name: 'machine' as a name pattern would sweep in every
+            // jug of iGo Machine Paint, which is paint for a machine, not a machine.
             'categories' => ['Striping Machines', 'Equipment'],
+            'brands'     => ['GRACO MACHINES', 'NEWSTRIPE', 'SHARP STRIPE'],
         ],
         [
             'slug' => 'traffic-paint',
             'label' => 'Traffic Paints',
             'blurb' => 'Federal-spec traffic striping paint for lots, roads and warehouses.',
             'categories' => ['Traffic Paint'],
+            'name_like'  => ['traffic paint', 'thermo'],
         ],
         [
             'slug' => 'specialty-coatings',

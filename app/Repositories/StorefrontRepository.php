@@ -51,9 +51,9 @@ class StorefrontRepository extends Repository
      * @param string[] $brandNames
      * @return array<int,array<string,mixed>>
      */
-    public function section(array $categoryNames, array $brandNames = [], int $limit = 60, int $offset = 0): array
+    public function section(array $categoryNames, array $brandNames = [], int $limit = 60, int $offset = 0, array $namePatterns = []): array
     {
-        [$sql, $params] = $this->sectionWhere($categoryNames, $brandNames);
+        [$sql, $params] = $this->sectionWhere($categoryNames, $brandNames, $namePatterns);
 
         if ($sql === null) {
             return [];
@@ -72,9 +72,9 @@ class StorefrontRepository extends Repository
     }
 
     /** How many products a section holds, for the nav counts and paging. */
-    public function sectionCount(array $categoryNames, array $brandNames = []): int
+    public function sectionCount(array $categoryNames, array $brandNames = [], array $namePatterns = []): int
     {
-        [$sql, $params] = $this->sectionWhere($categoryNames, $brandNames);
+        [$sql, $params] = $this->sectionWhere($categoryNames, $brandNames, $namePatterns);
 
         if ($sql === null) {
             return 0;
@@ -91,7 +91,7 @@ class StorefrontRepository extends Repository
      *
      * @return array{0:?string,1:array}
      */
-    private function sectionWhere(array $categoryNames, array $brandNames): array
+    private function sectionWhere(array $categoryNames, array $brandNames, array $namePatterns = []): array
     {
         $or     = [];
         $params = [];
@@ -109,6 +109,22 @@ class StorefrontRepository extends Repository
             $or[] = "EXISTS (SELECT 1 FROM product_brands bb
                              WHERE bb.id = p.brand_id AND bb.name IN ({$in}))";
             $params = array_merge($params, array_values($brandNames));
+        }
+
+        // Some storefront sections have no internal category and no brand of their own -
+        // stencils are filed under nothing in particular - so a name match is the only
+        // thing that gathers them. Deliberately a prefix/substring LIKE and not a
+        // regex over everything: 'machine' as a name pattern for Striping Machines
+        // would sweep in every jug of iGo MACHINE PAINT, which is paint, not a machine.
+        if ($namePatterns !== []) {
+            $likes = [];
+
+            foreach ($namePatterns as $pat) {
+                $likes[]  = 'p.name LIKE ?';
+                $params[] = '%' . $pat . '%';
+            }
+
+            $or[] = '(' . implode(' OR ', $likes) . ')';
         }
 
         if ($or === []) {

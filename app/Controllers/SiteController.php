@@ -33,7 +33,7 @@ class SiteController extends Controller
         // Count each section now so the homepage tiles can say how much is behind
         // them, and so an empty section is obvious here rather than at launch.
         foreach ($nav as $i => $s) {
-            $nav[$i]['count'] = $this->shop->sectionCount($s['categories'] ?? [], $s['brands'] ?? []);
+            $nav[$i]['count'] = $this->shop->sectionCount($s['categories'] ?? [], $s['brands'] ?? [], $s['name_like'] ?? []);
         }
 
         return $this->view('site.home', [
@@ -65,7 +65,9 @@ class SiteController extends Controller
             'title'    => $section['label'],
             'nav'      => $nav,
             'section'  => $section,
-            'products' => $this->shop->section($section['categories'] ?? [], $section['brands'] ?? []),
+            'products' => $this->shop->section(
+                $section['categories'] ?? [], $section['brands'] ?? [], 60, 0, $section['name_like'] ?? []
+            ),
         ]);
     }
 
