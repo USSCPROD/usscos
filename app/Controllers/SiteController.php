@@ -28,13 +28,8 @@ class SiteController extends Controller
 
     public function home(Request $request, Response $response): Response
     {
-        $nav = config('site.nav') ?? [];
-
-        // Count each section now so the homepage tiles can say how much is behind
-        // them, and so an empty section is obvious here rather than at launch.
-        foreach ($nav as $i => $s) {
-            $nav[$i]['count'] = $this->shop->sectionCount($s['categories'] ?? [], $s['brands'] ?? [], $s['name_like'] ?? []);
-        }
+        // Already counted, and already filtered to the sections that hold something.
+        $nav = $this->stockedNav();
 
         return $this->view('site.home', [
             'title'    => config('site.company.name') . ' — ' . config('site.company.tagline'),
