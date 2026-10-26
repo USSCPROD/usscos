@@ -95,7 +95,8 @@ return [
             'slug' => 'traffic-paint',
             'label' => 'Traffic Paints',
             'blurb' => 'Federal-spec traffic striping paint for lots, roads and warehouses.',
-            'categories' => ['Traffic Paint'],
+            'categories' => ['Traffic Paints', 'Water-Based Traffic Paints',
+                             'Solvent-Based Traffic Paints', 'Thermoplastic'],
             'name_like'  => ['traffic paint', 'thermo'],
         ],
         [
@@ -103,21 +104,27 @@ return [
             'label' => 'Specialty Coatings',
             'blurb' => 'Direct-to-metal, concrete and floor coatings, sealers and turf colorants.',
             'categories' => [
-                'Specialty Coatings', 'Direct-to-Metal Coatings',
-                'Concrete & Floor Coatings', 'Sealers & Coatings', 'Turf Colorants',
+                // Tree names: our old Direct-to-Metal Coatings, Concrete & Floor
+                // Coatings and Sealers & Coatings were merged into these.
+                'Specialty Coatings', 'Direct-to-Metal / DTM',
+                'Concrete Coatings and Repair', 'Asphalt Coatings and Repair',
+                'BedWorks', 'Curb Protection',
             ],
         ],
         [
             'slug' => 'janitorial',
             'label' => 'Janitorial Products',
             'blurb' => 'Jansan products at wholesale prices.',
-            'categories' => ['Janitorial', 'Safety Products'],
+            'categories' => ['Janitorial Products', 'Citrus Solvent Cleaners',
+                             'Cleaners and Deodorizers', 'Floor Care', 'Glass Cleaners',
+                             'Odor Eliminators', 'Specialty Janitorial Cleaners'],
         ],
         [
             'slug' => 'field-maintenance',
             'label' => 'Field Maintenance',
             'blurb' => 'Mulch colorants, marking accessories and everything else that keeps a field ready.',
-            'categories' => ['Mulch Colorants', 'Field Maintenance'],
+            'categories' => ['Field Maintenance', 'Field Markers',
+                             'Turf / Soil Conditioners', 'Paint Machine Cleaner'],
         ],
     ],
 
