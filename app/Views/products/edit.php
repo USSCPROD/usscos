@@ -502,10 +502,133 @@ if (!function_exists('peTextarea')) {
 
 </form>
 
-<p style="font-size:.8rem;color:#9ca3af;margin:0 0 2rem">
-    Images and documents are managed on the
-    <a href="/products/<?= (int)$pr['id'] ?>" style="color:#0A3D91">product page</a>.
-</p>
+<!--
+    Images and documents live BELOW the main form, not inside it.
+
+    Each upload is its own <form> posting to its own route, and HTML has no nested
+    forms: put them inside the edit form and the browser closes it early, so
+    everything after the first upload box stops submitting with Save. That failure is
+    silent - the page looks right and quietly saves half the product.
+
+    They were previously only on the product view page, which meant editing in one
+    place and uploading in another.
+-->
+<?php
+    $images    = $images    ?? [];
+    $documents = $documents ?? [];
+
+    $docTypeLabels = [
+        'tds'         => 'TDS — Technical Data Sheet',
+        'sds'         => 'SDS — Safety Data Sheet',
+        'spec_sheet'  => 'Spec sheet',
+        'color_chart' => 'Color chart / deck',
+        'sales_flyer' => 'Sales flyer',
+        'catalog'     => 'Catalog',
+        'certificate' => 'Certificate',
+        'other'       => 'Other',
+    ];
+
+    peOpen('Images', count($images) === 0, count($images) . ' uploaded');
+?>
+<div style="padding:.9rem 1rem">
+    <?php if (!empty($images)): ?>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
+            <?php foreach ($images as $img): ?>
+                <div style="width:104px">
+                    <img src="<?= e($img['file_path']) ?>" alt=""
+                         style="width:100%;height:78px;object-fit:cover;border-radius:6px;
+                                border:2px solid <?= (int)$img['is_primary'] === 1 ? '#222b59' : '#e5e7eb' ?>">
+                    <div style="font-size:.68rem;text-align:center;margin-top:.2rem">
+                        <?php if ((int)$img['is_primary'] === 1): ?>
+                            <span style="color:#222b59;font-weight:700">Main image</span>
+                        <?php else: ?>
+                            <form method="POST" action="/products/<?= (int)$pr['id'] ?>/images/<?= (int)$img['id'] ?>/primary" style="display:inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" style="background:none;border:0;color:#0A3D91;cursor:pointer;font-size:.68rem;padding:0">Make main</button>
+                            </form>
+                        <?php endif; ?>
+                        <form method="POST" action="/products/<?= (int)$pr['id'] ?>/images/<?= (int)$img['id'] ?>/delete"
+                              style="display:inline" onsubmit="return confirm('Delete this image?')">
+                            <?= csrf_field() ?>
+                            <button type="submit" style="background:none;border:0;color:#dc2626;cursor:pointer;font-size:.68rem;padding:0">· Delete</button>
+                        </form>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <p style="margin:0 0 .7rem;font-size:.85rem;color:#9ca3af">
+            No images yet. The first one uploaded becomes the main image, which is what
+            the website card shows.
+        </p>
+    <?php endif; ?>
+
+    <form method="POST" action="/products/<?= (int)$pr['id'] ?>/images" enctype="multipart/form-data"
+          style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        <?= csrf_field() ?>
+        <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif,.webp" required style="font-size:.85rem">
+        <input type="text" name="caption" placeholder="Caption (optional)"
+               style="padding:.4rem .55rem;border:1px solid #d1d5db;border-radius:5px;font-size:.85rem">
+        <button type="submit" class="btn btn--sm btn--secondary">Upload image</button>
+        <span style="font-size:.72rem;color:#9ca3af">JPG, PNG, GIF or WEBP · max 10 MB</span>
+    </form>
+</div>
+<?php peClose(); ?>
+
+<?php peOpen('Documents — TDS, SDS, flyers', count($documents) === 0, count($documents) . ' uploaded'); ?>
+<div style="padding:.9rem 1rem">
+    <?php if (!empty($documents)): ?>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:.9rem">
+            <?php foreach ($documents as $doc): ?>
+                <tr style="border-bottom:1px solid #f3f4f6">
+                    <td style="padding:.45rem 0;font-size:.86rem">
+                        <a href="<?= e($doc['file_path']) ?>" target="_blank" rel="noopener">
+                            <?= e($doc['title'] ?: $doc['file_name']) ?>
+                        </a>
+                    </td>
+                    <td style="padding:.45rem .5rem;font-size:.78rem;color:#6b7280">
+                        <?= e($docTypeLabels[$doc['doc_type']] ?? $doc['doc_type']) ?>
+                    </td>
+                    <td style="padding:.45rem .5rem;font-size:.75rem;color:<?= (int)$doc['is_public'] === 1 ? '#166534' : '#9ca3af' ?>">
+                        <?= (int)$doc['is_public'] === 1 ? 'On website' : 'Internal' ?>
+                    </td>
+                    <td style="padding:.45rem 0;text-align:right">
+                        <form method="POST" action="/products/<?= (int)$pr['id'] ?>/documents/<?= (int)$doc['id'] ?>/delete"
+                              style="display:inline" onsubmit="return confirm('Delete this document?')">
+                            <?= csrf_field() ?>
+                            <button type="submit" style="background:none;border:0;color:#dc2626;cursor:pointer;font-size:.78rem">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php else: ?>
+        <p style="margin:0 0 .7rem;font-size:.85rem;color:#9ca3af">
+            No documents yet. A TDS or SDS uploaded here appears under the
+            <strong>Specs</strong> tab on the website, shared with every colour in this
+            listing — upload it once, not once per colour.
+        </p>
+    <?php endif; ?>
+
+    <form method="POST" action="/products/<?= (int)$pr['id'] ?>/documents" enctype="multipart/form-data"
+          style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        <?= csrf_field() ?>
+        <input type="file" name="document" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png" required
+               style="font-size:.85rem">
+        <input type="text" name="title" placeholder="Title (defaults to the file name)"
+               style="padding:.4rem .55rem;border:1px solid #d1d5db;border-radius:5px;font-size:.85rem">
+        <select name="doc_type" style="padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:5px;font-size:.85rem">
+            <?php foreach ($docTypeLabels as $val => $lbl): ?>
+                <option value="<?= e($val) ?>"><?= e($lbl) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <label style="font-size:.78rem;color:#6b7280;cursor:pointer">
+            <input type="checkbox" name="is_public" value="1" checked> Show on website
+        </label>
+        <button type="submit" class="btn btn--sm btn--secondary">Upload document</button>
+    </form>
+</div>
+<?php peClose(); ?>
 
 <?php
 $content = ob_get_clean();
