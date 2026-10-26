@@ -50,7 +50,7 @@ return [
             // one thing.
             'label' => 'Robot Paints',
             'blurb' => 'Concentrate and ready-to-spray formulations made for autonomous line markers.',
-            'categories' => ['Field Marking Robot Paints'],
+            'categories' => ['Robot Paints'],
         ],
         [
             'slug' => 'traffic-paint',
@@ -66,8 +66,10 @@ return [
             'blurb' => 'Walk-behind and aerosol striping machines, wands and replacement parts.',
             // By BRAND, not by name: 'machine' as a name pattern would sweep in every
             // jug of iGo Machine Paint, which is paint for a machine, not a machine.
-            'categories' => ['Striping Machines', 'Equipment', 'Field Maintenance',
-                             'Field Markers', 'Turf / Soil Conditioners', 'Paint Machine Cleaner'],
+            'categories' => ['Striping Machines', 'Athletic Field Marking Machines',
+                             'Road, Street Line Marking Machines', 'Field Maintenance',
+                             'Athletic Field Markers', 'Field Markers', 'Soil Conditioners',
+                             'Paint Machine Cleaner', 'Field Drags / Infield Groomers'],
             'brands'     => ['GRACO MACHINES', 'NEWSTRIPE', 'SHARP STRIPE'],
 
             // The live site puts Field Maintenance in this menu's second column
@@ -78,8 +80,9 @@ return [
                  'categories' => ['Striping Machines', 'Equipment']],
                 ['slug' => 'field-maintenance', 'label' => 'Field Maintenance',
                  'blurb' => 'Markers, drags, soil conditioners and turf cleaners.',
-                 'categories' => ['Field Maintenance', 'Field Markers',
-                                  'Turf / Soil Conditioners', 'Paint Machine Cleaner']],
+                 'categories' => ['Field Maintenance', 'Athletic Field Markers', 'Field Markers',
+                                  'Soil Conditioners', 'Paint Machine Cleaner',
+                                  'Field Drags / Infield Groomers']],
             ],
         ],
         [
@@ -122,7 +125,7 @@ return [
             'categories' => [
                 // Tree names: our old Direct-to-Metal Coatings, Concrete & Floor
                 // Coatings and Sealers & Coatings were merged into these.
-                'Specialty Coatings', 'Direct-to-Metal / DTM',
+                'Specialty Coatings', 'Direct to Metal Paints and Coatings',
                 'Concrete Coatings and Repair', 'Asphalt Coatings and Repair',
                 'BedWorks', 'Curb Protection',
             ],
@@ -131,9 +134,12 @@ return [
             'slug' => 'janitorial',
             'label' => 'Janitorial Products',
             'blurb' => 'Jansan products at wholesale prices.',
-            'categories' => ['Janitorial Products', 'Citrus Solvent Cleaners',
-                             'Cleaners and Deodorizers', 'Floor Care', 'Glass Cleaners',
-                             'Odor Eliminators', 'Specialty Janitorial Cleaners'],
+            // Live-tree names. The spreadsheet's 'Cleaners and Deodorizers',
+            // 'Floor Care' and 'Odor Eliminators' are being deleted as empty duplicates.
+            'categories' => ['Janitorial', 'Citrus Solvent Cleaners', 'Cleaners Deodorizers',
+                             'Enzyme based odor eliminators', 'Glass Cleaners',
+                             'Floor Finish Restorer, Maintainers', 'Floor Polish Wax Finish Cleaners',
+                             'Floor Polish Wax Finish Strippers', 'Floor Polish, Floor Wax'],
         ],
 
     ],
