@@ -179,12 +179,13 @@ if (!function_exists('peTextarea')) {
                     <div style="font-size:.68rem;text-align:center;margin-top:.2rem">
                         <?php if ($isListing): ?>
                             <span style="color:#b45309;font-weight:700">Listing photo</span>
-                        <?php elseif ((int)$img['is_primary'] === 1): ?>
-                            <span style="color:#222b59;font-weight:700">Main image</span>
+                        <?php endif; ?>
+                        <?php if ((int)$img['is_primary'] === 1): ?>
+                            <span style="color:#222b59;font-weight:700"><?= $isListing ? '· Main' : 'Main image' ?></span>
                         <?php else: ?>
                             <form method="POST" action="/products/<?= (int)$pr['id'] ?>/images/<?= (int)$img['id'] ?>/primary" style="display:inline">
                                 <?= csrf_field() ?>
-                                <button type="submit" style="background:none;border:0;color:#0A3D91;cursor:pointer;font-size:.68rem;padding:0">Make main</button>
+                                <button type="submit" style="background:none;border:0;color:#0A3D91;cursor:pointer;font-size:.68rem;padding:0"><?= $isListing ? '· Make main' : 'Make main' ?></button>
                             </form>
                         <?php endif; ?>
                         <?php if (!empty($pr['variant_group'])): ?>

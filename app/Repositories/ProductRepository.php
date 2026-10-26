@@ -439,11 +439,31 @@ class ProductRepository extends Repository
             ", [$group]);
         }
 
-        if ($imageId > 0) {
-            Database::statement(
-                "UPDATE product_images SET is_listing = 1 WHERE id = ? AND product_id = ?",
-                [$imageId, $productId]
-            );
+        if ($imageId <= 0) {
+            return;
+        }
+
+        Database::statement(
+            "UPDATE product_images SET is_listing = 1 WHERE id = ? AND product_id = ?",
+            [$imageId, $productId]
+        );
+
+        // The group shot is no longer this colour's own photo, so hand the main
+        // slot to another of its images. Without this the colour that happens to
+        // host the group shot still leads with it, which is the whole complaint.
+        $image = $this->findImage($imageId, $productId);
+
+        if ($image && (int)$image['is_primary'] === 1) {
+            $next = Database::selectOne("
+                SELECT id FROM product_images
+                WHERE product_id = ? AND id <> ? AND is_listing = 0
+                ORDER BY sort_order, id
+                LIMIT 1
+            ", [$productId, $imageId]);
+
+            if ($next) {
+                $this->setPrimaryImage((int)$next['id'], $productId);
+            }
         }
     }
 

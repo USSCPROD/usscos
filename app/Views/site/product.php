@@ -25,7 +25,12 @@ $spec = function (string $label, $value, string $suffix = '') {
 <div class="wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:2.5rem;padding-bottom:3rem">
 
   <div>
-    <?php $main = \App\Repositories\StorefrontRepository::imageFor($pr); ?>
+    <?php
+    // The gallery decides, not imageFor(): imageFor() leads with the group shot,
+    // which is right for a card standing for the whole listing and wrong here,
+    // where a color has already been picked. $images is ordered for exactly this.
+    $main = $images[0]['file_path'] ?? \App\Repositories\StorefrontRepository::imageFor($pr);
+    ?>
     <?php if ($main !== null): ?>
       <img id="pimg" src="<?= e($main) ?>" alt="<?= e($pr['name']) ?>"
            style="border:1px solid var(--line);border-radius:10px;aspect-ratio:1;object-fit:contain;background:#fff;width:100%"

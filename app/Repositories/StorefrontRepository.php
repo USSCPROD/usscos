@@ -366,9 +366,11 @@ class StorefrontRepository extends Repository
      */
     public function imagesOf(int $productId): array
     {
-        // This colour's own photographs first, then the group shot if it was uploaded
-        // against a different colour. A colour with no photo of its own still shows
-        // the range rather than an empty frame.
+        // This color's own photographs first, then the group shot - which comes last
+        // even when it was uploaded against this very product, because on a product
+        // page the customer has already chosen a color and wants to see that can.
+        // A color with no photo of its own still shows the range rather than an
+        // empty frame.
         return Database::select("
             SELECT pi.file_path, pi.file_name, pi.caption,
                    (pi.product_id = :pid) AS own
@@ -378,7 +380,7 @@ class StorefrontRepository extends Repository
                OR (pi.is_listing = 1
                    AND p.variant_group IS NOT NULL AND p.variant_group <> ''
                    AND p.variant_group = (SELECT variant_group FROM products WHERE id = :pid3))
-            ORDER BY own DESC, pi.is_primary DESC, pi.sort_order, pi.id
+            ORDER BY pi.is_listing ASC, own DESC, pi.is_primary DESC, pi.sort_order, pi.id
         ", ['pid' => $productId, 'pid2' => $productId, 'pid3' => $productId]);
     }
 
