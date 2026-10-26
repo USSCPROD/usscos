@@ -147,6 +147,37 @@ $samePerson = !empty($order['picked_by']) && !empty($order['packed_by'])
     </table>
 </div>
 
+<!--
+    Confirm without scanning.
+
+    Offered plainly rather than hidden, because the alternative is not more scanning:
+    it is somebody typing quantities into the per-line boxes until the screen lets them
+    past, which is the same act with worse evidence and no record that it happened.
+    Pallet orders and pre-made double boxes — which carry no barcode at all — are the
+    cases this exists for.
+-->
+<div class="card" style="padding:1.25rem;margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:16rem">
+            <div style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.4rem">
+                Not scanning this one?
+            </div>
+            <p style="margin:0;font-size:.9rem;color:#6b7280">
+                Confirms every line as packed exactly as picked. Recorded as
+                <strong>confirmed by you</strong>, not as scan-verified — so a box a person
+                checked and a box a scanner read stay tellable apart afterwards.
+            </p>
+        </div>
+        <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/pack/confirm" style="flex-shrink:0">
+            <?= csrf_field() ?>
+            <button type="submit" class="btn btn--secondary" style="padding:.7rem 1.3rem;font-size:1rem"
+                    onclick="return confirm('Confirm the whole order is packed as picked, without scanning?')">
+                Confirm without scanning
+            </button>
+        </form>
+    </div>
+</div>
+
 <!-- Sealing a box that does not match -->
 <?php if (!$allMatch && !empty($toVerify)): ?>
     <div class="card" style="padding:1.25rem">

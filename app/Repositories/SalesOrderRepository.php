@@ -895,6 +895,42 @@ class SalesOrderRepository
     }
 
     /** Somebody sealed a box that did not match the pick, and said why. */
+    /**
+     * Mark every picked line as packed, and the order as confirmed by a person.
+     *
+     * Deliberately not routed through refreshPackStatus: that derives 'verified' from
+     * the quantities alone and cannot tell how they got there, so calling it here would
+     * relabel an unscanned confirmation as a scan-verified one the moment it was saved.
+     */
+    public function confirmPackedAsPicked(int $salesOrderId, ?int $userId = null): void
+    {
+        $this->pdo->beginTransaction();
+
+        try {
+            $this->pdo->prepare(
+                "UPDATE sales_order_line_items
+                 SET qty_packed = qty_picked
+                 WHERE sales_order_id = ? AND qty_picked > 0"
+            )->execute([$salesOrderId]);
+
+            $this->pdo->prepare(
+                "UPDATE sales_orders
+                 SET pack_status = 'confirmed',
+                     packed_by   = COALESCE(?, packed_by),
+                     packed_at   = NOW()
+                 WHERE id = ?"
+            )->execute([$userId, $salesOrderId]);
+
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
     public function recordPackMismatch(int $salesOrderId, string $note, ?int $userId = null): void
     {
         $stmt = $this->pdo->prepare(

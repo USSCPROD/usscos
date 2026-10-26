@@ -189,6 +189,7 @@ Router::group(['middleware' => ['auth', 'internal', 'csrf']], function () {
     Router::post('/shipping/{id}/pack/scan',  [ShippingController::class, 'packScan'])->name('shipping.pack.scan');
     Router::post('/shipping/{id}/pack/line',  [ShippingController::class, 'packSetLine'])->name('shipping.pack.line');
     Router::post('/shipping/{id}/pack/mismatch',[ShippingController::class, 'packMismatch'])->name('shipping.pack.mismatch');
+    Router::post('/shipping/{id}/pack/confirm', [ShippingController::class, 'packConfirmAll'])->name('shipping.pack.confirm');
     Router::post('/shipping/{id}/short',     [ShippingController::class, 'short'])->name('shipping.short');
     Router::get('/shipping/{id}/label',       [ShippingController::class, 'label'])->name('shipping.label');
     Router::post('/shipping/{id}/label',      [ShippingController::class, 'createLabel'])->name('shipping.label.create');

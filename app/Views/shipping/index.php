@@ -172,6 +172,10 @@ if ($activeTab === 'all') {
                             $packState = $o['pack_status'] ?? 'not_started';
                             $packBadge = [
                                 'in_progress' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Packing'],
+                                // Confirmed by a person, not read by a scanner. Shown in a
+                                // quieter colour than Verified on purpose: both are finished,
+                                // one carries weaker evidence, and the badge should say so.
+                                'confirmed'   => ['#f8fafc', '#cbd5e1', '#475569', 'Confirmed'],
                                 'verified'    => ['#f0fdf4', '#bbf7d0', '#166534', 'Verified'],
                                 'mismatch'    => ['#fef2f2', '#fca5a5', '#b91c1c', 'Mismatch'],
                             ][$packState] ?? null;

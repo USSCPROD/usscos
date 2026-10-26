@@ -500,6 +500,48 @@ class ShippingController extends Controller
     }
 
     /**
+     * Confirm the whole order matches the pick, without scanning it.
+     *
+     * Scanning every case does not survive contact with pallet volume, and a pre-made
+     * double box carries no barcode to scan in the first place. Refusing to offer this
+     * would not produce more scanning — it would produce people typing quantities into
+     * the per-line boxes until the screen let them past, which is the same act with
+     * worse evidence and no record of what happened.
+     *
+     * Recorded as 'confirmed', never 'verified'. A person saying it is right is a real
+     * check and worth having, but it is not a machine reading a barcode, and the two
+     * must stay distinguishable afterwards.
+     */
+    public function packConfirmAll(Request $request, Response $response, string $id = '0'): Response
+    {
+        $orderId = (int)$id;
+        $order   = $this->repo->findWithDetails($orderId);
+
+        if (!$order) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        $lines  = $this->repo->getPickLines($orderId);
+        $picked = 0.0;
+
+        foreach ($lines as $l) {
+            $picked += (float)$l['qty_picked'];
+        }
+
+        if ($picked <= 0) {
+            \App\Core\Session::flash('error', 'Nothing has been picked on this order yet.');
+
+            return $response->redirect('/shipping/' . $orderId . '/pack');
+        }
+
+        $this->repo->confirmPackedAsPicked($orderId, \App\Core\Auth::id());
+
+        \App\Core\Session::flash('success', 'Confirmed as packed — recorded without a scan.');
+
+        return $response->redirect('/shipping');
+    }
+
+    /**
      * Seal a box that does not match the pick.
      *
      * Allowed, because refusing would just move the problem off the system — but it needs
