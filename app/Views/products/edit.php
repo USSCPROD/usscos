@@ -1,5 +1,40 @@
 <?php ob_start(); ?>
 <?php
+/**
+ * Sections collapse. The page is long enough that reaching the website copy meant
+ * scrolling past pricing, accounting, inventory, dimensions and pallet data that is
+ * set once and rarely touched again.
+ *
+ * <details> rather than JavaScript: it is native, it works with the keyboard and with
+ * find-in-page, and a collapsed section still submits its fields - a JS show/hide that
+ * unmounted inputs would silently drop them on save.
+ */
+if (!function_exists('peOpen')) {
+    function peOpen(string $title, bool $open = false, string $note = ''): void {
+        printf(
+            '<details %s style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:1rem">'
+            . '<summary style="padding:.7rem 1rem;cursor:pointer;font-size:.72rem;font-weight:700;'
+            . 'text-transform:uppercase;letter-spacing:.05em;color:#4b5563;list-style:none">'
+            . '%s%s</summary><div style="border-top:1px solid #e5e7eb">',
+            $open ? 'open' : '',
+            e($title),
+            $note !== '' ? '<span style="float:right;font-weight:400;text-transform:none;letter-spacing:0;'
+                         . 'font-size:.72rem;color:#9ca3af">' . e($note) . '</span>' : ''
+        );
+    }
+}
+if (!function_exists('peClose')) {
+    function peClose(): void { echo '</div></details>'; }
+}
+?>
+<style>
+  /* The default triangle sits oddly against an uppercase label. */
+  details > summary::-webkit-details-marker { display:none }
+  details > summary::before { content:'▸'; margin-right:.5rem; color:#9ca3af; font-size:.8rem }
+  details[open] > summary::before { content:'▾' }
+  .pe-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(21rem,1fr)); gap:0 1.5rem }
+</style>
+<?php
 $pr = $product;
 
 $cardStyle = 'background:#fff;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:1.25rem';
@@ -46,6 +81,20 @@ if (!function_exists('peFmtNum')) {
         return $s;
     }
 }
+if (!function_exists('peMoney')) {
+    /**
+     * A price, always shown to the cent.
+     *
+     * peNumber strips trailing zeros so data entry is not fighting '18.0000', which is
+     * right for a weight and wrong for money: a price reading '57' next to one reading
+     * '57.50' makes the first look like a placeholder.
+     */
+    function peMoney(string $label, string $name, $value): void {
+        $v = ($value === null || $value === '' || !is_numeric($value))
+            ? '' : number_format(round((float)$value, 2), 2, '.', '');
+        peInput($label, $name, $v, 'number', 'step="0.01" inputmode="decimal"');
+    }
+}
 if (!function_exists('peNumber')) {
     function peNumber(string $label, string $name, $value, string $step = '0.01'): void {
         $dec = ($step === '1') ? 0 : 2;
@@ -90,14 +139,77 @@ if (!function_exists('peTextarea')) {
 <form method="POST" action="/products/<?= (int)$pr['id'] ?>/edit">
 <?= csrf_field() ?>
 
+
+<!-- ============ Website copy: what a customer reads, so it leads ============ -->
+<?php peOpen('Website copy', true, 'what customers see'); ?>
+<div style="padding:1rem 1.25rem">
+
+    <?php if (!empty($pr['variant_group'])): ?>
+        <div style="background:#eff4ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:7px;
+                    padding:.6rem .8rem;font-size:.82rem;margin-bottom:1rem">
+            This copy is shared with every
+            <?= e(strtolower((string)($pr['variant_axis'] ?? 'variant'))) ?> in
+            <strong><?= e($pr['variant_title'] ?: 'this listing') ?></strong>.
+            Saving here updates them all — they are one product on the website.
+        </div>
+    <?php endif; ?>
+
+    <div class="pe-grid" style="margin-bottom:.5rem">
+        <table style="width:100%;border-collapse:collapse">
+            <?php
+            peInput('Website Name', 'website_name', $pr['website_name'] ?? '', 'text',
+                    'placeholder="e.g. DURASTRIPE Field Marking Paint"');
+            peSelect('Publish to Website', 'publish_to_website', (int)($pr['publish_to_website'] ?? 0),
+                     [1 => 'Yes', 0 => 'No']);
+            ?>
+        </table>
+        <table style="width:100%;border-collapse:collapse">
+            <?php
+            peMoney('Website Price', 'website_price', $pr['website_price'] ?? '');
+            peInput('Image URL', 'website_image_url', $pr['website_image_url'], 'text',
+                    'placeholder="Only used if no image is uploaded"');
+            ?>
+        </table>
+    </div>
+
+    <?php
+    // Full width: these are paragraphs, and a column-width box gives no sense of how
+    // the sentence will break on the page it is written for.
+    $rtName  = 'website_short_description';
+    $rtLabel = 'Short description — sits under the title';
+    $rtValue = $pr['website_short_description'] ?? '';
+    $rtRows  = 4;
+    $rtHint  = 'The opening paragraph. Bold the first line to match the live site.';
+    include BASE_PATH . '/app/Views/partials/richtext.php';
+
+    $rtName  = 'website_description';
+    $rtLabel = 'Full description — the Description tab';
+    $rtValue = $pr['website_description'] ?? '';
+    $rtRows  = 12;
+    $rtHint  = 'Headings, lists and links are allowed. Anything else is stripped on save.';
+    include BASE_PATH . '/app/Views/partials/richtext.php';
+
+    $rtName = $rtLabel = $rtValue = $rtHint = null;
+    ?>
+
+    <label style="display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;
+                  letter-spacing:.05em;color:#6b7280;margin-bottom:.35rem">Video links</label>
+    <textarea name="video_urls" rows="2" placeholder="One YouTube link per line"
+              style="width:100%;padding:.6rem .7rem;border:1px solid #d1d5db;border-radius:7px;
+                     font:inherit;font-size:.9rem;box-sizing:border-box;resize:vertical"><?= e($pr['video_urls'] ?? '') ?></textarea>
+    <div style="font-size:.72rem;color:#9ca3af;margin-top:.3rem">
+        Watch links become embeds automatically.
+    </div>
+</div>
+<?php peClose(); ?>
+
 <table style="width:100%;border-collapse:separate;border-spacing:1.25rem 0;margin:0 -1.25rem">
     <tr>
 
     <!-- ================= LEFT ================= -->
     <td style="<?= $colStyle ?>;width:50%">
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Identity</div>
+        <?php peOpen('Identity', true); ?>
             <table style="width:100%;border-collapse:collapse">
                 <?php
                 peInput('SKU',  'sku',  $pr['sku']);
@@ -128,16 +240,18 @@ if (!function_exists('peTextarea')) {
                 peSelect('Active',        'is_active',      (int)$pr['is_active'], [1 => 'Active', 0 => 'Inactive']);
                 ?>
             </table>
-        </div>
+        <?php peClose(); ?>
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">
-                Categories
-                <span style="float:right;font-weight:400;text-transform:none;letter-spacing:0;font-size:.72rem">
-                    <a href="/categories" style="color:#0A3D91">Manage</a>
-                </span>
-            </div>
+        <?php
+            // Collapsed, and the list itself scrolls. There are 125 categories: laid
+            // out in full it was most of the page, and everything below it was
+            // unreachable without a long scroll past boxes nobody was looking for.
+            peOpen('Categories', false, count($categoryIds) . ' selected');
+        ?>
             <div style="padding:.6rem .9rem">
+                <input type="search" id="catFilter" placeholder="Filter categories…"
+                       style="width:100%;padding:.45rem .6rem;border:1px solid #d1d5db;border-radius:6px;
+                              font:inherit;font-size:.85rem;box-sizing:border-box;margin-bottom:.5rem">
                 <p style="margin:0 0 .5rem;font-size:.75rem;color:#9ca3af">
                     The first one ticked becomes the primary category. Products with none
                     won't appear on the website.
@@ -147,7 +261,8 @@ if (!function_exists('peTextarea')) {
                         No categories yet — <a href="/categories/create" style="color:#0A3D91">create one</a>.
                     </p>
                 <?php else: ?>
-                    <table style="width:100%;border-collapse:collapse">
+                    <div style="max-height:18rem;overflow-y:auto;border:1px solid #f3f4f6;border-radius:6px;padding:.4rem .6rem">
+                    <table style="width:100%;border-collapse:collapse" id="catList">
                         <?php foreach ($categoryTree as $parent): ?>
                             <tr>
                                 <td style="padding:.2rem 0">
@@ -176,14 +291,30 @@ if (!function_exists('peTextarea')) {
                             <?php endforeach; ?>
                         <?php endforeach; ?>
                     </table>
+                    </div>
+                    <script>
+                    (function () {
+                        var box = document.getElementById('catFilter');
+                        var list = document.getElementById('catList');
+                        if (!box || !list) { return; }
+                        box.addEventListener('input', function () {
+                            var q = box.value.trim().toLowerCase();
+                            list.querySelectorAll('tr').forEach(function (tr) {
+                                // A ticked category always stays visible: hiding one
+                                // while it is still selected looks like it was removed.
+                                var on = tr.querySelector('input:checked');
+                                tr.style.display = (!q || on || tr.textContent.toLowerCase().indexOf(q) > -1) ? '' : 'none';
+                            });
+                        });
+                    }());
+                    </script>
                 <?php endif; ?>
                 <!-- Ensures an empty selection still submits, so all categories can be cleared -->
                 <input type="hidden" name="category_ids[]" value="">
             </div>
-        </div>
+        <?php peClose(); ?>
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Descriptions</div>
+        <?php peOpen('Descriptions', false); ?>
             <table style="width:100%;border-collapse:collapse">
                 <?php
                 peTextarea('Sales Description',   'short_description',    $pr['short_description'], 2,
@@ -203,10 +334,9 @@ if (!function_exists('peTextarea')) {
                            'One bullet per line');
                 ?>
             </table>
-        </div>
+        <?php peClose(); ?>
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Vendor &amp; Barcodes</div>
+        <?php peOpen('Vendor & Barcodes', false); ?>
             <table style="width:100%;border-collapse:collapse">
                 <?php
                 peInput('Preferred Vendor', 'preferred_vendor_name', $pr['preferred_vendor_name']);
@@ -218,86 +348,29 @@ if (!function_exists('peTextarea')) {
                 peInput('GS1 Status',       'gs1_status',            $pr['gs1_status']);
                 ?>
             </table>
-        </div>
-
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Website</div>
-            <table style="width:100%;border-collapse:collapse">
-                <?php
-                // The name a customer reads, kept apart from `name`, which is what
-                // QuickBooks and the invoice say. Blank falls back to the catalogue name.
-                peInput('Website Name', 'website_name', $pr['website_name'] ?? '', 'text',
-                        'placeholder="e.g. DURASTRIPE Field Marking Paint"');
-                peInput('Image URL', 'website_image_url', $pr['website_image_url'], 'text',
-                        'placeholder="Used only if no image is uploaded"');
-                peSelect('Publish to Website', 'publish_to_website', (int)($pr['publish_to_website'] ?? 0),
-                         [1 => 'Yes', 0 => 'No']);
-                ?>
-            </table>
-
-            <div style="padding:1rem">
-                <?php if (!empty($pr['variant_group'])): ?>
-                    <div style="background:#eff4ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:7px;
-                                padding:.6rem .8rem;font-size:.82rem;margin-bottom:1rem">
-                        This copy is shared with every
-                        <?= e(strtolower((string)($pr['variant_axis'] ?? 'variant'))) ?> in
-                        <strong><?= e($pr['variant_title'] ?: 'this listing') ?></strong>.
-                        Saving here updates them all — they are one product on the website.
-                    </div>
-                <?php endif; ?>
-                <?php
-                $rtName  = 'website_short_description';
-                $rtLabel = 'Short description (under the title)';
-                $rtValue = $pr['website_short_description'] ?? '';
-                $rtRows  = 4;
-                $rtHint  = 'The opening paragraph on the product page. Bold the first line to match the live site.';
-                include BASE_PATH . '/app/Views/partials/richtext.php';
-
-                $rtName  = 'website_description';
-                $rtLabel = 'Full description (Description tab)';
-                $rtValue = $pr['website_description'] ?? '';
-                $rtRows  = 10;
-                $rtHint  = 'Headings, lists and links are allowed. Everything else is stripped when saved.';
-                include BASE_PATH . '/app/Views/partials/richtext.php';
-
-                $rtName = $rtLabel = $rtValue = $rtHint = null;
-                ?>
-
-                <label style="display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;
-                              letter-spacing:.05em;color:#6b7280;margin-bottom:.35rem">Video links</label>
-                <textarea name="video_urls" rows="3"
-                          placeholder="One YouTube link per line"
-                          style="width:100%;padding:.6rem .7rem;border:1px solid #d1d5db;border-radius:7px;
-                                 font:inherit;font-size:.9rem;box-sizing:border-box;resize:vertical"><?= e($pr['video_urls'] ?? '') ?></textarea>
-                <div style="font-size:.72rem;color:#9ca3af;margin-top:.3rem">
-                    One per line. Watch links are turned into embeds automatically.
-                </div>
-            </div>
-        </div>
+        <?php peClose(); ?>
 
     </td>
 
     <!-- ================= RIGHT ================= -->
     <td style="<?= $colStyle ?>;width:50%">
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Pricing</div>
+        <?php peOpen('Pricing', false); ?>
             <table style="width:100%;border-collapse:collapse">
                 <?php
-                peNumber('Retail Price',    'price',           $pr['price'], '0.01');
-                peNumber('Dist Price (QB)', 'dist_price',      $pr['dist_price'], '0.01');
-                peNumber('Dist Price 2026', 'dist_price_2026', $pr['dist_price_2026'], '0.01');
-                peNumber('Stocking Dist',   'stocking_dist',   $pr['stocking_dist'], '0.01');
-                peNumber('Website Price',   'website_price',   $pr['website_price'] ?? '', '0.01');
-                peNumber('Amazon Price',    'amazon_price',    $pr['amazon_price']  ?? '', '0.01');
-                peNumber('Cost',            'cost',            $pr['cost'], '0.01');
+                peMoney('Retail Price', 'price', $pr['price']);
+                peMoney('Dist Price (QB)', 'dist_price', $pr['dist_price']);
+                peMoney('Dist Price 2026', 'dist_price_2026', $pr['dist_price_2026']);
+                peMoney('Stocking Dist', 'stocking_dist', $pr['stocking_dist']);
+                
+                peMoney('Amazon Price', 'amazon_price', $pr['amazon_price']  ?? '');
+                peMoney('Cost', 'cost', $pr['cost']);
                 peSelect('Taxable',         'is_taxable',      (int)$pr['is_taxable'], [1 => 'Yes', 0 => 'No']);
                 ?>
             </table>
-        </div>
+        <?php peClose(); ?>
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Accounting</div>
+        <?php peOpen('Accounting', false); ?>
             <table style="width:100%;border-collapse:collapse">
                 <?php
                 peInput('Income Account', 'income_account', $pr['income_account']);
@@ -306,10 +379,9 @@ if (!function_exists('peTextarea')) {
                 peInput('Tax Agency',     'tax_agency',     $pr['tax_agency']);
                 ?>
             </table>
-        </div>
+        <?php peClose(); ?>
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Inventory</div>
+        <?php peOpen('Inventory', false); ?>
             <table style="width:100%;border-collapse:collapse">
                 <?php
                 peNumber('Reorder Point',    'reorder_point',  $pr['reorder_point'], 'any');
@@ -317,55 +389,63 @@ if (!function_exists('peTextarea')) {
                 peNumber('Lead Time (days)', 'lead_time_days', $pr['lead_time_days'], '1');
                 ?>
             </table>
-        </div>
+        <?php peClose(); ?>
 
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Dimensions &amp; Weight</div>
-            <table style="width:100%;border-collapse:collapse">
+        <?php peOpen('Dimensions & weight', false, 'two sets — see note'); ?>
+        <div style="padding:.5rem 1rem 1rem">
+            <p style="margin:0 0 .6rem;font-size:.75rem;color:#9ca3af;line-height:1.5">
+                You don't sell individual cans, so both sets describe the same box. The
+                <strong>shipping case</strong> figures are the ones FedEx and the packing
+                plan read; the first set is what the website shows. They should agree.
+            </p>
+            <div class="pe-grid">
+                <table style="width:100%;border-collapse:collapse">
+                    <tr><td colspan="2" style="padding:.3rem .7rem .3rem 0;font-size:.68rem;font-weight:700;
+                        text-transform:uppercase;letter-spacing:.05em;color:#9ca3af">As sold — shown on the website</td></tr>
+                    <?php
+                    peNumber('Height',       'height',       $pr['height']);
+                    peNumber('Width',        'width',        $pr['width']);
+                    peNumber('Depth',        'depth',        $pr['depth']);
+                    peInput('Dim Unit',      'dim_unit',     $pr['dim_unit'], 'text', 'placeholder="Inches"');
+                    peNumber('Gross Weight', 'gross_weight', $pr['gross_weight']);
+                    peNumber('Net Weight',   'net_weight',   $pr['net_weight']);
+                    peInput('Weight Unit',   'weight_unit',  $pr['weight_unit'], 'text', 'placeholder="Pounds"');
+                    ?>
+                </table>
+                <table style="width:100%;border-collapse:collapse">
+                    <tr><td colspan="2" style="padding:.3rem .7rem .3rem 0;font-size:.68rem;font-weight:700;
+                        text-transform:uppercase;letter-spacing:.05em;color:#9ca3af">Shipping case — used for labels</td></tr>
+                    <?php
+                    peNumber('Case Length',         'case_length',       $pr['case_length'] ?? '');
+                    peNumber('Case Width',          'case_width',        $pr['case_width']  ?? '');
+                    peNumber('Case Height',         'case_height',       $pr['case_height'] ?? '');
+                    peNumber('Case Weight (Gross)', 'case_weight_gross', $pr['case_weight_gross'] ?? '');
+                    peNumber('Case Weight (Net)',   'case_weight_net',   $pr['case_weight_net']   ?? '');
+                    peNumber('Units Per Case',      'units_per_case',    $pr['units_per_case'] ?? '', '1');
+                    ?>
+                </table>
+            </div>
+        </div>
+        <?php peClose(); ?>
+
+        <?php peOpen('Pallet'); ?>
+        <div style="padding:.5rem 1rem 1rem">
+            <table style="width:100%;border-collapse:collapse;max-width:24rem">
                 <?php
-                peNumber('Height',            'height',            $pr['height']);
-                peNumber('Width',             'width',             $pr['width']);
-                peNumber('Depth',             'depth',             $pr['depth']);
-                peInput('Dim Unit',           'dim_unit',          $pr['dim_unit'], 'text', 'placeholder="Inches"');
-                peNumber('Gross Weight',      'gross_weight',      $pr['gross_weight']);
-                peNumber('Net Weight',        'net_weight',        $pr['net_weight']);
-                peInput('Weight Unit',        'weight_unit',       $pr['weight_unit'], 'text', 'placeholder="Pounds"');
-                ?>
-                <tr><td colspan="2" style="padding:.5rem .7rem .2rem;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9ca3af;border-top:1px solid #f3f4f6">Individual Unit</td></tr>
-                <?php
-                peNumber('Unit Height',       'unit_height',       $pr['unit_height'] ?? '');
-                peNumber('Unit Width',        'unit_width',        $pr['unit_width']  ?? '');
-                peNumber('Unit Depth',        'unit_depth',        $pr['unit_depth']  ?? '');
-                peNumber('Unit Gross Weight', 'unit_gross_weight', $pr['unit_gross_weight'] ?? '');
-                peNumber('Unit Net Weight',   'unit_net_weight',   $pr['unit_net_weight']   ?? '');
+                peNumber('Pallet TI (per layer)', 'pallet_ti',  $pr['pallet_ti'] ?? '', '1');
+                peNumber('Pallet HI (layers)',    'pallet_hi',  $pr['pallet_hi'] ?? '', '1');
+                peNumber('Pallet Qty (cases)',    'pallet_qty', $pr['pallet_qty'] ?? '', '1');
                 ?>
             </table>
         </div>
-
-        <div style="<?= $cardStyle ?>">
-            <div style="<?= $cardHead ?>">Packaging &amp; Pallet</div>
-            <table style="width:100%;border-collapse:collapse">
-                <?php
-                peNumber('Units Per Case',      'units_per_case',    $pr['units_per_case'] ?? '', '1');
-                peNumber('Case Length',         'case_length',       $pr['case_length'] ?? '');
-                peNumber('Case Width',          'case_width',        $pr['case_width']  ?? '');
-                peNumber('Case Height',         'case_height',       $pr['case_height'] ?? '');
-                peNumber('Case Weight (Gross)', 'case_weight_gross', $pr['case_weight_gross'] ?? '');
-                peNumber('Case Weight (Net)',   'case_weight_net',   $pr['case_weight_net']   ?? '');
-                peNumber('Pallet TI (per layer)','pallet_ti',        $pr['pallet_ti'] ?? '', '1');
-                peNumber('Pallet HI (layers)',  'pallet_hi',         $pr['pallet_hi'] ?? '', '1');
-                peNumber('Pallet Qty (cases)',  'pallet_qty',        $pr['pallet_qty'] ?? '', '1');
-                ?>
-            </table>
-        </div>
+        <?php peClose(); ?>
 
     </td>
     </tr>
 </table>
 
 <!-- ================= Compliance & Specs (full width) ================= -->
-<div style="<?= $cardStyle ?>">
-    <div style="<?= $cardHead ?>">Compliance &amp; Product Specs</div>
+<?php peOpen('Compliance & product specs'); ?>
     <table style="width:100%;border-collapse:collapse">
         <tr>
             <td style="width:33.33%;vertical-align:top;padding:.4rem 0">
