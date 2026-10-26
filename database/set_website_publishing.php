@@ -60,6 +60,7 @@ const NEVER_PUBLISH = [
     'DSWHITE-S',        // White-S
     'DSWLP',            // White (Low Pressure)
     'ESWLP',            // White (Low Pressure)
+    'DSPC',             // duplicate of DSCL (T-Tip Clear): no web price, no stock
 ];
 
 /**
