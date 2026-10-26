@@ -412,6 +412,59 @@ class ProductRepository extends Repository
         );
     }
 
+    /**
+     * Mark one image as the photo for the whole variant group.
+     *
+     * A group is one listing on the website, so it has one listing photo wherever it
+     * is uploaded from. Clearing runs across the group rather than the product, or
+     * two colours could each claim to be the listing and the tile would show
+     * whichever row the database handed back first.
+     *
+     * Passing 0 for $imageId only clears, which is how the flag is turned off.
+     */
+    public function setListingImage(int $imageId, int $productId): void
+    {
+        $group = Database::selectOne(
+            "SELECT variant_group FROM products WHERE id = ? LIMIT 1", [$productId]
+        )['variant_group'] ?? null;
+
+        if ($group === null || $group === '') {
+            Database::statement(
+                "UPDATE product_images SET is_listing = 0 WHERE product_id = ?", [$productId]
+            );
+        } else {
+            Database::statement("
+                UPDATE product_images SET is_listing = 0
+                WHERE product_id IN (SELECT id FROM products WHERE variant_group = ?)
+            ", [$group]);
+        }
+
+        if ($imageId > 0) {
+            Database::statement(
+                "UPDATE product_images SET is_listing = 1 WHERE id = ? AND product_id = ?",
+                [$imageId, $productId]
+            );
+        }
+    }
+
+    /**
+     * The group's listing image, whichever colour it was uploaded against.
+     */
+    public function listingImage(int $productId): array|false
+    {
+        return Database::selectOne("
+            SELECT pi.*, p.variant_label
+            FROM product_images pi
+            JOIN products p ON p.id = pi.product_id
+            WHERE pi.is_listing = 1
+              AND (pi.product_id = ?
+                   OR p.variant_group = (SELECT variant_group FROM products
+                                          WHERE id = ? AND variant_group IS NOT NULL
+                                            AND variant_group <> ''))
+            LIMIT 1
+        ", [$productId, $productId]);
+    }
+
     public function countImages(int $productId): int
     {
         return (int)(Database::selectOne(

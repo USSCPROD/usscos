@@ -38,7 +38,16 @@ class StorefrontRepository extends Repository
         (SELECT pi.file_path FROM product_images pi
           WHERE pi.product_id = p.id
           ORDER BY pi.is_primary DESC, pi.sort_order, pi.id
-          LIMIT 1) AS primary_image";
+          LIMIT 1) AS primary_image,
+        -- The group shot, if one has been marked anywhere in this variant group. A
+        -- listing is sold by the picture of the whole range, not by whichever colour
+        -- the card happens to lead with.
+        (SELECT pi.file_path FROM product_images pi
+          JOIN products vp ON vp.id = pi.product_id
+          WHERE pi.is_listing = 1
+            AND p.variant_group IS NOT NULL AND p.variant_group <> ''
+            AND vp.variant_group = p.variant_group
+          LIMIT 1) AS listing_image";
 
     /** Products never shown publicly, whatever category they are filed under. */
     private const PUBLIC_WHERE = "
@@ -357,12 +366,20 @@ class StorefrontRepository extends Repository
      */
     public function imagesOf(int $productId): array
     {
+        // This colour's own photographs first, then the group shot if it was uploaded
+        // against a different colour. A colour with no photo of its own still shows
+        // the range rather than an empty frame.
         return Database::select("
-            SELECT file_path, file_name, caption
-            FROM product_images
-            WHERE product_id = ?
-            ORDER BY is_primary DESC, sort_order, id
-        ", [$productId]);
+            SELECT pi.file_path, pi.file_name, pi.caption,
+                   (pi.product_id = :pid) AS own
+            FROM product_images pi
+            JOIN products p ON p.id = pi.product_id
+            WHERE pi.product_id = :pid2
+               OR (pi.is_listing = 1
+                   AND p.variant_group IS NOT NULL AND p.variant_group <> ''
+                   AND p.variant_group = (SELECT variant_group FROM products WHERE id = :pid3))
+            ORDER BY own DESC, pi.is_primary DESC, pi.sort_order, pi.id
+        ", ['pid' => $productId, 'pid2' => $productId, 'pid3' => $productId]);
     }
 
     /**
@@ -374,6 +391,13 @@ class StorefrontRepository extends Repository
      */
     public static function imageFor(array $row): ?string
     {
+        // The group shot wins on a card: the card stands for the whole listing.
+        $listing = trim((string)($row['listing_image'] ?? ''));
+
+        if ($listing !== '') {
+            return $listing;
+        }
+
         $uploaded = trim((string)($row['primary_image'] ?? ''));
 
         if ($uploaded !== '') {

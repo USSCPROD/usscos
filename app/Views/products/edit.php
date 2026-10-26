@@ -172,16 +172,26 @@ if (!function_exists('peTextarea')) {
         <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.9rem">
             <?php foreach ($images as $img): ?>
                 <div style="width:104px">
+                    <?php $isListing = (int)($img['is_listing'] ?? 0) === 1; ?>
                     <img src="<?= e($img['file_path']) ?>" alt=""
                          style="width:100%;height:78px;object-fit:cover;border-radius:6px;
-                                border:2px solid <?= (int)$img['is_primary'] === 1 ? '#222b59' : '#e5e7eb' ?>">
+                                border:2px solid <?= $isListing ? '#b45309' : ((int)$img['is_primary'] === 1 ? '#222b59' : '#e5e7eb') ?>">
                     <div style="font-size:.68rem;text-align:center;margin-top:.2rem">
-                        <?php if ((int)$img['is_primary'] === 1): ?>
+                        <?php if ($isListing): ?>
+                            <span style="color:#b45309;font-weight:700">Listing photo</span>
+                        <?php elseif ((int)$img['is_primary'] === 1): ?>
                             <span style="color:#222b59;font-weight:700">Main image</span>
                         <?php else: ?>
                             <form method="POST" action="/products/<?= (int)$pr['id'] ?>/images/<?= (int)$img['id'] ?>/primary" style="display:inline">
                                 <?= csrf_field() ?>
                                 <button type="submit" style="background:none;border:0;color:#0A3D91;cursor:pointer;font-size:.68rem;padding:0">Make main</button>
+                            </form>
+                        <?php endif; ?>
+                        <?php if (!empty($pr['variant_group'])): ?>
+                            <form method="POST" action="/products/<?= (int)$pr['id'] ?>/images/<?= (int)$img['id'] ?>/listing" style="display:inline">
+                                <?= csrf_field() ?>
+                                <button type="submit" style="background:none;border:0;color:#b45309;cursor:pointer;font-size:.68rem;padding:0">·
+                                    <?= $isListing ? 'Not the listing photo' : 'Use for listing' ?></button>
                             </form>
                         <?php endif; ?>
                         <form method="POST" action="/products/<?= (int)$pr['id'] ?>/images/<?= (int)$img['id'] ?>/delete"
@@ -197,6 +207,20 @@ if (!function_exists('peTextarea')) {
         <p style="margin:0 0 .7rem;font-size:.85rem;color:#9ca3af">
             No images yet. The first one uploaded becomes the main image, which is what
             the website card shows.
+        </p>
+    <?php endif; ?>
+
+    <?php if (!empty($pr['variant_group'])): ?>
+        <p style="margin:.6rem 0 .9rem;font-size:.8rem;color:#6b7280">
+            <strong>Main image</strong> is this
+            <?= e(strtolower((string)($pr['variant_axis'] ?? 'variant'))) ?> only.
+            <strong style="color:#b45309">Listing photo</strong> is the group shot that
+            stands for the whole listing on the website — one per listing, wherever it
+            is uploaded.
+            <?php if (!empty($listingImage) && (int)$listingImage['product_id'] !== (int)$pr['id']): ?>
+                It is currently on
+                <strong><?= e($listingImage['variant_label'] ?: 'another ' . strtolower((string)($pr['variant_axis'] ?? 'variant'))) ?></strong>.
+            <?php endif; ?>
         </p>
     <?php endif; ?>
 

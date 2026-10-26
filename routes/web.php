@@ -152,6 +152,7 @@ Router::group(['middleware' => ['auth', 'internal', 'warehouse', 'csrf']], funct
     Router::post('/products/{id}/images',                       [ProductController::class, 'uploadImage'])->name('products.images.upload');
     Router::post('/products/{id}/images/{imageId}/delete',      [ProductController::class, 'deleteImage'])->name('products.images.delete');
     Router::post('/products/{id}/images/{imageId}/primary',     [ProductController::class, 'setPrimaryImage'])->name('products.images.primary');
+    Router::post('/products/{id}/images/{imageId}/listing',     [ProductController::class, 'setListingImage'])->name('products.images.listing');
 
     // Product documents (SDS, TDS, flyers, catalogs...)
     Router::post('/products/{id}/documents',                    [ProductController::class, 'uploadDocument'])->name('products.documents.upload');

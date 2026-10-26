@@ -67,8 +67,12 @@ class ProductController extends Controller
             return $this->view('errors.404', ['title' => 'Not Found'], 404);
         }
 
+        // Where the group shot lives, which may be a different colour than this one.
+        $listingImage = (new \App\Repositories\ProductRepository())->listingImage((int)$id);
+
         return $this->view('products.edit', [
-            'title' => 'Edit ' . $data['product']['sku'],
+            'title'        => 'Edit ' . $data['product']['sku'],
+            'listingImage' => $listingImage ?: null,
             ...$data,
         ]);
     }
@@ -195,7 +199,7 @@ class ProductController extends Controller
     public function uploadImage(Request $request, Response $response, string $id = '0'): Response
     {
         $productId = (int)$id;
-        $back      = '/products/' . $productId;
+        $back      = $this->backToMedia($productId);
 
         $stored = $this->storeUpload($_FILES['image'] ?? null, $productId, self::IMAGE_EXT, self::IMAGE_MAX);
         if (is_string($stored)) {
@@ -242,7 +246,7 @@ class ProductController extends Controller
             Session::flash('success', 'Image deleted.');
         }
 
-        return $response->redirect('/products/' . $productId);
+        return $response->redirect($this->backToMedia($productId));
     }
 
     public function setPrimaryImage(Request $request, Response $response, string $id = '0', string $imageId = '0'): Response
@@ -255,7 +259,39 @@ class ProductController extends Controller
             Session::flash('success', 'Primary image updated.');
         }
 
-        return $response->redirect('/products/' . $productId);
+        return $response->redirect($this->backToMedia($productId));
+    }
+
+    /**
+     * Mark (or unmark) the photo that stands for the whole variant group.
+     *
+     * The group shot of every colour is one image, and it has to be uploaded against
+     * some single product. Marking it as the listing photo means the colour it was
+     * uploaded against is no longer spending its own photo slot on it.
+     */
+    public function setListingImage(Request $request, Response $response, string $id = '0', string $imageId = '0'): Response
+    {
+        $productId = (int)$id;
+        $repo      = new \App\Repositories\ProductRepository();
+        $image     = $repo->findImage((int)$imageId, $productId);
+
+        if ($image) {
+            $on = (int)($image['is_listing'] ?? 0) === 1;
+            $repo->setListingImage($on ? 0 : (int)$imageId, $productId);
+            Session::flash('success', $on
+                ? 'Listing photo cleared.'
+                : 'Listing photo set — it now represents every colour in this listing.');
+        }
+
+        return $response->redirect($this->backToMedia($productId));
+    }
+
+    /**
+     * Uploads are done from the edit page, so that is where they return to.
+     */
+    private function backToMedia(int $productId): string
+    {
+        return '/products/' . $productId . '/edit#web-files';
     }
 
     // ---------------------------------------------------- Documents
@@ -263,7 +299,7 @@ class ProductController extends Controller
     public function uploadDocument(Request $request, Response $response, string $id = '0'): Response
     {
         $productId = (int)$id;
-        $back      = '/products/' . $productId;
+        $back      = $this->backToMedia($productId);
 
         $stored = $this->storeUpload($_FILES['document'] ?? null, $productId, self::DOC_EXT, self::DOC_MAX);
         if (is_string($stored)) {
@@ -306,7 +342,7 @@ class ProductController extends Controller
             Session::flash('success', 'Document deleted.');
         }
 
-        return $response->redirect('/products/' . $productId);
+        return $response->redirect($this->backToMedia($productId));
     }
 
     // ------------------------------------------------- Upload helpers
