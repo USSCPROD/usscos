@@ -93,7 +93,7 @@ class SiteController extends Controller
             'title'    => $q === '' ? 'Search' : 'Search: ' . $q,
             'nav'      => config('site.nav') ?? [],
             'q'        => $q,
-            'products' => $q === '' ? [] : $this->shop->search($q),
+            'products' => $q === '' ? [] : $this->shop->searchProducts($q),
         ]);
     }
     /**

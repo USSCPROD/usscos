@@ -146,8 +146,13 @@ class StorefrontRepository extends Repository
         ");
     }
 
-    /** Public search over name, SKU and description. */
-    public function search(string $term, int $limit = 60): array
+    /**
+     * Public search over name, SKU and description.
+     *
+     * Not named search(): Repository::search() takes a column list, and overriding it
+     * with a different signature is a fatal the moment the class loads.
+     */
+    public function searchProducts(string $term, int $limit = 60): array
     {
         $like = '%' . $term . '%';
 
