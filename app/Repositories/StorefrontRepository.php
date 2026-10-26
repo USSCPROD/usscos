@@ -30,7 +30,8 @@ class StorefrontRepository extends Repository
      * query is how they end up in a page's HTML.
      */
     private const PUBLIC_COLUMNS = "
-        p.id, p.sku, p.name, p.short_description, p.website_price, p.website_image_url,
+        p.id, p.sku, p.name, p.website_name, p.website_short_description,
+        p.short_description, p.website_price, p.website_image_url,
         p.gross_weight, p.weight_unit, p.uom_code, p.units_per_case, p.qty_on_hand,
         p.variant_group, p.variant_label, p.variant_order, p.variant_title, p.variant_axis,
         b.name AS brand_name,
@@ -313,9 +314,17 @@ class StorefrontRepository extends Repository
         $name  = (string)($row['name'] ?? '');
         $label = trim((string)($row['variant_label'] ?? ''));
 
-        // A stored title wins, however many variants there are. It is only ever set
-        // deliberately, and a product line with one member today still deserves its
-        // own name: DuraGlow is not a shade of DuraStripe T-Tip.
+        // A name typed for the website beats everything: it is the most deliberate
+        // thing anyone can say about how this product should be called.
+        $web = trim((string)($row['website_name'] ?? ''));
+
+        if ($web !== '') {
+            return $web;
+        }
+
+        // Then the grouping's own title. It is only ever set deliberately, and a
+        // product line with one member today still deserves its own name: DuraGlow is
+        // not a shade of DuraStripe T-Tip.
         $title = trim((string)($row['variant_title'] ?? ''));
 
         if ($title !== '') {

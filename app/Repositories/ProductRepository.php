@@ -47,7 +47,8 @@ class ProductRepository extends Repository
         'recommended_use', 'clean_up', 'shelf_life',
         'storage_temp_min', 'storage_temp_max', 'warranty', 'spec_notes', 'review_note',
         // Web
-        'website_image_url', 'publish_to_website',
+        'website_image_url', 'publish_to_website', 'website_name',
+        'website_short_description', 'website_description', 'video_urls',
         // Flags
         'is_active', 'is_taxable', 'is_hazmat',
     ];
@@ -70,6 +71,9 @@ class ProductRepository extends Repository
     ];
 
     private const BOOLEAN_FIELDS = ['is_active', 'is_taxable', 'is_hazmat', 'publish_to_website'];
+
+    /** Fields holding HTML from the rich text editor. */
+    private const HTML_FIELDS = ['website_short_description', 'website_description'];
 
     /** NOT NULL columns that must never be written as null. */
     private const REQUIRED_FIELDS = ['sku', 'name'];
@@ -259,7 +263,12 @@ class ProductRepository extends Repository
             }
             $raw = $data[$col];
 
-            if (in_array($col, self::BOOLEAN_FIELDS, true)) {
+            if (in_array($col, self::HTML_FIELDS, true)) {
+                // Sanitised once, on the way in. These are printed into a public page
+                // unescaped, and a value that reaches the database already safe cannot
+                // be rendered unsafely by a view that forgets to clean it.
+                $val = \App\Services\RichText::clean(is_string($raw) ? $raw : null);
+            } elseif (in_array($col, self::BOOLEAN_FIELDS, true)) {
                 $val = (int)(bool)$raw;
             } elseif (in_array($col, self::DECIMAL_FIELDS, true)) {
                 $val = ($raw === '' || $raw === null) ? null : (float)$raw;

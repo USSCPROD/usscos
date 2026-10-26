@@ -64,7 +64,9 @@ $spec = function (string $label, $value, string $suffix = '') {
       </div>
     <?php endif; ?>
 
-    <h1 style="margin:0 0 .5rem;font-size:1.7rem;letter-spacing:-.025em;line-height:1.2"><?= e($pr['name']) ?></h1>
+    <h1 style="margin:0 0 .5rem;font-size:1.7rem;letter-spacing:-.025em;line-height:1.2">
+      <?= e(trim((string)($pr['website_name'] ?? '')) ?: $pr['name']) ?>
+    </h1>
     <div class="sku" style="font-size:.8rem;margin-bottom:1.25rem">SKU <?= e($pr['sku']) ?></div>
 
     <?php if ($price > 0): ?>
@@ -171,7 +173,12 @@ $spec = function (string $label, $value, string $suffix = '') {
       </a>
     </div>
 
-    <?php if (!empty($pr['short_description'])): ?>
+    <?php if (!empty($pr['website_short_description'])): ?>
+      <!-- Sanitised by App\Services\RichText when it was saved, so printed as HTML. -->
+      <div style="font-size:.95rem;color:#374151;line-height:1.65;margin:0 0 1.25rem">
+        <?= $pr['website_short_description'] ?>
+      </div>
+    <?php elseif (!empty($pr['short_description'])): ?>
       <p style="font-size:.95rem;color:#374151;margin:0 0 1.25rem"><?= e($pr['short_description']) ?></p>
     <?php endif; ?>
 
@@ -190,7 +197,10 @@ $spec = function (string $label, $value, string $suffix = '') {
     and when only one has content the strip is skipped entirely and the content shown
     plainly. An empty tab bar is a promise of information that is not there.
 */
-$longText = trim((string)($pr['website_description'] ?? '')) ?: trim((string)($pr['long_description'] ?? ''));
+// website_description holds sanitised HTML; long_description is plain text from the
+// product file, so it is escaped and line-broken rather than trusted.
+$webHtml  = trim((string)($pr['website_description'] ?? ''));
+$longText = $webHtml !== '' ? $webHtml : nl2br(e(trim((string)($pr['long_description'] ?? ''))));
 $colorList = [];
 
 foreach ($variants as $v) {
@@ -229,6 +239,15 @@ $docList = function (array $rows): void {
 ?>
 
 <?php if ($firstTab !== null): ?>
+<style>
+.rt h3{font-size:1.05rem;margin:1.4rem 0 .5rem;letter-spacing:-.01em}
+.rt h4{font-size:.95rem;margin:1.2rem 0 .4rem}
+.rt p{margin:0 0 .9rem}
+.rt ul,.rt ol{margin:0 0 .9rem;padding-left:1.3rem}
+.rt li{margin:.25rem 0}
+.rt a{color:var(--blue)}
+.rt blockquote{margin:0 0 .9rem;padding-left:.9rem;border-left:3px solid var(--line);color:var(--mut)}
+</style>
 <div class="wrap" style="padding-bottom:3rem">
 
   <?php if (count($tabs) > 1): ?>
@@ -250,7 +269,7 @@ $docList = function (array $rows): void {
     <?php foreach ($tabs as $key => $label): ?>
       <section data-panel="<?= e($key) ?>" style="<?= $key === $firstTab ? '' : 'display:none' ?>">
         <?php if ($key === 'description'): ?>
-          <div style="font-size:.95rem;color:#374151;line-height:1.7"><?= nl2br(e($longText)) ?></div>
+          <div style="font-size:.95rem;color:#374151;line-height:1.7" class="rt"><?= $longText ?></div>
 
         <?php elseif ($key === 'additional'): ?>
           <table style="border-collapse:collapse;width:100%;max-width:40rem">

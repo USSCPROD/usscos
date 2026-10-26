@@ -221,12 +221,46 @@ if (!function_exists('peTextarea')) {
             <div style="<?= $cardHead ?>">Website</div>
             <table style="width:100%;border-collapse:collapse">
                 <?php
+                // The name a customer reads, kept apart from `name`, which is what
+                // QuickBooks and the invoice say. Blank falls back to the catalogue name.
+                peInput('Website Name', 'website_name', $pr['website_name'] ?? '', 'text',
+                        'placeholder="e.g. DURASTRIPE Field Marking Paint"');
                 peInput('Image URL', 'website_image_url', $pr['website_image_url'], 'text',
                         'placeholder="Used only if no image is uploaded"');
                 peSelect('Publish to Website', 'publish_to_website', (int)($pr['publish_to_website'] ?? 0),
                          [1 => 'Yes', 0 => 'No']);
                 ?>
             </table>
+
+            <div style="padding:1rem">
+                <?php
+                $rtName  = 'website_short_description';
+                $rtLabel = 'Short description (under the title)';
+                $rtValue = $pr['website_short_description'] ?? '';
+                $rtRows  = 4;
+                $rtHint  = 'The opening paragraph on the product page. Bold the first line to match the live site.';
+                include BASE_PATH . '/app/Views/partials/richtext.php';
+
+                $rtName  = 'website_description';
+                $rtLabel = 'Full description (Description tab)';
+                $rtValue = $pr['website_description'] ?? '';
+                $rtRows  = 10;
+                $rtHint  = 'Headings, lists and links are allowed. Everything else is stripped when saved.';
+                include BASE_PATH . '/app/Views/partials/richtext.php';
+
+                $rtName = $rtLabel = $rtValue = $rtHint = null;
+                ?>
+
+                <label style="display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;
+                              letter-spacing:.05em;color:#6b7280;margin-bottom:.35rem">Video links</label>
+                <textarea name="video_urls" rows="3"
+                          placeholder="One YouTube link per line"
+                          style="width:100%;padding:.6rem .7rem;border:1px solid #d1d5db;border-radius:7px;
+                                 font:inherit;font-size:.9rem;box-sizing:border-box;resize:vertical"><?= e($pr['video_urls'] ?? '') ?></textarea>
+                <div style="font-size:.72rem;color:#9ca3af;margin-top:.3rem">
+                    One per line. Watch links are turned into embeds automatically.
+                </div>
+            </div>
         </div>
 
     </td>
