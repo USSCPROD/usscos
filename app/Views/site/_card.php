@@ -16,7 +16,7 @@ $price = (float)($p['website_price'] ?? 0);
         <div class="ph">No photo yet</div>
     <?php endif; ?>
     <div class="card-b">
-        <h3><a href="/product/<?= e(rawurlencode((string)$p['sku'])) ?>"><?= e($p['name']) ?></a></h3>
+        <h3><a href="/product/<?= e(rawurlencode((string)$p['sku'])) ?>"><?= e(\App\Repositories\StorefrontRepository::listingName($p)) ?></a></h3>
         <div class="sku"><?= e($p['sku']) ?><?php if (!empty($p['brand_name'])): ?> · <?= e($p['brand_name']) ?><?php endif; ?></div>
         <?php if (!empty($p['short_description'])): ?>
             <p class="desc"><?= e($p['short_description']) ?></p>

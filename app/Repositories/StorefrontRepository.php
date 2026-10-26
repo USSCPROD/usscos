@@ -280,4 +280,35 @@ class StorefrontRepository extends Repository
             ORDER BY p.variant_order, p.sku
         ", [$group]);
     }
+    /**
+     * The name to show for a listing card.
+     *
+     * A card leads with the cheapest variant, so its name carries that variant's
+     * thickness — '10" alphabet kit stencil — 3/32"' above the words '2 thicknesses'.
+     * The listing is not the 3/32" one, so the label comes off the end.
+     *
+     * The trailing quote is optional in the match because the catalogue holds both
+     * spellings: the imported names end '— 3/32"' and the older hand-entered ones
+     * end '- 1/8' with no closing mark.
+     */
+    public static function listingName(array $row): string
+    {
+        $name  = (string)($row['name'] ?? '');
+        $label = trim((string)($row['variant_label'] ?? ''));
+
+        if ($label === '' || (int)($row['variant_count'] ?? 1) < 2) {
+            return $name;
+        }
+
+        $bare = rtrim($label, '"\u{201D}');
+
+        $stripped = preg_replace(
+            '/[\s]*[—–-]?[\s]*' . preg_quote($bare, '/') . '["\x{201D}]?\s*$/u',
+            '',
+            $name
+        );
+
+        // Never return an empty title because the whole name happened to match.
+        return ($stripped === null || trim($stripped) === '') ? $name : rtrim($stripped, " \t—–-");
+    }
 }
