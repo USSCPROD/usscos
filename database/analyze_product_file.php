@@ -53,7 +53,7 @@ if ($file === null || !is_file($file)) {
 function aNorm(?string $h): string
 {
     $h = strtolower(trim((string)$h));
-    $h = str_replace(['(', ')', '#', '.', '/', '—', '–', '_'], ' ', $h);
+    $h = str_replace(['(', ')', '#', '.', '/', '—', '–', '_', '-'], ' ', $h);
 
     return preg_replace('/\s+/', ' ', $h) ?? '';
 }

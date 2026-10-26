@@ -101,7 +101,10 @@ say();
 /** Normalize a header cell so both sheet layouts map with one table. */
 function normHeader(?string $h): string {
     $h = strtolower(trim((string)$h));
-    $h = str_replace(['(', ')', '#', '.', '/', '—', '–'], ' ', $h);
+    // The ASCII hyphen belongs in this list. Without it 'GTIN-12 UPC' normalises to
+    // 'gtin-12 upc', which is in no map, so the column is skipped in silence — which
+    // is how 504 case barcodes sat unread in the sheet while the catalogue showed 147.
+    $h = str_replace(['(', ')', '#', '.', '/', '—', '–', '-'], ' ', $h);
     return preg_replace('/\s+/', ' ', $h) ?? '';
 }
 
