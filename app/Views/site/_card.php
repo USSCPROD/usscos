@@ -23,15 +23,15 @@ $price = (float)($p['website_price'] ?? 0);
             <p class="desc"><?= e($p['short_description']) ?></p>
         <?php endif; ?>
         <?php if ($price > 0): ?>
-            <div class="price">
-                <?php if ((int)($p['variant_count'] ?? 1) > 1): ?>
-                    <span style="font-size:.72rem;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em">from</span>
-                <?php endif; ?>
-                <?= money($price) ?>
-            </div>
+            <!--
+                No 'from'. The card leads with 1/8", the thickest and dearest cut, so
+                'from' would promise a price below the one printed next to it.
+            -->
+            <div class="price"><?= money($price) ?></div>
             <?php if ((int)($p['variant_count'] ?? 1) > 1): ?>
                 <div style="font-size:.74rem;color:var(--mut);margin-top:.2rem">
-                    <?= (int)$p['variant_count'] ?> thicknesses
+                    <?= e($p['variant_label'] ?? '') ?>
+                    &nbsp;·&nbsp; <?= (int)$p['variant_count'] ?> thicknesses
                 </div>
             <?php endif; ?>
         <?php else: ?>

@@ -80,9 +80,14 @@ class StorefrontRepository extends Repository
     /**
      * One card per listing, not one per variant.
      *
-     * The members of a group are the same stencil in three thicknesses; showing all
-     * three is how a catalogue of 107 things looks like 208. The cheapest priced
-     * member leads the card, and 'from' tells the customer the others cost more.
+     * The members of a group are the same stencil in several thicknesses; showing
+     * them all is how a catalogue of 107 things looks like 208.
+     *
+     * The card leads with the DEFAULT variant — lowest variant_order, which is the
+     * thickest cut — not the cheapest. Leading with the cheapest meant every card
+     * advertised 3/32" while the thing people order is 1/8", and the thickness shown
+     * is the one the product page opens on. A variant with no price never leads: a
+     * listing that has a price should show it rather than 'call for best price'.
      *
      * Collapsing happens here rather than in SQL because the paging has to count
      * listings: a GROUP BY would still let LIMIT 60 return 60 rows that are really
@@ -107,22 +112,24 @@ class StorefrontRepository extends Repository
             $price = (float)($r['website_price'] ?? 0);
 
             if (!isset($out[$key])) {
-                $out[$key] = $r + ['variant_count' => 1, 'variant_from' => $price > 0];
+                $out[$key] = $r + ['variant_count' => 1];
                 continue;
             }
 
             $out[$key]['variant_count']++;
 
-            // Lead with the cheapest priced member. An unpriced variant must never
-            // displace a priced one, or the card reads "call for price" while the
-            // listing actually has one.
-            $cur = (float)($out[$key]['website_price'] ?? 0);
+            $curPrice = (float)($out[$key]['website_price'] ?? 0);
+            $curOrder = (int)($out[$key]['variant_order'] ?? PHP_INT_MAX);
+            $order    = (int)($r['variant_order'] ?? PHP_INT_MAX);
 
-            if ($price > 0 && ($cur <= 0 || $price < $cur)) {
-                $out[$key] = $r + [
-                    'variant_count' => $out[$key]['variant_count'],
-                    'variant_from'  => true,
-                ];
+            // A priced variant always beats an unpriced one. Between two priced
+            // variants the lower variant_order wins, which is 1/8".
+            $better = $curPrice <= 0
+                ? $price > 0
+                : ($price > 0 && $order < $curOrder);
+
+            if ($better) {
+                $out[$key] = $r + ['variant_count' => $out[$key]['variant_count']];
             }
         }
 
