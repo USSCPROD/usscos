@@ -105,7 +105,10 @@ function normHeader(?string $h): string {
     // 'gtin-12 upc', which is in no map, so the column is skipped in silence — which
     // is how 504 case barcodes sat unread in the sheet while the catalogue showed 147.
     $h = str_replace(['(', ')', '#', '.', '/', '—', '–', '-'], ' ', $h);
-    return preg_replace('/\s+/', ' ', $h) ?? '';
+    // Trim AFTER the substitution, not only before it. 'GTIN-12 (UPC)' becomes
+    // 'gtin 12 upc ' once the parentheses turn into spaces, and that trailing space
+    // means it matches nothing in $MAP. Same for 'Vendor Part #' and 'Dist Price (QB)'.
+    return trim(preg_replace('/\s+/', ' ', $h) ?? '');
 }
 
 // normalized header => products column
