@@ -406,10 +406,31 @@ class ShippingController extends Controller
             return $response->redirect('/shipping/' . (int)$id . '/label');
         }
 
+        // Boxes typed on the bench, one row each. Rows with no weight are dropped rather
+        // than sent as zero — an empty row is somebody adding a box and changing their
+        // mind, not a parcel weighing nothing.
+        $boxes = [];
+
+        foreach ((array)($_POST['box'] ?? []) as $row) {
+            $w = (float)($row['weight'] ?? 0);
+
+            if ($w <= 0) {
+                continue;
+            }
+
+            $boxes[] = [
+                'weight' => $w,
+                'length' => (float)($row['length'] ?? 0),
+                'width'  => (float)($row['width'] ?? 0),
+                'height' => (float)($row['height'] ?? 0),
+            ];
+        }
+
         $result = (new FedExShippingService())->createLabel($invoiceId, [
             'weight'   => (float)($_POST['weight'] ?? 0),
             'packages' => (int)($_POST['packages'] ?? 1),
             'service'  => (string)($_POST['service'] ?? 'FEDEX_GROUND'),
+            'boxes'    => $boxes,
         ]);
 
         Session::flash($result['ok'] ? 'success' : 'error', $result['message']);

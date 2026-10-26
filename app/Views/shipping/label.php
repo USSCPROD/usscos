@@ -171,6 +171,78 @@ $suggestedPackages = max(1, count($packages));
             <?= csrf_field() ?>
             <input type="hidden" name="invoice_id" value="<?= (int)($invoice['id'] ?? 0) ?>">
 
+            <!--
+                Boxes typed on the bench.
+
+                Some orders cannot be worked out in advance: stencils are boxed after
+                production, and several can share one box chosen at the bench. Nothing
+                upstream knows that box, so this is where it is said, and what is typed
+                here is what is sent to FedEx.
+
+                Pre-filled from the packing plan when there is one, so the common case is
+                a glance rather than retyping. Dimensions are optional per box — FedEx
+                needs all three or none, and the three inputs are validated together.
+            -->
+            <div style="margin-bottom:1.25rem">
+                <div style="<?= $lblLbl ?>">Boxes going out</div>
+                <p style="margin:.2rem 0 .7rem;font-size:.78rem;color:#9ca3af">
+                    Enter each box with its own weight. Dimensions are optional but worth
+                    adding — FedEx charges on size for anything light and bulky, and a
+                    parcel sent without them gets re-rated on the bill.
+                </p>
+
+                <table style="width:100%;border-collapse:collapse" id="boxTable">
+                    <thead>
+                        <tr>
+                            <th style="<?= $lblLbl ?>;text-align:left;padding:0 .4rem .3rem 0">Box</th>
+                            <th style="<?= $lblLbl ?>;text-align:left;padding:0 .4rem .3rem">Weight (lb)</th>
+                            <th style="<?= $lblLbl ?>;text-align:left;padding:0 .4rem .3rem">L (in)</th>
+                            <th style="<?= $lblLbl ?>;text-align:left;padding:0 .4rem .3rem">W (in)</th>
+                            <th style="<?= $lblLbl ?>;text-align:left;padding:0 .4rem .3rem">H (in)</th>
+                            <th style="width:2.2rem"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="boxRows">
+                        <?php
+                            // One row per planned package, or a single empty row when the
+                            // cartonizer had nothing to say — which is the stencil case.
+                            $seed = $packages !== [] ? $packages : [['weight' => null, 'length' => null, 'width' => null, 'height' => null]];
+                        ?>
+                        <?php foreach ($seed as $ix => $pkg): ?>
+                            <tr>
+                                <td style="padding:.2rem .4rem .2rem 0;font-size:.85rem;color:#6b7280;white-space:nowrap">
+                                    <span class="boxNum"><?= $ix + 1 ?></span>
+                                    <?php if (!empty($pkg['box'])): ?>
+                                        <span style="font-size:.72rem;color:#9ca3af">(<?= e($pkg['box']) ?>)</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="padding:.2rem .4rem"><input type="number" step="0.01" min="0" name="box[<?= $ix ?>][weight]"
+                                    value="<?= ($pkg['weight'] ?? null) !== null ? e(number_format((float)$pkg['weight'], 2, '.', '')) : '' ?>"
+                                    style="<?= $lblInp ?>"></td>
+                                <td style="padding:.2rem .4rem"><input type="number" step="0.1" min="0" name="box[<?= $ix ?>][length]"
+                                    value="<?= ($pkg['length'] ?? null) !== null ? e((string)$pkg['length']) : '' ?>" style="<?= $lblInp ?>"></td>
+                                <td style="padding:.2rem .4rem"><input type="number" step="0.1" min="0" name="box[<?= $ix ?>][width]"
+                                    value="<?= ($pkg['width'] ?? null) !== null ? e((string)$pkg['width']) : '' ?>" style="<?= $lblInp ?>"></td>
+                                <td style="padding:.2rem .4rem"><input type="number" step="0.1" min="0" name="box[<?= $ix ?>][height]"
+                                    value="<?= ($pkg['height'] ?? null) !== null ? e((string)$pkg['height']) : '' ?>" style="<?= $lblInp ?>"></td>
+                                <td style="padding:.2rem 0;text-align:right">
+                                    <button type="button" class="boxDel" title="Remove this box"
+                                            style="border:1px solid #e5e7eb;background:#fff;color:#9ca3af;border-radius:6px;
+                                                   width:1.9rem;height:1.9rem;cursor:pointer;font-size:1rem;line-height:1">&times;</button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-top:.6rem;flex-wrap:wrap">
+                    <button type="button" id="boxAdd" class="btn btn--secondary btn--sm">+ Add a box</button>
+                    <div style="font-size:.85rem;color:#6b7280">
+                        <span id="boxCount">0</span> box(es), <strong id="boxTotal">0.00</strong> lb total
+                    </div>
+                </div>
+            </div>
+
             <table style="width:100%;border-collapse:collapse">
                 <tr>
                     <td style="padding:0 .75rem .75rem 0;width:33%;vertical-align:top">
@@ -220,6 +292,91 @@ $suggestedPackages = max(1, count($packages));
                 </button>
             </div>
         </form>
+
+        <script>
+        (function () {
+            var rows  = document.getElementById('boxRows');
+            var table = document.getElementById('boxTable');
+            if (!rows) { return; }
+
+            // Box numbers and the name="box[N]" indexes are rewritten after every change.
+            // Leaving gaps would still submit - PHP takes any keys - but a packer reading
+            // "Box 1, Box 3" quite reasonably assumes a box went missing.
+            function renumber() {
+                var trs = rows.querySelectorAll('tr');
+                var total = 0, counted = 0;
+
+                trs.forEach(function (tr, i) {
+                    var num = tr.querySelector('.boxNum');
+                    if (num) { num.textContent = String(i + 1); }
+
+                    tr.querySelectorAll('input').forEach(function (inp) {
+                        inp.name = inp.name.replace(/box\[\d+\]/, 'box[' + i + ']');
+                    });
+
+                    var w = parseFloat(tr.querySelector('input[name$="[weight]"]').value);
+                    if (!isNaN(w) && w > 0) { total += w; counted++; }
+                });
+
+                document.getElementById('boxCount').textContent = String(counted);
+                document.getElementById('boxTotal').textContent = total.toFixed(2);
+
+                // The total weight field follows the boxes, because two figures that
+                // disagree on one screen is worse than one figure that might be wrong.
+                var totalField = document.querySelector('input[name="weight"]');
+                var pkgField   = document.querySelector('input[name="packages"]');
+                if (counted > 0) {
+                    if (totalField) { totalField.value = total.toFixed(2); }
+                    if (pkgField)   { pkgField.value = String(counted); }
+                }
+            }
+
+            rows.addEventListener('input', renumber);
+
+            rows.addEventListener('click', function (e) {
+                var btn = e.target.closest('.boxDel');
+                if (!btn) { return; }
+                // Never remove the last row: an empty table offers no way back.
+                if (rows.querySelectorAll('tr').length > 1) {
+                    btn.closest('tr').remove();
+                    renumber();
+                }
+            });
+
+            document.getElementById('boxAdd').addEventListener('click', function () {
+                var tr = rows.querySelector('tr').cloneNode(true);
+                tr.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+                var tag = tr.querySelector('.boxNum') ? tr.querySelector('.boxNum').nextElementSibling : null;
+                if (tag) { tag.remove(); }   // a new box has no planned box code
+                rows.appendChild(tr);
+                renumber();
+                tr.querySelector('input').focus();
+            });
+
+            // A box needs all three dimensions or none — FedEx refuses a partial set and
+            // would fail the whole label rather than the one measurement left out.
+            table.closest('form').addEventListener('submit', function (e) {
+                var bad = null;
+
+                rows.querySelectorAll('tr').forEach(function (tr, i) {
+                    var dims = ['[length]', '[width]', '[height]'].map(function (n) {
+                        var v = parseFloat(tr.querySelector('input[name$="' + n + '"]').value);
+                        return (!isNaN(v) && v > 0);
+                    });
+                    var some = dims.some(Boolean), all = dims.every(Boolean);
+                    if (some && !all && bad === null) { bad = i + 1; }
+                });
+
+                if (bad !== null) {
+                    e.preventDefault();
+                    alert('Box ' + bad + ' has some dimensions but not all three.\n\n' +
+                          'Enter length, width and height, or clear all three — FedEx will not take a partial set.');
+                }
+            });
+
+            renumber();
+        }());
+        </script>
     </div>
 
     <!-- ── Already labelled ─────────────────────────────────────────────── -->

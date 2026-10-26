@@ -53,7 +53,10 @@ class FedExShippingService
     /**
      * Create a label for an invoice and record what comes back.
      *
-     * @param array{service?:string, weight?:float, packages?:int, reference?:string} $options
+     * @param array{
+     *   service?:string, weight?:float, packages?:int, reference?:string,
+     *   boxes?:list<array{weight:float,length?:float,width?:float,height?:float}>
+     * } $options
      * @return array{ok:bool, message:string, tracking?:list<string>, label_path?:?string}
      */
     public function createLabel(int $invoiceId, array $options = []): array
@@ -100,26 +103,79 @@ class FedExShippingService
         $packages = max(1, (int)($options['packages'] ?? 1));
         $service  = (string)($options['service'] ?? 'FEDEX_GROUND');
 
-        if ($weight <= 0) {
+        $boxWeight = 0.0;
+
+        foreach (($options['boxes'] ?? []) as $b) {
+            $boxWeight += (float)($b['weight'] ?? 0);
+        }
+
+        if ($weight <= 0 && $boxWeight <= 0) {
             return ['ok' => false, 'message' => 'Enter the package weight — FedEx will not make a label without one.'];
         }
         if (!isset(self::SERVICES[$service])) {
             return ['ok' => false, 'message' => 'Unknown FedEx service.'];
         }
 
-        // One line item per package, each carrying its share of the weight. FedEx returns
-        // a tracking number per piece, which is exactly why tracking is rows now.
-        $perPackage = round($weight / $packages, 2);
-        $lineItems  = [];
+        $reference = [[
+            'customerReferenceType' => 'CUSTOMER_REFERENCE',
+            'value' => substr((string)($options['reference'] ?? $invoice['invoice_number']), 0, 40),
+        ]];
 
-        for ($i = 0; $i < $packages; $i++) {
-            $lineItems[] = [
-                'weight'         => ['units' => 'LB', 'value' => max(0.1, $perPackage)],
-                'customerReferences' => [[
-                    'customerReferenceType' => 'CUSTOMER_REFERENCE',
-                    'value' => substr((string)($options['reference'] ?? $invoice['invoice_number']), 0, 40),
-                ]],
+        $lineItems = [];
+
+        /*
+         * Boxes entered by hand win over a weight split evenly.
+         *
+         * Some orders cannot be cartonised at all: stencils are boxed after production,
+         * and several of them go in one box chosen on the bench. Nothing upstream can
+         * know that box, so the packer types it, and what they typed is what is sent.
+         *
+         * Dimensions matter beyond stencils. FedEx bills on dimensional weight for
+         * anything light and bulky, so a parcel sent with no dimensions is quoted on
+         * weight alone and corrected to the real price on the invoice weeks later.
+         */
+        foreach (($options['boxes'] ?? []) as $box) {
+            $w = round((float)($box['weight'] ?? 0), 2);
+
+            if ($w <= 0) {
+                continue;
+            }
+
+            $item = [
+                'weight'             => ['units' => 'LB', 'value' => max(0.1, $w)],
+                'customerReferences' => $reference,
             ];
+
+            $l = (float)($box['length'] ?? 0);
+            $wd = (float)($box['width'] ?? 0);
+            $h = (float)($box['height'] ?? 0);
+
+            // All three or none: FedEx rejects a partial dimension set, and sending one
+            // would fail the whole label rather than the one measurement that is missing.
+            if ($l > 0 && $wd > 0 && $h > 0) {
+                $item['dimensions'] = [
+                    'length' => (int)ceil($l),
+                    'width'  => (int)ceil($wd),
+                    'height' => (int)ceil($h),
+                    'units'  => 'IN',
+                ];
+            }
+
+            $lineItems[] = $item;
+        }
+
+        if ($lineItems === []) {
+            // No hand-entered boxes: one line item per package, each carrying its share
+            // of the weight. FedEx returns a tracking number per piece, which is exactly
+            // why tracking is rows now.
+            $perPackage = round($weight / $packages, 2);
+
+            for ($i = 0; $i < $packages; $i++) {
+                $lineItems[] = [
+                    'weight'             => ['units' => 'LB', 'value' => max(0.1, $perPackage)],
+                    'customerReferences' => $reference,
+                ];
+            }
         }
 
         $payload = [
