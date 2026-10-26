@@ -92,6 +92,57 @@ $spec = function (string $label, $value, string $suffix = '') {
                     color:var(--mut);margin-bottom:.5rem">
           <?= e($pr['variant_axis'] ?: 'Options') ?>
         </div>
+        <?php if (strcasecmp((string)($pr['variant_axis'] ?? ''), 'Color') === 0): ?>
+          <!--
+              Dots, not labelled buttons. Thirty-six colors as buttons is ten rows and
+              leaves no room for the product copy; as dots it is two. The name and
+              price of whichever one is hovered or selected is written underneath, so
+              nothing is lost by shrinking them.
+          -->
+          <div style="display:flex;gap:.45rem;flex-wrap:wrap;max-width:30rem" id="swatches">
+            <?php foreach ($variants as $v): ?>
+              <?php
+                $on    = $v['sku'] === $pr['sku'];
+                $label = (string)($v['variant_label'] ?: $v['sku']);
+                $css   = \App\Services\ColorSwatch::css($label);
+                $price = (float)$v['website_price'] > 0 ? money((float)$v['website_price']) : 'ask';
+              ?>
+              <a href="/product/<?= e(rawurlencode((string)$v['sku'])) ?>"
+                 aria-current="<?= $on ? 'true' : 'false' ?>"
+                 title="<?= e($label . ' — ' . $price) ?>"
+                 data-label="<?= e($label) ?>" data-price="<?= e($price) ?>"
+                 style="display:block;width:1.9rem;height:1.9rem;border-radius:999px;flex-shrink:0;
+                        background:<?= $css !== null ? $css : '#f3f4f6' ?>;
+                        border:1px solid <?= \App\Services\ColorSwatch::needsOutline($label) ? '#9ca3af' : '#00000026' ?>;
+                        box-shadow:<?= $on ? '0 0 0 2px #fff, 0 0 0 4px var(--blue)' : 'none' ?>;
+                        <?= $css === null ? 'font-size:.55rem;line-height:1.9rem;text-align:center;color:#6b7280' : '' ?>">
+                <?= $css === null ? e(mb_substr($label, 0, 3)) : '' ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
+          <div id="swatchName" style="margin-top:.5rem;font-size:.88rem;color:var(--ink)">
+            <strong><?= e((string)($pr['variant_label'] ?? '')) ?></strong>
+            <span style="color:var(--mut)">
+              · <?= (float)($pr['website_price'] ?? 0) > 0 ? money((float)$pr['website_price']) : 'call for price' ?>
+            </span>
+          </div>
+          <script>
+          (function () {
+            var box = document.getElementById('swatches'), out = document.getElementById('swatchName');
+            if (!box || !out) { return; }
+            var original = out.innerHTML;
+            box.addEventListener('mouseover', function (e) {
+              var a = e.target.closest('a[data-label]');
+              if (a) { out.innerHTML = '<strong>' + a.dataset.label + '</strong>' +
+                       '<span style="color:var(--mut)"> · ' + a.dataset.price + '</span>'; }
+            });
+            // Back to the selected color when the pointer leaves, so the line always
+            // describes what is actually in the basket-to-be rather than the last dot
+            // the mouse happened to cross.
+            box.addEventListener('mouseleave', function () { out.innerHTML = original; });
+          }());
+          </script>
+        <?php else: ?>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <?php foreach ($variants as $v): ?>
             <?php $on = $v['sku'] === $pr['sku']; ?>
@@ -109,6 +160,7 @@ $spec = function (string $label, $value, string $suffix = '') {
             </a>
           <?php endforeach; ?>
         </div>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
 
