@@ -67,12 +67,16 @@ foreach ($rows as $r) {
     $parts = explode('-', $r['sku']);
     $found = null;
 
+    // The LAST matching segment, not the first. A SKU reads {code}-{size}-{thickness},
+    // and 8 is both a size and a thickness: 'STELVEHPKNG-8-32' is the EIGHT INCH
+    // Electric Vehicle Parking stencil cut at 3/32". Taking the first match reads
+    // that 8 as the thickness, groups it as 'STELVEHPKNG-32', and leaves it unpaired
+    // with 'STELVEHPKNG-8-8' — two halves of one listing, each alone.
     foreach ($parts as $i => $seg) {
         // Position 0 is the product code itself ('ST12', 'STNP'); a thickness never
         // lives there, and matching it would group unrelated products together.
         if ($i > 0 && isset(THICKNESS[$seg])) {
             $found = $i;
-            break;
         }
     }
 
