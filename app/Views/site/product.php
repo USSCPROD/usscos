@@ -90,7 +90,7 @@ $spec = function (string $label, $value, string $suffix = '') {
       <div style="margin-bottom:1.5rem">
         <div style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
                     color:var(--mut);margin-bottom:.5rem">
-          Thickness
+          <?= e($pr['variant_axis'] ?: 'Options') ?>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <?php foreach ($variants as $v): ?>

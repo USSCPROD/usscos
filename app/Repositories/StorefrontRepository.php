@@ -32,7 +32,7 @@ class StorefrontRepository extends Repository
     private const PUBLIC_COLUMNS = "
         p.id, p.sku, p.name, p.short_description, p.website_price, p.website_image_url,
         p.gross_weight, p.weight_unit, p.uom_code, p.units_per_case, p.qty_on_hand,
-        p.variant_group, p.variant_label, p.variant_order, p.variant_title,
+        p.variant_group, p.variant_label, p.variant_order, p.variant_title, p.variant_axis,
         b.name AS brand_name,
         (SELECT pi.file_path FROM product_images pi
           WHERE pi.product_id = p.id
@@ -289,7 +289,7 @@ class StorefrontRepository extends Repository
         }
 
         return Database::select("
-            SELECT p.sku, p.name, p.website_price, p.variant_label, p.variant_order, p.variant_title
+            SELECT p.sku, p.name, p.website_price, p.variant_label, p.variant_order, p.variant_title, p.variant_axis
             FROM products p
             WHERE " . self::PUBLIC_WHERE . " AND p.variant_group = ?
             ORDER BY p.variant_order, p.sku

@@ -164,10 +164,12 @@ $pdo->beginTransaction();
 try {
     // Clear first, so re-running after a catalogue change cannot leave a product
     // pointing at a group it is no longer part of.
-    $pdo->prepare("UPDATE products SET variant_group = NULL, variant_label = NULL, variant_order = 0
-                   WHERE variant_group IS NOT NULL")->execute();
+    $pdo->prepare("UPDATE products SET variant_group = NULL, variant_label = NULL, variant_order = 0,
+                   variant_axis = NULL
+                   WHERE variant_group IS NOT NULL AND COALESCE(variant_axis,'Thickness') = 'Thickness'")->execute();
 
-    $set = $pdo->prepare("UPDATE products SET variant_group = ?, variant_label = ?, variant_order = ? WHERE id = ?");
+    $set = $pdo->prepare("UPDATE products SET variant_group = ?, variant_label = ?,
+                          variant_order = ?, variant_axis = 'Thickness' WHERE id = ?");
     $n = 0;
 
     foreach ($groups as $key => $members) {

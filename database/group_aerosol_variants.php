@@ -145,11 +145,12 @@ try {
     if ($ids !== []) {
         $in = implode(',', array_fill(0, count($ids), '?'));
         $pdo->prepare("UPDATE products SET variant_group = NULL, variant_label = NULL,
-                       variant_order = 0, variant_title = NULL WHERE id IN ({$in})")->execute($ids);
+                       variant_order = 0, variant_title = NULL, variant_axis = NULL
+                       WHERE id IN ({$in})")->execute($ids);
     }
 
     $set = $pdo->prepare("UPDATE products SET variant_group = ?, variant_label = ?,
-                          variant_order = ?, variant_title = ? WHERE id = ?");
+                          variant_order = ?, variant_title = ?, variant_axis = 'Color' WHERE id = ?");
     $n = 0;
 
     foreach ($plan as $key => $g) {
