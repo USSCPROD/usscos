@@ -73,6 +73,15 @@ function isActiveExcept(string $prefix, array $children): string {
         <span class="sidebar__link-text">Receiving</span>
     </a>
 
+    <div class="sidebar__section-label">My Account</div>
+
+    <a href="/settings/profile" class="sidebar__link <?= isActive('/settings/profile') ?>">
+        <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        <span class="sidebar__link-text">My Password</span>
+    </a>
+
 <?php else: ?>
 
     <!-- Main -->

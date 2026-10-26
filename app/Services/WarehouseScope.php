@@ -41,7 +41,11 @@ class WarehouseScope
         '/shipping',
         '/receiving',
         '/logout',
-        '/profile',
+        // The real route, not '/profile' — that path does not exist, so the entry
+        // looked like it granted a password change and granted nothing. This is also
+        // why the list stops at /settings/profile and does not say /settings: prefix
+        // matching would otherwise hand over every settings page in the application.
+        '/settings/profile',
     ];
 
     public static function isWarehouse(): bool
