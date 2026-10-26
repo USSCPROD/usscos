@@ -233,15 +233,19 @@ class StorefrontRepository extends Repository
     {
         $like = '%' . $term . '%';
 
-        return Database::select("
+        // Collapsed like a section listing. Searching 'compact' and getting the same
+        // stencil twice, once per thickness, is the duplication the grouping exists
+        // to remove — it should not come back through a different door.
+        $rows = Database::select("
             SELECT " . self::PUBLIC_COLUMNS . "
             FROM products p
             LEFT JOIN product_brands b ON b.id = p.brand_id
             WHERE " . self::PUBLIC_WHERE . "
               AND (p.name LIKE ? OR p.sku LIKE ? OR p.short_description LIKE ?)
             ORDER BY (COALESCE(p.website_price,0) > 0) DESC, p.name
-            LIMIT {$limit}
         ", [$like, $like, $like]);
+
+        return array_slice($this->collapseVariants($rows), 0, $limit);
     }
     /**
      * Is this value actually usable as an <img src>?
