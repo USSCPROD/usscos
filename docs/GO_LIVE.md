@@ -11,6 +11,12 @@ worse than no inventory system, and you already know what that feels like.
 
 ---
 
+> **Testing findings live in [TESTING_LOG.md](TESTING_LOG.md).** That is the running
+> list of what test runs have turned up — open items, what is waiting on a decision,
+> and what has been fixed. Add to it as things are found.
+
+---
+
 ## The principle to hold on to
 
 **Every event that changes stock must be recorded, or the count drifts and trust is gone
