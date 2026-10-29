@@ -35,7 +35,16 @@ class InvoiceRepository
             $params[':s3']    = "%{$search}%";
         }
 
-        if ($status !== 'all') {
+        if ($status === 'overdue') {
+            // Not a status: the same calendar test the KPI above it uses, so the
+            // number and the rows you get by clicking it cannot disagree.
+            [$inScope, $scopeDates] = (new \App\Services\ArPeriod())->clauseNamed('i', ':ar_overdue_from');
+
+            $where[] = "(i.balance_due > 0 AND i.status NOT IN ('void','paid')
+                         AND i.due_date IS NOT NULL AND i.due_date < CURDATE())"
+                     . $inScope;
+            $params  = array_merge($params, $scopeDates);
+        } elseif ($status !== 'all') {
             $where[]           = 'i.status = :status';
             $params[':status'] = $status;
         }
@@ -391,17 +400,39 @@ class InvoiceRepository
             ->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Overdue is a fact about the calendar, not a status somebody sets.
+     *
+     * This used to read status = 'overdue', which nothing in the application ever
+     * writes - so the figure was always zero while the aging report, both dashboards
+     * and the customer alerts, all of which derive it from due_date, showed the real
+     * number. One straggler against eight; it now asks the same question they do.
+     *
+     * Imported history is excluded from the overdue figures only: the payments that
+     * settled those invoices stayed in QuickBooks, so they read as unpaid for ever.
+     * They are real invoices and still count in the totals.
+     */
     public function getSummaryStats(): array
     {
-        $stmt = $this->pdo->query("
+        [$inScope, $scopeParams] = (new \App\Services\ArPeriod())->inScopeExpr('');
+
+        $late = "(balance_due > 0 AND status NOT IN ('void','paid')
+                  AND due_date IS NOT NULL AND due_date < CURDATE() AND {$inScope})";
+
+        $stmt = $this->pdo->prepare("
             SELECT
                 COUNT(*) AS total_invoices,
-                SUM(CASE WHEN status IN ('pending','partial','overdue') THEN 1 ELSE 0 END) AS open_count,
-                SUM(CASE WHEN status IN ('pending','partial','overdue') THEN balance_due ELSE 0 END) AS total_ar,
-                SUM(CASE WHEN status = 'overdue' THEN balance_due ELSE 0 END) AS overdue_ar,
-                SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) AS overdue_count
+                SUM(CASE WHEN status NOT IN ('void','paid','draft') AND balance_due > 0 THEN 1 ELSE 0 END) AS open_count,
+                SUM(CASE WHEN status NOT IN ('void','paid','draft') AND balance_due > 0 THEN balance_due ELSE 0 END) AS total_ar,
+                SUM(CASE WHEN {$late} THEN balance_due ELSE 0 END) AS overdue_ar,
+                SUM(CASE WHEN {$late} THEN 1 ELSE 0 END) AS overdue_count
             FROM invoices
         ");
+
+        // The expression appears twice, so its parameters do too - a named parameter
+        // may be bound only once per statement, which is why these are positional.
+        $stmt->execute([...$scopeParams, ...$scopeParams]);
+
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
@@ -414,7 +445,7 @@ class InvoiceRepository
                 SUM(CASE WHEN aging_days BETWEEN 61 AND 90 THEN balance_due ELSE 0 END) AS bucket_61_90,
                 SUM(CASE WHEN aging_days > 90              THEN balance_due ELSE 0 END) AS bucket_90_plus
             FROM invoices
-            WHERE status IN ('pending','partial','overdue')
+            WHERE status NOT IN ('void','paid','draft') AND balance_due > 0
         ");
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }

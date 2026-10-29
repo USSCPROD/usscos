@@ -26,8 +26,23 @@ $statusBadge = [
     'partial' => 'badge--warning',
     'paid'    => 'badge--success',
     'void'    => 'badge--neutral',
-    'overdue' => 'badge--danger',
+    'overdue' => 'badge--danger',   // never stored; derived per row below
 ];
+
+/**
+ * Overdue is read off the calendar, not off the row.
+ *
+ * Nothing in the application writes status = 'overdue', so a badge that only
+ * reported the column could never turn red however late the invoice got.
+ */
+if (!function_exists('invIsLate')) {
+    function invIsLate(array $inv): bool {
+        return (float)($inv['balance_due'] ?? 0) > 0
+            && !in_array($inv['status'] ?? '', ['void', 'paid'], true)
+            && !empty($inv['due_date'])
+            && strtotime((string)$inv['due_date']) < strtotime(date('Y-m-d'));
+    }
+}
 ?>
 
 <div class="page-header">
@@ -158,10 +173,11 @@ $statusBadge = [
                                 </a>
                             </td>
                             <td class="text-muted"><?= date('M j, Y', strtotime($inv['invoice_date'])) ?></td>
-                            <td class="<?= ($inv['status'] === 'overdue') ? 'text-danger' : 'text-muted' ?>">
+                            <?php $late = invIsLate($inv); ?>
+                            <td class="<?= $late ? 'text-danger' : 'text-muted' ?>">
                                 <?= date('M j, Y', strtotime($inv['due_date'])) ?>
-                                <?php if (($inv['aging_days'] ?? 0) > 0 && $inv['status'] === 'overdue'): ?>
-                                    <span class="text-xs">(<?= (int)$inv['aging_days'] ?>d)</span>
+                                <?php if ($late): ?>
+                                    <span class="text-xs">(<?= (int)max(1, floor((strtotime(date('Y-m-d')) - strtotime((string)$inv['due_date'])) / 86400)) ?>d)</span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-muted text-sm"><?= e($inv['po_number'] ?? '—') ?></td>
@@ -170,8 +186,9 @@ $statusBadge = [
                                 <?= (float)$inv['balance_due'] > 0 ? '$' . number_format((float)$inv['balance_due'], 2) : '—' ?>
                             </td>
                             <td class="text-center">
-                                <span class="badge <?= $statusBadge[$inv['status']] ?? 'badge--neutral' ?>">
-                                    <?= ucfirst($inv['status']) ?>
+                                <?php $shown = $late ? 'overdue' : $inv['status']; ?>
+                                <span class="badge <?= $statusBadge[$shown] ?? 'badge--neutral' ?>">
+                                    <?= ucfirst($shown) ?>
                                 </span>
                             </td>
                         </tr>
