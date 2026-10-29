@@ -38,7 +38,7 @@ $statusBadge = [
 if (!function_exists('invIsLate')) {
     function invIsLate(array $inv): bool {
         return (float)($inv['balance_due'] ?? 0) > 0
-            && !in_array($inv['status'] ?? '', ['void', 'paid'], true)
+            && !in_array($inv['status'] ?? '', ['void', 'paid', 'draft'], true)
             && !empty($inv['due_date'])
             && strtotime((string)$inv['due_date']) < strtotime(date('Y-m-d'));
     }

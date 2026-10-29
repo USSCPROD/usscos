@@ -40,7 +40,7 @@ class InvoiceRepository
             // number and the rows you get by clicking it cannot disagree.
             [$inScope, $scopeDates] = (new \App\Services\ArPeriod())->clauseNamed('i', ':ar_overdue_from');
 
-            $where[] = "(i.balance_due > 0 AND i.status NOT IN ('void','paid')
+            $where[] = "(i.balance_due > 0 AND i.status NOT IN ('void','paid','draft')
                          AND i.due_date IS NOT NULL AND i.due_date < CURDATE())"
                      . $inScope;
             $params  = array_merge($params, $scopeDates);
@@ -416,7 +416,10 @@ class InvoiceRepository
     {
         [$inScope, $scopeParams] = (new \App\Services\ArPeriod())->inScopeExpr('');
 
-        $late = "(balance_due > 0 AND status NOT IN ('void','paid')
+        // 'draft' as well as void and paid: an invoice that was never issued is not
+        // late, it is unfinished. Leaving it in made overdue_count exceed open_count,
+        // which is arithmetically impossible and was the tell.
+        $late = "(balance_due > 0 AND status NOT IN ('void','paid','draft')
                   AND due_date IS NOT NULL AND due_date < CURDATE() AND {$inScope})";
 
         $stmt = $this->pdo->prepare("
