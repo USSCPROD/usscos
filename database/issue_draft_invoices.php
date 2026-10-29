@@ -54,17 +54,18 @@ if ($rows === []) {
     exit(0);
 }
 
-// Overdue, not merely pending, where the due date has already passed — otherwise the
-// AR aging report would show them as current and understate what is late.
+// All of them become 'pending': issued and unpaid. Not 'overdue', even where the due
+// date has passed - nothing else in the application ever promotes an invoice to
+// overdue, so doing it here would brand these few and leave every later one alone,
+// and the aging report works off due_date rather than this column anyway.
 $today   = date('Y-m-d');
-$pending = 0;
-$overdue = 0;
+$late    = 0;
 
-printf("%-10s %-32s %-12s %-12s %10s  %s\n", 'INVOICE', 'CUSTOMER', 'DATE', 'DUE', 'BALANCE', 'NEW STATUS');
+printf("%-10s %-32s %-12s %-12s %10s  %s\n", 'INVOICE', 'CUSTOMER', 'DATE', 'DUE', 'BALANCE', 'PAST DUE');
 
 foreach ($rows as $r) {
-    $status = ($r['due_date'] !== null && $r['due_date'] < $today) ? 'overdue' : 'pending';
-    $status === 'overdue' ? $overdue++ : $pending++;
+    $isLate = $r['due_date'] !== null && $r['due_date'] < $today;
+    $isLate and $late++;
 
     printf(
         "%-10s %-32s %-12s %-12s %10s  %s\n",
@@ -73,11 +74,11 @@ foreach ($rows as $r) {
         (string)$r['invoice_date'],
         (string)($r['due_date'] ?? '—'),
         number_format((float)$r['balance_due'], 2),
-        $status
+        $isLate ? 'yes' : ''
     );
 }
 
-printf("\n%d invoice(s): %d pending, %d overdue.\n", count($rows), $pending, $overdue);
+printf("\n%d invoice(s) to mark pending; %d already past due.\n", count($rows), $late);
 
 if (!$commit) {
     echo "\nNothing written. Re-run with --commit to apply.\n";
@@ -88,11 +89,10 @@ $pdo = Database::connection();
 $pdo->beginTransaction();
 
 try {
-    $stmt = $pdo->prepare("UPDATE invoices SET status = ? WHERE id = ? AND status = 'draft'");
+    $stmt = $pdo->prepare("UPDATE invoices SET status = 'pending' WHERE id = ? AND status = 'draft'");
 
     foreach ($rows as $r) {
-        $status = ($r['due_date'] !== null && $r['due_date'] < $today) ? 'overdue' : 'pending';
-        $stmt->execute([$status, (int)$r['id']]);
+        $stmt->execute([(int)$r['id']]);
     }
 
     $pdo->commit();
