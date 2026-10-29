@@ -26,10 +26,34 @@ $totalBalance = array_sum(array_column($invoices, 'balance_due'));
 </div>
 
 <?php if (empty($invoices)): ?>
+<?php $drafts = $draft_invoices ?? []; ?>
 <div class="card" style="padding:2rem;text-align:center;color:#6b7280">
-    <p style="font-size:1.1rem;margin-bottom:.5rem">No open invoices for this customer.</p>
-    <p style="font-size:.9rem">All invoices are paid in full.</p>
-    <a href="/customers/<?= (int)$c['id'] ?>" class="btn btn--secondary" style="margin-top:1rem">Back to Customer</a>
+    <p style="font-size:1.1rem;margin-bottom:.5rem">Nothing to apply a payment to.</p>
+
+    <?php if ($drafts !== []): ?>
+        <p style="font-size:.9rem;margin:0 0 1rem">
+            <?= count($drafts) === 1 ? 'An invoice is' : count($drafts) . ' invoices are' ?>
+            still in <strong>draft</strong>, so <?= count($drafts) === 1 ? 'it cannot' : 'they cannot' ?>
+            take a payment yet. Open <?= count($drafts) === 1 ? 'it' : 'them' ?> and send
+            <?= count($drafts) === 1 ? 'it' : 'them' ?> to the customer first.
+        </p>
+        <div style="display:inline-block;text-align:left">
+            <?php foreach ($drafts as $d): ?>
+                <div style="font-size:.9rem;margin-bottom:.3rem">
+                    <a href="/invoices/<?= (int)$d['id'] ?>" style="color:#0A3D91;font-weight:600">
+                        #<?= e($d['invoice_number']) ?></a>
+                    <span style="color:#6b7280">
+                        · <?= date('M j, Y', strtotime((string)$d['invoice_date'])) ?>
+                        · $<?= number_format((float)$d['balance_due'], 2) ?>
+                    </span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <p style="font-size:.9rem">No invoice for this customer has a balance outstanding.</p>
+    <?php endif; ?>
+
+    <div><a href="/customers/<?= (int)$c['id'] ?>" class="btn btn--secondary" style="margin-top:1rem">Back to Customer</a></div>
 </div>
 <?php else: ?>
 

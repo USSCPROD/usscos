@@ -75,7 +75,7 @@ $isAtRisk = isset($stats['days_since']) && $stats['days_since'] !== null && $sta
     </div>
     <div class="kpi-card">
         <div class="kpi-card__label">Total Orders</div>
-        <div class="kpi-card__value"><?= (int)($stats['invoice_count'] ?? 0) + (int)($stats['so_count'] ?? 0) ?></div>
+        <div class="kpi-card__value"><?= (int)($stats['order_count'] ?? 0) ?></div>
     </div>
     <div class="kpi-card">
         <div class="kpi-card__label">Last Activity</div>

@@ -99,9 +99,18 @@ class PaymentService extends Service
 
         $openInvoices = $this->payments->getOpenInvoicesForCustomer($customerId);
 
+        // Why there is nothing to pay, when there is nothing to pay. A payment can
+        // only be applied to a pending, partial or overdue invoice, so an invoice
+        // still sitting in draft is invisible here - and the page used to answer that
+        // with 'All invoices are paid in full', which is not something it knows.
+        $blocked = $openInvoices === []
+            ? $this->payments->unissuedInvoicesForCustomer($customerId)
+            : [];
+
         return [
             'customer'             => $customer,
             'open_invoices'        => $openInvoices,
+            'draft_invoices'       => $blocked,
             'preselected_invoice'  => $preselectedInvoiceId,
         ];
     }

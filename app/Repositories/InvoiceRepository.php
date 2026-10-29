@@ -272,7 +272,7 @@ class InvoiceRepository
                  ship_city, ship_state, ship_zip,
                  memo, internal_notes, created_by, rep_id)
             VALUES
-                (:customer_id, :sales_order_id, :invoice_number, :po_number, :invoice_type, :credits_invoice_id, 'draft',
+                (:customer_id, :sales_order_id, :invoice_number, :po_number, :invoice_type, :credits_invoice_id, :status,
                  :invoice_date, :due_date, :payment_term_id,
                  :subtotal, :discount_amount, :tax_amount, :total_amount, :balance_due,
                  :ship_date, :ship_via, :tracking_number, :ship_address_1, :ship_address_2,
@@ -280,7 +280,17 @@ class InvoiceRepository
                  :memo, :internal_notes, :created_by, :rep_id)
         ");
         // Defaulted rather than required, so the existing callers are untouched.
-        $data += [':invoice_type' => 'invoice', ':credits_invoice_id' => null];
+        //
+        // 'pending', not 'draft'. An invoice is written here when goods leave the
+        // building, and it used to be born as a draft that only emailing it could
+        // promote - so an order that shipped but was never emailed could not be paid
+        // at all: Receive Payment offers pending, partial and overdue invoices, and a
+        // draft is none of them. It reported 'No open invoices' on an unpaid bill.
+        $data += [
+            ':invoice_type'        => 'invoice',
+            ':credits_invoice_id'  => null,
+            ':status'              => 'pending',
+        ];
 
         $stmt->execute($data);
 

@@ -76,6 +76,27 @@ class PaymentRepository
         $stmt->execute([':id' => $invoiceId]);
     }
 
+    /**
+     * Invoices this customer owes on that cannot be paid yet because they are drafts.
+     *
+     * Only read when there is nothing payable, to say why rather than claiming the
+     * account is settled.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function unissuedInvoicesForCustomer(int $customerId): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT id, invoice_number, invoice_date, total_amount, balance_due
+            FROM invoices
+            WHERE customer_id = :cid AND status = 'draft' AND balance_due > 0
+            ORDER BY invoice_date, id
+        ");
+        $stmt->execute([':cid' => $customerId]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function getOpenInvoicesForCustomer(int $customerId): array
     {
         // What a payment can be applied to. Offering an imported invoice here would be

@@ -625,12 +625,25 @@ class CustomerRepository extends Repository
         $inv->execute([':id' => $customerId]);
         $invStats = $inv->fetch(\PDO::FETCH_ASSOC);
 
+        // An order that has been invoiced is still ONE order. Counting sales orders
+        // and invoices separately and adding them made every shipped order count
+        // twice - a customer with one order read '2 total orders' and listed one.
         $so = $pdo->prepare("
             SELECT COUNT(*) AS so_count, MAX(order_date) AS last_order_date
             FROM sales_orders WHERE customer_id = :id AND status != 'cancelled'
         ");
         $so->execute([':id' => $customerId]);
         $soStats = $so->fetch(\PDO::FETCH_ASSOC);
+
+        // Invoices raised without a sales order behind them - counter sales, manual
+        // corrections, anything imported from QuickBooks. Those are orders in their
+        // own right; the rest are already counted as their sales order.
+        $standalone = $pdo->prepare("
+            SELECT COUNT(*) AS n FROM invoices
+            WHERE customer_id = :id AND status != 'void' AND sales_order_id IS NULL
+        ");
+        $standalone->execute([':id' => $customerId]);
+        $standaloneCount = (int)($standalone->fetch(\PDO::FETCH_ASSOC)['n'] ?? 0);
 
         $lastActivity = max(
             $invStats['last_invoice_date'] ?? '',
@@ -646,6 +659,7 @@ class CustomerRepository extends Repository
             'lifetime_revenue' => (float)$invStats['lifetime_revenue'],
             'invoice_count'    => (int)$invStats['invoice_count'],
             'so_count'         => (int)$soStats['so_count'],
+            'order_count'      => (int)$soStats['so_count'] + $standaloneCount,
             'avg_invoice'      => (float)$invStats['avg_invoice'],
             'last_activity'    => $lastActivity,
             'days_since'       => $daysSince,

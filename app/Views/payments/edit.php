@@ -113,7 +113,10 @@ $methods = [
         </div>
 
         <?php if (empty($open_invoices)): ?>
-            <div style="padding:1.5rem;text-align:center;color:#6b7280;font-size:.9rem">No open invoices for this customer.</div>
+            <div style="padding:1.5rem;text-align:center;color:#6b7280;font-size:.9rem">
+                Nothing open to apply this payment to. An invoice still in draft cannot
+                take a payment until it is sent.
+            </div>
         <?php else: ?>
         <div style="overflow-x:auto">
             <table style="width:100%;border-collapse:collapse;font-size:.925rem">

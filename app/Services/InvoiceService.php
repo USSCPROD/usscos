@@ -700,6 +700,7 @@ class InvoiceService extends Service
                 ':sales_order_id'     => null,
                 ':invoice_number'     => $this->invoices->nextInvoiceNumber(),
                 ':invoice_type'       => 'credit_memo',
+                ':status'             => 'pending',
                 ':credits_invoice_id' => $return['invoice_id'] ? (int)$return['invoice_id'] : null,
                 ':po_number'          => $original['po_number'] ?? null,
                 ':invoice_date'       => date('Y-m-d'),
