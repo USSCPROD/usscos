@@ -1,0 +1,30 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync(require('node:path').join(__dirname, '../app/Views/shipping/pick.php'), 'utf8');
+const code = source.slice(source.indexOf('    var showPicked ='), source.indexOf("    input.addEventListener('keydown'"));
+function row(ordered, picked) {
+    return {dataset:{ordered:String(ordered), picked:String(picked)}, remaining:{}, querySelector(){return this.remaining;}};
+}
+const rows = [row(10,6), row(5,5)];
+const elements = Object.fromEntries(['showPicked','progressText','progressPct','progressBar','nothingToPick','pickComplete'].map(id=>[id,{style:{}, addEventListener(){}}]));
+const context = vm.createContext({document:{getElementById:id=>elements[id],querySelectorAll:()=>rows},fmt:String});
+vm.runInContext(code, context);
+assert.equal(rows[0].hidden,false);
+assert.equal(rows[0].remaining.textContent,'4');
+assert.equal(rows[1].hidden,true);
+assert.equal(elements.pickComplete.hidden,true);
+rows[0].dataset.picked='10';
+vm.runInContext('refreshPicking()', context);
+assert.equal(rows[0].hidden,true);
+assert.equal(elements.progressPct.textContent,'100%');
+assert.equal(elements.pickComplete.hidden,false);
+elements.showPicked.checked=true;
+vm.runInContext('refreshPicking()', context);
+assert.equal(rows[0].hidden,false);
+elements.showPicked.checked=false;
+rows[0].dataset.picked='11';
+vm.runInContext('refreshPicking()', context);
+assert.equal(rows[0].hidden,false);
+assert.equal(elements.pickComplete.hidden,true);
+console.log('PASS: remaining quantities, completion, progress, history toggle, and overpick visibility');

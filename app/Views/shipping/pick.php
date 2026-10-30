@@ -1,4 +1,4 @@
-<?php ob_start(); ?>
+<?php declare(strict_types=1); ob_start(); ?>
 <?php
 // Deliberately larger type and targets than the rest of the app: this is a shared
 // tablet at a bench, used standing up, sometimes with gloves on.
@@ -23,7 +23,7 @@ $qty = fn($n) => (string)(int)round((float)$n);
         </a>
         <h1 class="page-title" style="margin:.25rem 0 0">
             SO #<?= e($order['so_number']) ?>
-            <span style="font-weight:400;color:#6b7280"> — <?= e($order['company_name']) ?></span>
+            <span style="font-weight:400;color:#6b7280">, <?= e($order['company_name']) ?></span>
         </h1>
     </div>
 </div>
@@ -57,6 +57,10 @@ $qty = fn($n) => (string)(int)round((float)$n);
     </div>
 </div>
 
+<p>Only items still to pick appear below. Picking does not mark goods shipped or handed over.</p>
+<label><input type="checkbox" id="showPicked"> Show completed picks for review or correction</label>
+<p id="nothingToPick" hidden>Nothing left to pick. Review the picked items before packing or handoff.</p>
+
 <!-- Lines -->
 <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:1.25rem">
     <table style="width:100%;border-collapse:collapse">
@@ -65,6 +69,7 @@ $qty = fn($n) => (string)(int)round((float)$n);
                 <th style="<?= $head ?>">Item</th>
                 <th style="<?= $head ?>;text-align:right">Ordered</th>
                 <th style="<?= $head ?>;text-align:right">Picked</th>
+                <th style="<?= $head ?>;text-align:right">Still to pick</th>
                 <th style="<?= $head ?>"></th>
             </tr>
         </thead>
@@ -75,7 +80,7 @@ $qty = fn($n) => (string)(int)round((float)$n);
             $done    = $picked >= $ordered && $ordered > 0;
             $over    = $picked > $ordered;
         ?>
-            <tr id="line-<?= (int)$l['id'] ?>" style="border-bottom:1px solid #f3f4f6;background:<?= $over ? '#fef2f2' : ($done ? '#f0fdf4' : '#fff') ?>">
+            <tr data-pick-line data-ordered="<?= e((string)$ordered) ?>" data-picked="<?= e((string)$picked) ?>" id="line-<?= (int)$l['id'] ?>" style="border-bottom:1px solid #f3f4f6;background:<?= $over ? '#fef2f2' : ($done ? '#f0fdf4' : '#fff') ?>">
                 <td style="<?= $cell ?>">
                     <div style="font-weight:600"><?= e($l['product_name'] ?? $l['description'] ?? 'Item') ?></div>
                     <div style="font-size:.8rem;color:#6b7280;font-family:monospace">
@@ -83,12 +88,13 @@ $qty = fn($n) => (string)(int)round((float)$n);
                         <?php if (!empty($l['uom_code'])): ?> · <?= e($l['uom_code']) ?><?php endif; ?>
                     </div>
                     <?php if (!empty($l['pick_note'])): ?>
-                        <div style="font-size:.8rem;color:#b91c1c;margin-top:.2rem">⚠ <?= e($l['pick_note']) ?></div>
+                        <div style="font-size:.8rem;color:#b91c1c;margin-top:.2rem"><?= e($l['pick_note']) ?></div>
                     <?php endif; ?>
                 </td>
                 <td style="<?= $cell ?>;text-align:right;font-size:1.1rem"><?= $qty($ordered) ?></td>
                 <td style="<?= $cell ?>;text-align:right;font-size:1.25rem;font-weight:700;color:<?= $over ? '#dc2626' : ($done ? '#16a34a' : '#111') ?>"
                     id="picked-<?= (int)$l['id'] ?>"><?= $qty($picked) ?></td>
+                <td style="<?= $cell ?>;text-align:right" data-remaining><?= $qty(max(0, $ordered - $picked)) ?></td>
                 <td style="<?= $cell ?>;text-align:right;white-space:nowrap">
                     <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/pick/line" style="display:inline-flex;gap:.4rem;align-items:center">
                         <?= csrf_field() ?>
@@ -104,8 +110,7 @@ $qty = fn($n) => (string)(int)round((float)$n);
     </table>
 </div>
 
-<?php if ($totalPicked > 0 && $totalPicked >= $totalOrdered): ?>
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem 1.1rem;margin-bottom:1.25rem">
+<div id="pickComplete" hidden style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem 1.1rem;margin-bottom:1.25rem">
         <strong style="color:#166534">Everything picked.</strong>
         <span style="color:#166534">Now verify the box against the pick before it is sealed.</span>
         <a href="/shipping/<?= (int)$order['id'] ?>/pack" class="btn btn--primary"
@@ -113,7 +118,6 @@ $qty = fn($n) => (string)(int)round((float)$n);
         <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--secondary"
            style="margin-left:.5rem">Label &amp; ship</a>
     </div>
-<?php endif; ?>
 
 <!-- Short stock -->
 <div class="card" style="padding:1.25rem;max-width:100%">
@@ -166,6 +170,30 @@ $qty = fn($n) => (string)(int)round((float)$n);
 
     function fmt(n) { return String(parseFloat(n)); }
 
+    var showPicked = document.getElementById('showPicked');
+    function refreshPicking() {
+        var orderedTotal = 0, pickedTotal = 0, outstanding = 0, overpicked = false;
+        document.querySelectorAll('[data-pick-line]').forEach(function (row) {
+            var ordered = Number(row.dataset.ordered), picked = Number(row.dataset.picked);
+            var remaining = Math.max(0, ordered - picked);
+            orderedTotal += ordered;
+            pickedTotal += Math.min(ordered, picked);
+            outstanding += remaining;
+            overpicked = overpicked || picked > ordered;
+            // Overpicks stay visible until corrected.
+            row.hidden = !showPicked.checked && picked === ordered;
+            row.querySelector('[data-remaining]').textContent = fmt(remaining);
+        });
+        var pct = orderedTotal > 0 ? Math.min(100, Math.round(pickedTotal / orderedTotal * 100)) : 0;
+        document.getElementById('progressText').textContent = fmt(pickedTotal) + ' of ' + fmt(orderedTotal) + ' picked';
+        document.getElementById('progressPct').textContent = pct + '%';
+        document.getElementById('progressBar').style.width = pct + '%';
+        document.getElementById('nothingToPick').hidden = outstanding > 0 || overpicked;
+        document.getElementById('pickComplete').hidden = orderedTotal <= 0 || outstanding > 0 || overpicked;
+    }
+    showPicked.addEventListener('change', refreshPicking);
+    refreshPicking();
+
     input.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') { return; }
         e.preventDefault();
@@ -193,19 +221,22 @@ $qty = fn($n) => (string)(int)round((float)$n);
                 if (cell) {
                     cell.textContent = fmt(d.qty_picked);
                     var row  = document.getElementById('line-' + d.line_id);
+                    row.dataset.picked = String(d.qty_picked);
+                    row.querySelector('input[name=qty]').value = d.qty_picked;
+                    refreshPicking();
                     var done = parseFloat(d.qty_picked) >= parseFloat(d.qty_ordered);
                     var over = d.status === 'over';
                     row.style.background = over ? '#fef2f2' : (done ? '#f0fdf4' : '#fff');
                     cell.style.color     = over ? '#dc2626' : (done ? '#16a34a' : '#111');
                 }
                 show(d.status === 'over' ? 'over' : 'ok',
-                     (d.status === 'over' ? '⚠ ' : '✓ ') + d.message +
+                     d.message +
                      (d.step > 1 ? '  (+' + fmt(d.step) + ')' : ''));
             } else {
-                show('bad', '✕ ' + d.message);
+                show('bad', d.message);
             }
         })
-        .catch(function () { show('bad', '✕ Could not reach the server — check the connection.'); });
+        .catch(function () { show('bad', 'Could not reach the server, check the connection.'); });
     });
 })();
 </script>

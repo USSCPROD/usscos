@@ -11,7 +11,7 @@ $plNum  = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
     <div>
         <h1 class="page-title" style="margin:0">Pull list</h1>
         <p class="page-subtitle" style="margin:.3rem 0 0">
-            Everything still owed across every open order, totalled by product — one walk
+            Quantities still to pick across open orders, totalled by product — one walk
             of the building instead of one per order. Short items are at the top.
         </p>
     </div>
@@ -153,6 +153,19 @@ $plNum  = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
 
 <?php endif; ?>
 
+<script>
+(function () {
+    var edited = false;
+    document.addEventListener('input', function () { edited = true; });
+    // Refresh after scanning in another tab, without discarding an entered quantity.
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' && !edited) window.location.reload();
+    });
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted && !edited) window.location.reload();
+    });
+})();
+</script>
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/app.php';
