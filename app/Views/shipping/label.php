@@ -149,7 +149,7 @@ $suggestedPackages = max(1, count($packages));
 
         <?php if (!empty($plan['missing'])): ?>
             <div class="alert" style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;margin-top:1rem;font-size:.88rem">
-                <strong>No weight or box on file for:</strong> <?= e(implode(', ', $plan['missing'])) ?>.
+                <strong>Packaging information needs review:</strong> <?= e(implode(', ', $plan['missing'])) ?>.
                 The total below is short by whatever those weigh, so check it on the scale
                 before printing — an understated weight is a bill from FedEx later.
             </div>

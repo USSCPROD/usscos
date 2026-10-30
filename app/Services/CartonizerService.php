@@ -56,8 +56,17 @@ class CartonizerService
             $productId = (int)($line['product_id'] ?? 0);
             $qty       = (float)($line['qty'] ?? 0);
 
-            if ($productId <= 0 || $qty <= 0) {
+            if ($qty <= 0) {
                 continue;
+            }
+            if ($productId <= 0) {
+                $item = (string)($line['quickbooks_item'] ?? '');
+                $productId = (new \App\Repositories\PackingProductRepository())->resolveItem($item) ?? 0;
+                if ($productId <= 0) {
+                    $missing[] = ($item !== '' ? $item : 'Unlinked line') . ': no unique catalog match; review whether a package is required.';
+                    $weighed = false;
+                    continue;
+                }
             }
 
             $product = Database::selectOne("

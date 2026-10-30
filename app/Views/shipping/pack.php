@@ -39,9 +39,6 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             short pick is not an error here.
         </p>
     </div>
-    <div>
-        <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--secondary">Label &amp; ship &rarr;</a>
-    </div>
 </div>
 
 <?php if ($order['pick_status'] === 'not_started'): ?>
@@ -85,6 +82,10 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
         <strong>✓ The box matches the pick.</strong> Ready to seal and ship.
         <div style="font-size:.85rem;margin-top:.3rem">
             Packed by <?= e($packerName !== '' ? $packerName : 'not recorded') ?>
+        </div>
+        <div style="text-align:center;margin-top:1rem">
+            <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--primary"
+               style="padding:.85rem 2rem;font-size:1.1rem">Label &amp; ship</a>
         </div>
     </div>
 <?php endif; ?>

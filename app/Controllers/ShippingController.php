@@ -367,13 +367,7 @@ class ShippingController extends Controller
                 fn(array $l) => $l + ['qty' => max(0.0, (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0))],
                 $lines
               )
-            : Database::select(
-                "SELECT li.product_id, li.qty AS qty, p.sku
-                 FROM invoice_line_items li
-                 LEFT JOIN products p ON p.id = li.product_id
-                 WHERE li.invoice_id = ? AND li.product_id IS NOT NULL",
-                [(int)$invoice['id']]
-              );
+            : (new \App\Repositories\PackingProductRepository())->invoiceLines((int)$invoice['id']);
 
         $plan = (new CartonizerService())->pack($forPacking);
 
