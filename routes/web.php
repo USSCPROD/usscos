@@ -50,7 +50,10 @@ Router::group(['middleware' => ['guest', 'csrf']], function () {
 // Authenticated routes
 // -------------------------------------------------------------------------
 
-Router::group(['middleware' => ['auth', 'internal', 'warehouse', 'csrf']], function () {
+Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csrf']], function () {
+
+    Router::get('/companies', [\App\Controllers\CompanyController::class, 'index']);
+    Router::post('/companies/switch', [\App\Controllers\CompanyController::class, 'switchCompany']);
 
     // Root redirect
     Router::get('/', [DashboardController::class, 'index'])->name('home');

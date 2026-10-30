@@ -507,8 +507,13 @@ class AdminController extends Controller
 
     public function usersUpdate(Request $request, Response $response, string $id = '0'): Response
     {
-        $this->repo->updateUser((int)$id, $_POST);
-        Session::flash('success', 'User updated.');
+        try {
+            $this->repo->updateUser((int)$id, $_POST);
+            Session::flash('success', 'User updated.');
+        } catch (\InvalidArgumentException $e) {
+            Session::flash('error', $e->getMessage());
+            return $response->redirect('/admin/users/' . (int)$id . '/edit');
+        }
         return $response->redirect('/admin/users');
     }
 

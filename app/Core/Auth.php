@@ -51,6 +51,7 @@ class Auth
     public static function login(array $user, bool $remember = false): void
     {
         Session::regenerate();
+        Session::forget('active_company');
         Session::set(Config::get('auth.session.key', 'auth_user'), $user['id']);
 
         Database::update(

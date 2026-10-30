@@ -21,8 +21,7 @@ $allMatch = $toVerify !== [] && !array_filter(
     fn($l) => abs((float)$l['qty_packed'] - (float)$l['qty_picked']) > 0.0001
 );
 
-$samePerson = !empty($order['picked_by']) && !empty($order['packed_by'])
-           && (int)$order['picked_by'] === (int)$order['packed_by'];
+$packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last'] ?? ''));
 ?>
 
 <div class="page-header">
@@ -84,12 +83,9 @@ $samePerson = !empty($order['picked_by']) && !empty($order['packed_by'])
 <?php if ($allMatch): ?>
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:1rem 1.1rem;margin-bottom:1.25rem">
         <strong>✓ The box matches the pick.</strong> Ready to seal and ship.
-        <?php if ($samePerson): ?>
-            <div style="font-size:.85rem;margin-top:.3rem">
-                Picked and packed by the same person — worth knowing, since a check on your own
-                work catches less than a second pair of eyes.
-            </div>
-        <?php endif; ?>
+        <div style="font-size:.85rem;margin-top:.3rem">
+            Packed by <?= e($packerName !== '' ? $packerName : 'not recorded') ?>
+        </div>
     </div>
 <?php endif; ?>
 

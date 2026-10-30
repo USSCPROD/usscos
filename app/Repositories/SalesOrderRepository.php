@@ -100,7 +100,8 @@ class SalesOrderRepository
                    tr.name AS tax_rate_name, tr.rate AS tax_rate_pct,
                    cm.message AS customer_message,
                    u.first_name AS rep_first, u.last_name AS rep_last,
-                   cb.first_name AS created_first, cb.last_name AS created_last
+                   cb.first_name AS created_first, cb.last_name AS created_last,
+                   packer.first_name AS packed_first, packer.last_name AS packed_last
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
             LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
@@ -108,6 +109,7 @@ class SalesOrderRepository
             LEFT JOIN customer_messages cm ON cm.id = so.customer_message_id
             LEFT JOIN users u ON u.id = so.rep_id
             LEFT JOIN users cb ON cb.id = so.created_by
+            LEFT JOIN users packer ON packer.id = so.packed_by
             WHERE so.id = :id
         ");
         $stmt->execute([':id' => $id]);

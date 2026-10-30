@@ -173,6 +173,7 @@ class Router
             'throttle' => \App\Middleware\ThrottleMiddleware::class,
             'apikey'   => \App\Middleware\ApiKeyMiddleware::class,
             'internal' => \App\Middleware\InternalOnlyMiddleware::class,
+            'company' => \App\Middleware\CompanyMiddleware::class,
             'warehouse' => \App\Middleware\WarehouseOnlyMiddleware::class,
         ];
 

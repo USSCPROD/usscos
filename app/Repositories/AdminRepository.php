@@ -644,9 +644,10 @@ class AdminRepository
 
     public function insertUser(array $d): void
     {
+        $permissions = \App\Services\CompanyAccess::permissionsFor(\App\Core\Auth::user() ?? [], null, $d);
         Database::insert(
-            'INSERT INTO users (company_id, first_name, last_name, email, password, role, department_id, phone, title, commission_rate, rep_code, is_active)
-             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)',
+            'INSERT INTO users (company_id, first_name, last_name, email, password, role, department_id, phone, title, commission_rate, rep_code, is_active, permissions)
+             VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)',
             [
                 $d['first_name'],
                 $d['last_name'],
@@ -658,13 +659,19 @@ class AdminRepository
                 $d['title']           ?: null,
                 ($d['commission_rate'] ?? '') !== '' ? (float)$d['commission_rate'] : null,
                 ($d['rep_code']        ?? '') !== '' ? $d['rep_code']               : null,
+                $permissions,
             ]
         );
     }
 
     public function updateUser(int $id, array $d): void
     {
-        $sql = 'UPDATE users SET first_name=?, last_name=?, email=?, role=?, department_id=?, phone=?, title=?, commission_rate=?, rep_code=?, is_active=?';
+        $target = $this->findUser($id);
+        if (!$target) {
+            throw new \InvalidArgumentException('User not found.');
+        }
+        $permissions = \App\Services\CompanyAccess::permissionsFor(\App\Core\Auth::user() ?? [], $target, $d);
+        $sql = 'UPDATE users SET first_name=?, last_name=?, email=?, role=?, department_id=?, phone=?, title=?, commission_rate=?, rep_code=?, is_active=?, permissions=?';
         $params = [
             $d['first_name'],
             $d['last_name'],
@@ -676,6 +683,7 @@ class AdminRepository
             ($d['commission_rate'] ?? '') !== '' ? (float)$d['commission_rate'] : null,
             ($d['rep_code']        ?? '') !== '' ? $d['rep_code']               : null,
             (int)($d['is_active'] ?? 1),
+            $permissions,
         ];
         if (!empty($d['password'])) {
             $sql .= ', password=?';

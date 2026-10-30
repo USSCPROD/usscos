@@ -39,6 +39,15 @@ $repRoles = ['rep', 'distributor'];
     <?= csrf_field() ?>
 
     <div class="card" style="padding:1.5rem;margin-bottom:1.25rem">
+        <fieldset><legend>Company access</legend>
+        <?php $selectedCompanies = $old['company_access'] ?? \App\Services\CompanyAccess::allowed($item ?: []); ?>
+        <?php foreach (\App\Services\CompanyAccess::COMPANIES as $companyKey => $companyName): ?>
+        <label style="display:block;margin:.5rem 0"><input type="checkbox" name="company_access[]" value="<?= e($companyKey) ?>" <?= in_array($companyKey, $selectedCompanies, true) ? 'checked' : '' ?>> <?= e($companyName) ?></label>
+        <?php endforeach; ?>
+        <p>Select one or both. Technical Coatings transaction screens are pending setup. The role below applies to all selected companies.</p>
+        </fieldset>
+    </div>
+    <div class="card" style="padding:1.5rem;margin-bottom:1.25rem">
         <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:1rem">Personal Info</div>
 
         <table style="width:100%;border-collapse:collapse">

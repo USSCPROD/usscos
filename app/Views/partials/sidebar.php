@@ -1,4 +1,11 @@
 <?php
+if (\App\Services\CompanyAccess::current() !== 'ussc') {
+    ?>
+    <div style="padding:1rem"><strong>Technical Coatings</strong></div>
+    <nav style="padding:1rem"><p><a href="/companies">Company workspace</a></p><p><a href="/settings/profile">My profile</a></p></nav>
+    <?php
+    return;
+}
 $user    = \App\Core\Auth::user();
 $current = $_SERVER['REQUEST_URI'] ?? '/';
 

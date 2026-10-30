@@ -226,3 +226,42 @@ decides whose inventory it is. Captured in
 - [BOOKKEEPER_QUESTIONS.md](BOOKKEEPER_QUESTIONS.md) — day-to-day practice
 - [USSCos_Accounting_Module_Spec.md](USSCos_Accounting_Module_Spec.md) — assumes a single
   entity throughout, so its chart of accounts and posting logic need revisiting against this
+
+
+## Company access foundation, October 30, 2026
+
+Implemented locally following authorization to add user company checkboxes and switching.
+Commit and deployment authorized October 30, 2026. Mar-Kov integration and transaction ownership decisions
+remain pending business answers.
+
+- Users can be assigned US Specialty Coatings, Technical Coatings, or both. Owners can
+  assign either company. Admins can change grants only for companies they can access;
+  admins cannot manage owner accounts. Users cannot remove their own management access.
+- Existing logins retain USSC access only. No existing account automatically gains TCC.
+- Grants use namespaced strings in the existing users.permissions JSON list. Other
+  permissions remain intact. No schema migration or production data update is required.
+- These are workspace authorization codes, not new ledger company IDs. Existing
+  users.company_id and existing business records are not reassigned. Before TCC
+  transactions are enabled, map these codes to verified legal-entity records and enforce
+  company ownership throughout repositories, attachments, integrations and reporting.
+- A dual-company user selects Company and presses Switch. Single-company users enter
+  their assigned workspace. Roles currently apply equally across assigned companies;
+  separate roles per company are not implemented.
+- The Technical workspace is intentionally limited to its landing page, profile and
+  company switching. Existing business routes, exports, documents and writes are denied
+  server-side while in Technical. The USSC sidebar is not rendered there.
+- Access is rechecked on each authenticated request. Switching rotates the CSRF token,
+  so forms left open in another tab must be reloaded. Revocation also rejects pending
+  writes instead of silently applying them to another company. Company switching is
+  recorded in the application log. Authenticated page responses are marked no-store.
+- This does not provide TCC purchasing, billing, inventory, accounting, or intercompany
+  transfers yet. Existing API-key integrations and public files are unchanged; this is
+  not a claim of complete data tenancy for all assets or integrations.
+- Email edits change the login address and preserve the password when its field is
+  blank. They do not provision a mailbox. Existing username login support remains.
+  The current user form still requires an email; username provisioning is separate.
+
+Validation: tests/CompanyAccessTest.php exercises isolated repository persistence and
+company route/permission checks, including unauthorized grants, Technical-only access,
+revocation and stale-form handling. Existing picking and fulfillment suites are rerun.
+The approved Packed by display correction is included in this deployment. Deployment verification receipts are retained with the server backup.
