@@ -468,6 +468,24 @@ class SalesOrderRepository
 
     public function collectPayment(int $id, string $method, string $reference, float $amount, int $userId): void
     {
+        $this->pdo->beginTransaction();
+        try {
+            if (FulfillmentRepository::installed()) {
+                (new FulfillmentRepository())->order($id,true);
+                if (FulfillmentRepository::orderIsManaged($id)) {
+                    throw new \RuntimeException('Use the fulfillment invoice to record payment.');
+                }
+            }
+            $this->collectPaymentWithin($id,$method,$reference,$amount,$userId);
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) { $this->pdo->rollBack(); }
+            throw $e;
+        }
+    }
+
+    private function collectPaymentWithin(int $id, string $method, string $reference, float $amount, int $userId): void
+    {
         // Update the SO
         $stmt = $this->pdo->prepare("
             UPDATE sales_orders SET

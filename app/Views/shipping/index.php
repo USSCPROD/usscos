@@ -28,6 +28,7 @@ $hasUnassigned = !empty($grouped['none']);
 
 $activeTab = $_GET['tab'] ?? 'all';
 ?>
+<?php if (\App\Services\FulfillmentPolicy::enabled()): ?><p><a class="btn btn--primary" href="<?= '/shipping/fulfillments' ?>">Shipping &amp; Fulfillment</a></p><?php endif; ?>
 
 <!--
     The header is already a flex row with space-between. The buttons belong in its right

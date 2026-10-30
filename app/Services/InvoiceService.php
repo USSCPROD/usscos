@@ -30,6 +30,35 @@ class InvoiceService extends Service
         $this->tax          = new TaxService();
     }
 
+    /** Called inside the fulfillment transaction. Billing never moves physical stock. */
+    public function createFulfillmentInvoice(array $so, array $term, array $lines, int $userId): int
+    {
+        if (!Database::connection()->inTransaction()) {
+            throw new \LogicException('Fulfillment billing requires a transaction.');
+        }
+        $date = date('Y-m-d');
+        $invoiceId = $this->invoices->insert([
+            ':customer_id'=>(int)$so['customer_id'], ':sales_order_id'=>(int)$so['id'],
+            ':invoice_number'=>$this->invoices->nextInvoiceNumber(), ':po_number'=>$so['po_number'] ?: null,
+            ':invoice_date'=>$date, ':due_date'=>date('Y-m-d',strtotime($date.' +'.(int)$term['days_due'].' days')),
+            ':payment_term_id'=>(int)$term['id'], ':ship_date'=>$so['fulfillment_ship_date'], ':tracking_number'=>null,
+            ':ship_via'=>$so['fulfillment_methods'], ':ship_address_1'=>$so['ship_address_1'] ?: null,
+            ':ship_address_2'=>$so['ship_address_2'] ?: null, ':ship_city'=>$so['ship_city'] ?: null,
+            ':ship_state'=>$so['ship_state'] ?: null, ':ship_zip'=>$so['ship_zip'] ?: null,
+            ':subtotal'=>0, ':discount_amount'=>0, ':tax_amount'=>0, ':total_amount'=>0, ':balance_due'=>0,
+            ':memo'=>$so['memo'] ?: null, ':internal_notes'=>$so['internal_notes'] ?: null,
+            ':created_by'=>$userId, ':rep_id'=>$so['rep_id'] ?: null,
+        ]);
+        $this->invoices->replaceLineItems($invoiceId,$lines);
+        $this->applyTax($invoiceId,$lines,[
+            'customer_id'=>(int)$so['customer_id'],'ship_state'=>$so['ship_state'],
+            'ship_zip'=>$so['ship_zip'],'invoice_date'=>$date,
+            'marketplace_tax_collected'=>(float)($so['marketplace_tax_collected'] ?? 0),
+        ],$so['channel'] ?? null);
+        $this->invoices->markAwaitingReview($invoiceId);
+        return $invoiceId;
+    }
+
     public function create(?int $fromSoId = null): array
     {
         $result = [
@@ -84,6 +113,13 @@ class InvoiceService extends Service
         $lines  = $this->parseLines($post);
         $totals = $this->calcTotals($lines, (float)($post['tax_rate_pct'] ?? 0));
         $soId   = ($post['sales_order_id'] ?? '') !== '' ? (int)$post['sales_order_id'] : null;
+
+        if ($soId && \App\Repositories\FulfillmentRepository::installed()) {
+            (new \App\Repositories\FulfillmentRepository())->order($soId,true);
+        }
+        if ($soId && \App\Repositories\FulfillmentRepository::orderIsManaged($soId)) {
+            throw new \RuntimeException('Create this invoice from Shipping & Fulfillment to avoid duplicate billing.');
+        }
 
         $invoiceId = $this->invoices->insert([
             ':customer_id'      => (int)$post['customer_id'],
@@ -186,6 +222,12 @@ class InvoiceService extends Service
     /** The body of shipAndInvoice(), which always runs inside its transaction. */
     private function shipAndInvoiceWithin(int $soId, int $userId, array $post): int
     {
+        if (\App\Repositories\FulfillmentRepository::installed()) {
+            (new \App\Repositories\FulfillmentRepository())->order($soId,true);
+        }
+        if (\App\Repositories\FulfillmentRepository::orderIsManaged($soId)) {
+            throw new \RuntimeException('Use this order\'s Shipping & Fulfillment page.');
+        }
         $so = $this->soRepo->findWithDetails($soId);
         if (!$so) throw new \RuntimeException('Sales order not found.');
         if (in_array($so['status'], ['invoiced', 'cancelled'])) {
@@ -442,6 +484,13 @@ class InvoiceService extends Service
             throw new \RuntimeException('Invoice not found.');
         }
 
+        $managed = \App\Repositories\FulfillmentRepository::invoiceIsManaged((int)$id);
+        if ($managed) {
+            $invoice = (new \App\Repositories\FulfillmentRepository())->invoice((int)$id);
+        }
+        if ($managed && !in_array($userRole,['owner','bookkeeper'],true)) {
+            throw new \RuntimeException('An owner or bookkeeper must edit a fulfillment invoice.');
+        }
         $isPaid      = in_array($invoice['status'], ['paid', 'void']);
         $isPrivileged = in_array($userRole, ['owner', 'bookkeeper']);
 
@@ -470,6 +519,22 @@ class InvoiceService extends Service
         // Line items — only for unpaid invoices
         if (!$isPaid) {
             $lines = $this->parseLines($post);
+            if ($managed) {
+                $original = $this->invoices->getLineItems((int)$id);
+                foreach ($original as $index=>$old) {
+                    $new = $lines[$index] ?? [];
+                    if ((string)($new['product_id'] ?? '') !== (string)($old['product_id'] ?? '')
+                        || (string)($new['quickbooks_item'] ?? '') !== (string)($old['quickbooks_item'] ?? '')
+                        || (float)($new['qty'] ?? -1) !== (float)$old['qty']) {
+                        throw new \RuntimeException('Keep fulfillment item quantities and identities unchanged. Use a credit for billed corrections.');
+                    }
+                }
+                foreach (array_slice($lines,count($original)) as $extra) {
+                    if ($extra['product_id'] || $extra['quickbooks_item'] || $extra['qty'] <= 0 || $extra['unit_price'] < 0) {
+                        throw new \RuntimeException('Only positive, unlinked handling or freight charge lines can be added here.');
+                    }
+                }
+            }
             $this->invoices->replaceLineItems((int)$id, $lines);
 
             // Re-resolved rather than kept: the delivery address may have been corrected
@@ -479,11 +544,14 @@ class InvoiceService extends Service
 
             // Keep stock in step with the corrected invoice. Only the difference moves:
             // ten down to eight puts two back, and a line added takes it out.
-            $this->stock->syncInvoice((int)$id, $lines, [
-                'type'          => 'sale',
-                'reference_num' => $invoice['invoice_number'] ?? null,
-                'notes'         => 'Invoice edited — stock brought back in line',
-            ]);
+            if (!$managed) {
+                $this->stock->syncInvoice((int)$id, $lines, [
+                    'type'=>'sale','reference_num'=>$invoice['invoice_number'] ?? null,
+                    'notes'=>'Invoice edited, stock brought back in line',
+                ]);
+            } else {
+                (new \App\Repositories\FulfillmentRepository())->resetInvoiceReview((int)$id);
+            }
         }
     }
 
@@ -616,6 +684,15 @@ class InvoiceService extends Service
      */
     public function approve(int $id, ?int $userId): array
     {
+        if (\App\Repositories\FulfillmentRepository::invoiceIsManaged($id)) {
+            if (!in_array(\App\Core\Auth::user()['role'] ?? '', ['owner','bookkeeper'], true)) {
+                throw new \RuntimeException('Invoice approval requires an owner or bookkeeper.');
+            }
+            $invoice = $this->invoices->findWithDetails($id);
+            if (!$invoice || $invoice['status']==='void') { throw new \RuntimeException('Invoice is unavailable.'); }
+            $this->invoices->markReviewed($id,$userId);
+            return ['status'=>'suppressed','message'=>'Invoice approved. Send the invoice from its Email action. No tracking email was sent.'];
+        }
         $this->invoices->markReviewed($id, $userId);
 
         return (new ShipmentNotificationService())->notify($id, true);

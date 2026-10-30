@@ -36,7 +36,8 @@
     },
     "scripts": {
         "migrate": "php database/migrate.php",
-        "seed": "php database/seed.php"
+        "seed": "php database/seed.php",
+        "test:fulfillment": "php tests/FulfillmentWorkflowTest.php"
     },
     "config": {
         "optimize-autoloader": true,

@@ -142,7 +142,13 @@ class SalesOrderController extends Controller
 
     public function update(Request $request, Response $response, string $id = '0'): Response
     {
-        $this->service->update((int)$id, $_POST);
+        try {
+            $this->service->update((int)$id, $_POST);
+        } catch (\PDOException $e) { throw $e;
+        } catch (\RuntimeException $e) {
+            Session::flash('error',$e->getMessage());
+            return $response->redirect('/sales-orders/'.(int)$id);
+        }
         return $response->redirect('/sales-orders');
     }
 
@@ -276,6 +282,10 @@ class SalesOrderController extends Controller
 
     public function collectPayment(Request $request, Response $response, string $id = '0'): Response
     {
+        if (\App\Repositories\FulfillmentRepository::orderIsManaged((int)$id)) {
+            Session::flash('error','Record payment against the fulfillment invoice.');
+            return $response->redirect('/shipping/fulfillments/order/'.(int)$id);
+        }
         $method    = trim($_POST['payment_method']    ?? '');
         $reference = trim($_POST['payment_reference'] ?? '');
         $amount    = (float)($_POST['payment_amount'] ?? 0);
@@ -286,7 +296,13 @@ class SalesOrderController extends Controller
         }
 
         $repo = new SalesOrderRepository();
-        $repo->collectPayment((int)$id, $method, $reference, $amount, (int)Auth::user()['id']);
+        try {
+            $repo->collectPayment((int)$id, $method, $reference, $amount, (int)Auth::user()['id']);
+        } catch (\PDOException $e) { throw $e;
+        } catch (\RuntimeException $e) {
+            Session::flash('error',$e->getMessage());
+            return $response->redirect('/sales-orders/'.(int)$id);
+        }
 
         Session::flash('success', 'Payment collected. Order marked as paid.');
         return $response->redirect('/sales-orders/' . (int)$id);

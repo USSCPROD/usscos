@@ -98,6 +98,9 @@ class ShipmentNotificationService
      */
     public function notify(int $invoiceId, bool $force = false): array
     {
+        if (\App\Repositories\FulfillmentRepository::invoiceIsManaged($invoiceId)) {
+            return ['status'=>'suppressed','to'=>null,'message'=>'Fulfillment tracking is recorded separately. No automatic carrier email was sent for this invoice.'];
+        }
         $invoice = Database::selectOne("
             SELECT i.*, c.company_name, c.email AS customer_email
             FROM invoices i

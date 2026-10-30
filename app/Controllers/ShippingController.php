@@ -334,6 +334,10 @@ class ShippingController extends Controller
             return $this->view('errors.404', ['title' => 'Not Found'], 404);
         }
 
+        if (\App\Repositories\FulfillmentRepository::orderIsManaged((int)$id)) {
+            return $response->redirect('/shipping/fulfillments/order/' . (int)$id);
+        }
+
         $fedex = new FedExShippingService();
         $lines = $this->repo->getPickLines((int)$id);
 
@@ -399,6 +403,10 @@ class ShippingController extends Controller
      */
     public function createLabel(Request $request, Response $response, string $id = '0'): Response
     {
+        if (\App\Repositories\FulfillmentRepository::orderIsManaged((int)$id)) {
+            Session::flash('error','Use the fulfillment record. The legacy label action is invoice-based.');
+            return $response->redirect('/shipping/fulfillments/order/' . (int)$id);
+        }
         $invoiceId = (int)($_POST['invoice_id'] ?? 0);
 
         if ($invoiceId <= 0) {

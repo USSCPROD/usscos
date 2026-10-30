@@ -176,6 +176,10 @@ Router::group(['middleware' => ['auth', 'internal', 'warehouse', 'csrf']], funct
     Router::post('/sales-orders/{id}/artwork/{artworkId}/remove',     [JobBinderController::class, 'removeArtwork'])->name('binder.artwork.remove');
     Router::post('/sales-orders/{id}/revision/{revisionId}/decision', [JobBinderController::class, 'decide'])->name('binder.artwork.decision');
 
+    Router::get('/shipping/fulfillments', [\App\Controllers\FulfillmentController::class, 'index']);
+    Router::get('/shipping/fulfillments/order/{id}', [\App\Controllers\FulfillmentController::class, 'order']);
+    Router::post('/shipping/fulfillments/order/{id}', [\App\Controllers\FulfillmentController::class, 'save']);
+
     Router::get('/shipping', [ShippingController::class, 'index'])->name('shipping');
     Router::get('/shipping/pull',       [ShippingController::class, 'pull'])->name('shipping.pull');
     Router::get('/shipping/release',    [ShippingController::class, 'release'])->name('shipping.release');

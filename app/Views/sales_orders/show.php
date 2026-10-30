@@ -49,6 +49,7 @@ function soInp(): string { return 'width:100%;padding:.62rem .75rem;font-size:.9
 function soRO(): string  { return 'padding:.6rem .85rem;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;font-size:.95rem;min-height:2.4rem;color:#374151'; }
 function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;white-space:nowrap;text-align:left'; }
 ?>
+<?php if (\App\Services\FulfillmentPolicy::enabled()): ?><p><a class="btn btn--primary" href="<?= '/shipping/fulfillments/order/'.(int)$so['id'] ?>">Shipping &amp; Fulfillment</a></p><?php endif; ?>
 
 <!-- Page header -->
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">

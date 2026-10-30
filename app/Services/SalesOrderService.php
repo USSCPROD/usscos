@@ -164,6 +164,25 @@ class SalesOrderService
 
     public function update(int $id, array $post): void
     {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            if (\App\Repositories\FulfillmentRepository::installed()) {
+                (new \App\Repositories\FulfillmentRepository())->order($id,true);
+            }
+            $this->updateWithin($id, $post);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+    }
+
+    private function updateWithin(int $id, array $post): void
+    {
+        if (\App\Repositories\FulfillmentRepository::orderIsManaged($id)) {
+            throw new \RuntimeException('This order has fulfillment allocations. Do not replace or delete its lines; reconcile its fulfillments first.');
+        }
         $so = $this->repo->findWithDetails($id);
         if (!$so) throw new \RuntimeException("Sales order not found");
 
@@ -201,6 +220,25 @@ class SalesOrderService
 
     public function delete(int $id): void
     {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            if (\App\Repositories\FulfillmentRepository::installed()) {
+                (new \App\Repositories\FulfillmentRepository())->order($id,true);
+            }
+            $this->deleteWithin($id);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+    }
+
+    private function deleteWithin(int $id): void
+    {
+        if (\App\Repositories\FulfillmentRepository::orderIsManaged($id)) {
+            throw new \RuntimeException('This order has fulfillment allocations. Do not replace or delete its lines; reconcile its fulfillments first.');
+        }
         $so = $this->repo->findWithDetails($id);
         if (!$so) throw new \RuntimeException("Sales order not found");
         $this->repo->delete($id);

@@ -14,8 +14,7 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
         </div>
         <h1 class="page-title" style="margin:0">Awaiting Review</h1>
         <p class="page-subtitle" style="margin:.25rem 0 0">
-            These have shipped. Add handling or freight, then approve — approving is what
-            sends the customer their tracking. Nothing has gone to them yet.
+            Review the invoice before customer communication. New fulfillment invoices may be COD bills prepared before handoff. Approval does not confirm payment.
         </p>
     </div>
 </div>
@@ -24,14 +23,14 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
     <div class="card" style="padding:3rem;text-align:center">
         <div style="font-size:1.05rem;color:#111;margin-bottom:.4rem">Nothing waiting</div>
         <p class="text-muted" style="margin:0;font-size:.9rem">
-            Every shipped invoice has been reviewed and its customer told.
+            No invoices are currently awaiting review. Check individual email delivery status separately.
         </p>
     </div>
 <?php else: ?>
     <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:.85rem 1.1rem;margin-bottom:1.25rem;font-size:.88rem;color:#92400e">
         <strong><?= count($invoices) ?> invoice<?= count($invoices) === 1 ? '' : 's' ?></strong>
-        worth <?= money($waiting) ?> shipped and waiting.
-        The customer is told when you approve, not before.
+        worth <?= money($waiting) ?> awaiting review.
+        For new fulfillment invoices, approve first, then use the invoice Email action.
     </div>
 
     <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
@@ -40,7 +39,7 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
                 <tr>
                     <th style="<?= $th ?>">Invoice</th>
                     <th style="<?= $th ?>">Customer</th>
-                    <th style="<?= $th ?>">Shipped</th>
+                    <th style="<?= $th ?>">Fulfillment date</th>
                     <th style="<?= $th ?>">Tracking</th>
                     <th style="<?= $th ?>;text-align:right">Total</th>
                     <th style="<?= $th ?>;text-align:right"></th>
@@ -70,10 +69,13 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
                         <?php endif; ?>
                     </td>
                     <td style="<?= $td ?>;color:#6b7280;font-size:.85rem">
-                        <?= $i['ship_date'] ? date('j M', strtotime($i['ship_date'])) : '—' ?>
+                        <?= $i['ship_date'] ? date('j M', strtotime($i['ship_date'])) : 'Before handoff' ?>
                     </td>
                     <td style="<?= $td ?>;font-family:monospace;font-size:.82rem">
-                        <?php if ($noTrack): ?>
+                        <?php if (!empty($i['fulfillment_methods'])): ?>
+                            <?= e(strtr($i['fulfillment_methods'], ['carrier'=>'Carrier Shipping','pickup'=>'Customer Pickup','delivery'=>'USSC Delivery'])) ?>
+                            <div style="font-family:inherit">Details are on the fulfillment record.</div>
+                        <?php elseif ($noTrack): ?>
                             <span style="color:#b45309;font-family:inherit">None yet</span>
                         <?php else: ?>
                             <?= e($i['tracking_number']) ?>
@@ -92,7 +94,7 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
                             <?= csrf_field() ?>
                             <button type="submit" class="btn btn--primary btn--sm"
                                     onclick="return confirm('Approve <?= e($i['invoice_number']) ?>? This sends the customer their tracking.')">
-                                Approve &amp; Send
+                                Approve
                             </button>
                         </form>
                     </td>
@@ -103,10 +105,7 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
     </div>
 
     <p style="font-size:.78rem;color:#9ca3af;margin:1rem 0 2rem;max-width:46rem">
-        Approving marks the invoice reviewed and sends the tracking email in one action,
-        rather than leaving two things to remember in the right order. If shipment emails
-        are switched off on this server, approving still clears the queue and records that
-        nothing was sent.
+        Approval marks an invoice reviewed. Existing carrier invoices may send tracking using the configured shipment-email setting. New fulfillment invoices require the invoice Email action after approval. Check the recorded send result before assuming the customer was notified.
     </p>
 <?php endif; ?>
 

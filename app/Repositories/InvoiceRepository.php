@@ -224,11 +224,14 @@ class InvoiceRepository
      */
     public function awaitingReview(): array
     {
+        $methods = FulfillmentRepository::installed()
+            ? "(SELECT GROUP_CONCAT(DISTINCT f.method ORDER BY f.method SEPARATOR ', ') FROM fulfillments f WHERE f.invoice_id=i.id)"
+            : 'NULL';
         return Database::select("
             SELECT i.id, i.invoice_number, i.invoice_date, i.ship_date, i.po_number,
                    i.subtotal, i.total_amount, i.tracking_number, i.shipment_email_status,
                    c.company_name, c.email AS customer_email,
-                   so.so_number,
+                   so.so_number, {$methods} AS fulfillment_methods,
                    (SELECT COUNT(*) FROM shipment_tracking t WHERE t.invoice_id = i.id) AS tracking_count
             FROM invoices i
             JOIN customers c ON c.id = i.customer_id

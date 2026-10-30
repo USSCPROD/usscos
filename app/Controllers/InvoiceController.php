@@ -65,8 +65,11 @@ class InvoiceController extends Controller
         $userRole = Auth::user()['role'] ?? 'user';
         try {
             $this->service->update((int)$id, $_POST, $userRole);
-        } catch (\RuntimeException) {
-            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        } catch (\PDOException $e) {
+            throw $e;
+        } catch (\RuntimeException $e) {
+            Session::flash('error',$e->getMessage());
+            return $response->redirect('/invoices/' . (int)$id);
         }
 
         Session::flash('success', 'Invoice saved.');
@@ -127,7 +130,13 @@ class InvoiceController extends Controller
      */
     public function approve(Request $request, Response $response, string $id = '0'): Response
     {
-        $result = $this->service->approve((int)$id, Auth::id());
+        try {
+            $result = $this->service->approve((int)$id, Auth::id());
+        } catch (\PDOException $e) { throw $e;
+        } catch (\RuntimeException $e) {
+            Session::flash('error',$e->getMessage());
+            return $response->redirect('/invoices/review');
+        }
 
         Session::flash(
             in_array($result['status'], ['sent', 'suppressed'], true) ? 'success' : 'error',
@@ -251,6 +260,11 @@ class InvoiceController extends Controller
         }
 
         $invoice   = $data['invoice'];
+        if (\App\Repositories\FulfillmentRepository::invoiceIsManaged((int)$id)
+            && ($invoice['review_status'] ?? '') !== 'approved') {
+            Session::flash('error','Approve the fulfillment invoice before emailing it.');
+            return $response->redirect('/invoices/' . (int)$id);
+        }
         $to        = trim($_POST['email_to']   ?? '');
         $fromEmail = trim($_POST['email_from'] ?? '');
         $note      = trim($_POST['email_note'] ?? '');
