@@ -120,6 +120,19 @@ The failure underneath turned out to be test data: TRUMARK's ship-to reads
 **Chattanooga, TN 30534** — and 30534 is Dawsonville, Georgia. FedEx now says so in
 plain words: *"Recipient state and postal code mismatch."*
 
+### 2026-11-10 — every press of Create bought another shipment
+
+The label form stayed open and identical after a successful run, so a slow page, a
+double click, or a retry after an error that had actually worked each produced another
+set of labels — **and FedEx can bill for every one**. One test order reached eighteen
+tracking numbers that way.
+
+The form is not removed, because a genuine extra carton happens. It folds into *"Another
+label for this shipment"* and says what pressing it costs; reprints come from the labels
+already listed. **Print all** merges every label for a shipment into one PDF using
+`pdfunite`, which is already on the server — twelve boxes is twelve labels, and twelve
+trips to a Print button is how one gets missed and a box goes out unlabelled.
+
 ### 2026-11-10 — labels were created and then orphaned
 
 Found while retrying the TRUMARK label. FedEx returned the PDFs, they were written to
