@@ -99,6 +99,27 @@ Nothing here is urgent, and all of it is needed before the real cutover.
 
 ## Fixed
 
+### 2026-11-10 — every FedEx error was unreadable
+
+*"FedEx refused the label: FedEx returned HTTP 400 with no message."*
+
+**FedEx gzips its responses, and curl was not asked to decompress them.** So
+`json_decode` was handed compressed bytes, failed, and the error parser — which only
+ever looked in `body.errors` — had nothing to report. This was not specific to one
+label: **every error FedEx has ever returned arrived as "no message"**, with the reason
+sitting in the body unread.
+
+Two fixes: `CURLOPT_ENCODING => ''` so curl undoes the compression, and an error parser
+that looks everywhere FedEx puts a reason (`errors`, `alerts`, nested under `output`),
+names the offending field when there is one, and falls back to the raw response rather
+than to a sentence that says nothing.
+
+The same client does tracking, so those errors become readable too.
+
+The failure underneath turned out to be test data: TRUMARK's ship-to reads
+**Chattanooga, TN 30534** — and 30534 is Dawsonville, Georgia. FedEx now says so in
+plain words: *"Recipient state and postal code mismatch."*
+
 ### 2026-11-10 — packing is now required before release
 
 Decided by Chip. An order could go from Picked straight to invoiced with the box never
