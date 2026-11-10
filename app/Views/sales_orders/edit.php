@@ -554,12 +554,25 @@ function soInpStyle2(string $type): string {
         });
         const rate=parseFloat(document.getElementById('taxRatePct').value)||0;
         const taxAmt=taxable*rate/100;
+
+        /*
+         * Shipping is part of the total.
+         *
+         * It saves as a line, so the stored total has always included it — but the
+         * figure on the screen was adding up the line ROWS only, and the shipping
+         * field is not one of them. The number you read and the number that saved
+         * disagreed, which is the worst way for a total to be wrong.
+         *
+         * Subtotal stays goods-only, which is what a subtotal means.
+         */
+        const ship=parseFloat(document.getElementById('fShipAmount').value)||0;
+
         document.getElementById('fSubtotal').textContent=fmt(sub);
         const dr=document.getElementById('fDiscRow');
         dr.style.display=disc>0?'':'none';
         if(disc>0) document.getElementById('fDiscount').textContent='−'+fmt(disc);
         document.getElementById('fTax').textContent=fmt(taxAmt);
-        document.getElementById('fTotal').textContent=fmt(sub-disc+taxAmt);
+        document.getElementById('fTotal').textContent=fmt(sub-disc+taxAmt+ship);
     }
     function bindRow(tr){
         tr.querySelectorAll('.f-calc').forEach(el=>{
@@ -629,6 +642,7 @@ function soInpStyle2(string $type): string {
     }
     var FREIGHT_MARKUP = <?= json_encode((float)(\App\Core\Config::get('shipping.freight_markup') ?? 20.0)) ?>;
     document.getElementById('lineBody').addEventListener('input',ensureSpareRow);
+    document.getElementById('fShipAmount').addEventListener('input',recalcAll);
 
     /*
      * Ask FedEx what it would cost.
