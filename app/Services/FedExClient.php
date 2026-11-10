@@ -228,6 +228,11 @@ class FedExClient
             CURLOPT_TIMEOUT        => 45,
             CURLOPT_CONNECTTIMEOUT => 15,
             CURLOPT_HTTPHEADER     => $headers,
+            // FedEx gzips its responses. Without this curl hands back the compressed
+            // bytes, json_decode fails on them, and every error FedEx has ever sent us
+            // arrived as 'HTTP 400 with no message' — the reason was in the body all
+            // along, unreadable. An empty string means "any encoding curl can undo".
+            CURLOPT_ENCODING       => '',
         ]);
 
         if ($payload !== [] || $method !== 'GET') {
