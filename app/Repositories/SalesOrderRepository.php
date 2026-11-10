@@ -1173,8 +1173,14 @@ class SalesOrderRepository
     {
         // ship_mode comes along so the form knows whether a FedEx quote is even a
         // sensible thing to offer. Nobody can ask FedEx what an LTL pallet costs.
+        // carrier_code as well as ship_mode: the quote button is a FedEx button, not a
+        // parcel button. We have a FedEx account and no other, so offering it against
+        // UPS would price a UPS shipment at FedEx's rates and look authoritative doing
+        // it — a wrong number is worse than no number.
         return $this->pdo->query("
-            SELECT id, name, COALESCE(ship_mode, 'other') AS ship_mode
+            SELECT id, name,
+                   COALESCE(ship_mode, 'other')  AS ship_mode,
+                   COALESCE(carrier_code, '')    AS carrier_code
             FROM ship_via WHERE is_active = 1 ORDER BY sort_order, name
         ")->fetchAll(\PDO::FETCH_ASSOC);
     }

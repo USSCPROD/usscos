@@ -211,7 +211,7 @@ $currentUser = \App\Core\Auth::user();
                 <select name="ship_via_id" id="shipViaSelect" style="<?= soInpStyle() ?>">
                     <option value="" data-mode="">— Select —</option>
                     <?php foreach ($ship_via_options as $sv): ?>
-                        <option value="<?= (int)$sv['id'] ?>" data-mode="<?= e($sv['ship_mode'] ?? 'other') ?>"
+                        <option value="<?= (int)$sv['id'] ?>" data-mode="<?= e($sv['ship_mode'] ?? 'other') ?>" data-carrier="<?= e($sv['carrier_code'] ?? '') ?>"
                             <?= (int)$sv['id'] === $defaultShipViaId ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -565,17 +565,26 @@ function soThStyle(): string {
         const via=document.getElementById('shipViaSelect');
         const wrap=btn.parentNode;
         function syncQuoteBtn(){
-            const mode=via && via.options[via.selectedIndex]
-                ? (via.options[via.selectedIndex].dataset.mode||'') : '';
-            const parcel = mode==='parcel' || mode==='';
-            wrap.style.display = parcel ? '' : 'none';
-            if(!parcel){
-                out.innerHTML = mode==='freight'
-                    ? '<div style="color:#6b7280">Freight — get the price from Keubix and add $'
-                      + FREIGHT_MARKUP.toFixed(2) + '.</div>'
-                    : '';
-            } else if(out.textContent.indexOf('Keubix')>-1){
-                out.innerHTML='';
+            const opt = via && via.selectedIndex>=0 ? via.options[via.selectedIndex] : null;
+            const mode = opt ? (opt.dataset.mode||'') : '';
+            const carrier = opt ? (opt.dataset.carrier||'') : '';
+
+            // FedEx only, and only once something is actually chosen. Nothing selected
+            // is not a parcel shipment, it is an unanswered question.
+            const canQuote = carrier==='fedex';
+            wrap.style.display = canQuote ? '' : 'none';
+
+            if(canQuote){
+                if(out.textContent.indexOf('Keubix')>-1 || out.textContent.indexOf('Choose')>-1) out.innerHTML='';
+                return;
+            }
+            if(mode==='freight'){
+                out.innerHTML='<div style="color:#6b7280">Freight — get the price from Keubix and add $'
+                             + FREIGHT_MARKUP.toFixed(2) + '.</div>';
+            } else if(!opt || opt.value===''){
+                out.innerHTML='<div style="color:#9ca3af">Choose how it ships to price it.</div>';
+            } else {
+                out.innerHTML='<div style="color:#9ca3af">No quote for this carrier — type the amount.</div>';
             }
         }
         if(via) via.addEventListener('change',syncQuoteBtn);
