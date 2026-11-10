@@ -21,6 +21,31 @@ The end-to-end flow — what each person does and sees, in order — is written 
 
 ## Open — waiting on Chip
 
+### Reps: two rep columns, and only one login linked
+
+Found 10 November 2026 while wiring distributor pricing.
+
+- **`customers.sales_rep_id` → `sales_reps` is the live link.** QuickBooks populates it,
+  314 customers carry it, and `AccessScope` uses it to decide which customers a rep
+  sees. It fails closed: a rep login with no rep record sees nothing.
+- **`customers.rep_id` → `users` is dead.** It came from a migration collision years
+  ago and `AccessScope` explicitly ignores it — but **the dropdown on the customer edit
+  page writes to it**, so assigning a rep there changes nothing. One customer in the
+  database has it set. That picker should point at `sales_reps`, and `rep_id` should be
+  retired.
+- **Only 1 of 33 reps is linked to a login**, so rep scoping cannot be tested yet.
+  Chris Danis (38 customers) and Jack Curlings (34) are in `sales_reps` and need logins.
+  **William Lavelle is not in the list at all** and needs adding.
+
+Chip's requirements, not yet built: a rep sees **only their own customers**; a rep may
+**add a customer**, but the system must first check whether that customer already
+exists and already has a rep assigned.
+
+Still to settle: whether being a rep should be a **flag** on a user rather than a role,
+so somebody can see sales screens without being assignable for credit — which is the
+distinction Larry Fitzpatrick showed was needed.
+
+
 ### Emailed payment links — Square
 
 Chip described this on 10 November 2026: customers pay over the phone, **or are sent a
@@ -149,6 +174,19 @@ The same client does tracking, so those errors become readable too.
 The failure underneath turned out to be test data: TRUMARK's ship-to reads
 **Chattanooga, TN 30534** — and 30534 is Dawsonville, Georgia. FedEx now says so in
 plain words: *"Recipient state and postal code mismatch."*
+
+### 2026-11-10 — Larry Fitzpatrick was in the rep list
+
+Not something anyone did in USSCOS: the rep list comes from QuickBooks, which had him
+as the sales rep on 36 accounts. He is sales staff, not a rep.
+
+`database/retire_sales_reps.php` holds the names that must never be in the rep list and
+takes them out — deactivating the rep record rather than deleting it, so historical
+orders still read correctly, and unassigning their customers so a real rep can be given
+them. 36 accounts are now unassigned.
+
+**Re-runnable on purpose.** The real import will bring him back; run it again
+afterwards.
 
 ### 2026-11-10 — shipping could not be charged for at all
 
