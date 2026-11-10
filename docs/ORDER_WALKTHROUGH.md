@@ -125,12 +125,29 @@ There is a **Confirm without scanning** fallback for when a label will not read.
 records the order as *confirmed by a person* rather than *scan-verified* — so afterwards
 you can still tell a box a human checked from a box a scanner read.
 
-**On the queue, the chips tell you where each order stands:** Picking → Picked →
-Verified (scanned) or Confirmed (by hand).
+**On the queue, the chips tell you where each order stands.** The first is the pick, the
+second is the pack. Hover any of them for the sentence that explains it.
+
+| Badge | Means |
+|---|---|
+| Picking / Picked / Short | how far the pulling got |
+| Packing | some of the box scanned in, not all |
+| **Confirmed** | a person checked the box by eye — pressed *Confirm without scanning* |
+| **Verified** | every item was scanned and matched the pick |
+| Mismatch | the box did not match, and somebody wrote down why |
+
+Confirmed and Verified both mean packing is finished. They are kept apart because the
+difference is the evidence, and that is the whole reason the bench exists.
 
 ---
 
 ## Phase 5 — The clerk releases it, and the invoice is created
+
+**An order cannot be released until it has been packed and verified.** *Ready to ship*
+shows **Pack & verify first** instead of a Ship button until the box has been checked.
+The same rule guards the Ship & Invoice button on the sales order, so there is no way
+round it.
+
 
 **Who:** shipping clerk / manager (Hannah). **Screen:** Shipping → **Ready to ship**.
 

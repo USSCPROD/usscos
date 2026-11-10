@@ -77,7 +77,6 @@ Two things follow, and the second matters more than the first:
 | 186 non-stencil products have `gross_weight` but no `case_weight_gross` | The cartonizer reads `case_weight_gross`, so these ship without a weight |
 | 44 traffic paints and 17 striping machines are misfiled under Specialty Coatings | Category assignment, not a code fault |
 | `database/issue_draft_invoices.php` | Only exists for invoices stranded by the old draft behavior. Delete it once the data is re-imported |
-| `pack_status` stays `not_started` and nothing requires packing before release | An order can be released and invoiced without ever being verified at the pack bench. *Ready to ship* reads Complete off the picked quantity alone. Worth deciding whether packing should gate release |
 | A new sales order is saved as **Draft**, and a draft is invisible to the shipping queue | Nothing on the order says so. Found on 2026-11-10 while walking the flow — it is the most likely thing to derail a demo. Worth either defaulting to Confirmed or saying plainly on the order that shipping cannot see it yet |
 | The id in the URL is not the SO number | `/sales-orders/24` is SO #11. Every link passes the right one, so it only bites when a URL is typed or read aloud |
 
@@ -99,6 +98,23 @@ Nothing here is urgent, and all of it is needed before the real cutover.
 ---
 
 ## Fixed
+
+### 2026-11-10 — packing is now required before release
+
+Decided by Chip. An order could go from Picked straight to invoiced with the box never
+checked, which is the error the scan-to-verify bench exists to catch.
+
+The gate tests the **quantities**, not the status word: `pack_status` is not reset when
+an order part-ships, so an order packed once and then picked again would still read
+*verified* while carrying goods nobody had looked at. `mismatch` passes deliberately —
+somebody looked, wrote down what was wrong and chose to ship it.
+
+It guards both doors: *Ready to ship* and the **Ship & Invoice** button on the sales
+order. *Ready to ship* shows **Pack & verify first** rather than a button that refuses.
+
+**CPU** is what USSC calls customer pick-up, so that is what the screens call it.
+Parcel, Freight and CPU are shown whether or not they have work today. A CPU order
+offers no carrier label.
 
 ### 2026-11-10 — the pack bench was counting the wrong things
 
