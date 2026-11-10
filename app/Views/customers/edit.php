@@ -397,13 +397,25 @@
             </div>
         </div>
 
+        <?php
+        /*
+         * Active lives on the first tab, and only there.
+         *
+         * There were two checkboxes named is_active on this one form — this one, and
+         * the "Active" box on the General tab. An unticked checkbox submits nothing,
+         * so whichever one you could see, the other was still ticked on a hidden tab
+         * and still sent is_active=1. Unticking either had no effect, and the page
+         * came back saying Active, which reads as a save that silently failed.
+         *
+         * Two controls for one field is the fault, not which of them wins.
+         */
+        ?>
         <div style="border-top:1px solid #e5e7eb;margin:1.5rem 0"></div>
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:1rem">Status</div>
-
-        <label class="checkbox-label">
-            <input type="checkbox" name="is_active" value="1" <?= $c['is_active'] ? 'checked' : '' ?>>
-            Active customer
-        </label>
+        <div class="text-muted text-sm">
+            Whether this customer is active is on the
+            <a href="#" onclick="switchEditTab('company');return false;"
+               style="color:#0A3D91">Company</a> tab.
+        </div>
     </div>
 
 </div><!-- end tab card -->
