@@ -83,6 +83,26 @@ $activeTab = $_GET['tab'] ?? 'all';
 </div>
 
 <?php
+/*
+ * A legend, on the page.
+ *
+ * These badges were explained in title attributes, which need a mouse and a second of
+ * patience — and the bench runs on a tablet, where hover does not happen at all. A
+ * line of text costs nothing and everybody can read it.
+ */
+?>
+<div style="font-size:.78rem;color:#6b7280;margin:-.4rem 0 1rem;line-height:1.8">
+    <strong style="color:#374151">What the tags mean:</strong>
+    <span style="white-space:nowrap"><strong>Picking</strong> partly pulled</span> ·
+    <span style="white-space:nowrap"><strong>Picked</strong> all pulled</span> ·
+    <span style="white-space:nowrap"><strong>Short</strong> cannot be filled in full</span> ·
+    <span style="white-space:nowrap"><strong>Packing</strong> box partly scanned</span> ·
+    <span style="white-space:nowrap"><strong>Confirmed</strong> a person checked the box by eye</span> ·
+    <span style="white-space:nowrap"><strong>Verified</strong> every item scanned and matched</span> ·
+    <span style="white-space:nowrap"><strong>Mismatch</strong> box did not match, reason recorded</span>
+</div>
+
+<?php
 // Decide which orders to show for active tab
 if ($activeTab === 'all') {
     $displayOrders = $orders;
