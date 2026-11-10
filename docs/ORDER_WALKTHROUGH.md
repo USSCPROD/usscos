@@ -134,7 +134,12 @@ Pressing **Ship all** or **Ship 22**:
 
 ## Phase 5 — The label
 
-**Who:** shipping clerk. **Screen:** Label.
+**Who:** shipping clerk **or** the warehouse — decided 2026-11-10, either can do it.
+**Screen:** Label.
+
+A warehouse login already reaches this screen: the **Label** button is on every row of
+the shipping queue, and reprints live at the bottom of the label screen under *Labels on
+this shipment*. Nothing had to be opened up for them.
 
 The system proposes the packing — *"12 boxes, 438 lb"* — from the pack sizes, and will
 tell you when the answer is wrong: *"This looks like freight, not parcel."*
@@ -189,7 +194,7 @@ ACCOUNTS           Receive Payment
 
 | Role | Lands on | Sees |
 |---|---|---|
-| **Warehouse** (DaQuan, Chris, Greg, Josh) | Shipping Queue | Shipping and Receiving only. No customers, pricing, costs or accounting. A typed URL is refused, not just hidden |
+| **Warehouse** (DaQuan, Chris, Greg, Josh) | Shipping Queue | Shipping and Receiving only — including picking, packing and **printing labels**. No customers, pricing, costs or accounting. A typed URL is refused, not just hidden |
 | **Shipping manager** (Hannah) | Dashboard — shipping work, tasks, activity | The full application. She enters orders too, so she is deliberately *not* on a warehouse login |
 | **Sales** | Dashboard — their own numbers | Their pipeline, leads, quotes, overdue accounts and quiet accounts. **No company revenue, A/R or stock value** |
 | **Bookkeeper** | Dashboard — receivables | Finance, without the sales targets |
@@ -215,7 +220,8 @@ Orders #1–30 are seeded test data, marked *"SEED — test order, safe to delet
 5. **Ready to ship.** Show a Complete order next to a Short one, and the Ship all /
    Ship N / Hold choice. Release yours.
 6. **The invoice appears.** Note it bills what was picked.
-7. **Label.** Type a weight, create the label. Mention the sandbox.
+7. **Label.** Type a weight, create the label. Mention the sandbox. Either the clerk
+   or the warehouse does this step.
 8. **Customer → Receive Payment.** Apply the payment, and the loop is closed.
 
 If anything is missing from the shipping screens, check the order's status first. It is
