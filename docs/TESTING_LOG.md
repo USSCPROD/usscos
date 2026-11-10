@@ -98,6 +98,18 @@ Two things follow, and the second matters more than the first:
 | A new sales order is saved as **Draft**, and a draft is invisible to the shipping queue | Nothing on the order says so. Found on 2026-11-10 while walking the flow — it is the most likely thing to derail a demo. Worth either defaulting to Confirmed or saying plainly on the order that shipping cannot see it yet |
 | The id in the URL is not the SO number | `/sales-orders/24` is SO #11. Every link passes the right one, so it only bites when a URL is typed or read aloud |
 
+## Open — before anyone quotes a customer
+
+**Switch `FEDEX_ENVIRONMENT` to production and check one quote.** Sandbox returns list
+price — a test account has no negotiated rates, which is why ACCOUNT and LIST come back
+identical there. The quote screen says so on screen, but nobody should price a real
+order off it until the live key is in and the figure has been compared against a known
+FedEx quote once.
+
+The quote picks the **ACCOUNT** rate explicitly. It used to take whichever rate FedEx
+listed first, which was invisible in sandbox (both identical) and would have quoted
+list price in production.
+
 ## Open — deferred to the import
 
 Deferred by Chip on 2026-10-29: *"let's worry about the import when we get closer."*
