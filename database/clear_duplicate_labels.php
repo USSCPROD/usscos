@@ -50,6 +50,39 @@ foreach ($rows as $r) {
     $batches[(int)$r['invoice_id']][(string)$r['created_at']][] = $r;
 }
 
+/**
+ * Label files on disk that no tracking row points at.
+ *
+ * Separate from the repeat batches, and worth sweeping in the same pass: labels were
+ * orphaned for weeks by a bug that never recorded where they were saved, and a PDF
+ * nothing references is just something to trip over later. Unreachable by definition,
+ * so removing one cannot take a label away from anybody.
+ *
+ * @return list<string> absolute paths
+ */
+function orphanedLabels(): array
+{
+    $known = [];
+
+    foreach (Database::select("SELECT label_path FROM shipment_tracking WHERE label_path IS NOT NULL") as $r) {
+        $path = (string)$r['label_path'];
+
+        if ($path !== '') {
+            $known[BASE_PATH . '/public' . $path] = true;
+        }
+    }
+
+    $orphans = [];
+
+    foreach (glob(BASE_PATH . '/public/uploads/labels/*/*.pdf') ?: [] as $file) {
+        if (!isset($known[$file])) {
+            $orphans[] = $file;
+        }
+    }
+
+    return $orphans;
+}
+
 $doomed = [];
 
 foreach ($batches as $invoiceId => $byTime) {
@@ -71,8 +104,10 @@ foreach ($batches as $invoiceId => $byTime) {
     }
 }
 
-if ($doomed === []) {
-    echo "No repeat batches. Nothing to do.\n";
+$orphans = orphanedLabels();
+
+if ($doomed === [] && $orphans === []) {
+    echo "No repeat batches and no orphaned label files. Nothing to do.\n";
     exit(0);
 }
 
@@ -99,6 +134,14 @@ foreach ($byInvoice as $invoiceNumber => $rowsFor) {
 }
 
 printf("\n%d tracking number(s) across %d invoice(s).\n", count($doomed), count($byInvoice));
+
+if ($orphans !== []) {
+    printf("\n%d label file(s) on disk that nothing points at:\n", count($orphans));
+
+    foreach ($orphans as $f) {
+        echo '    ' . str_replace(BASE_PATH . '/public', '', $f) . "\n";
+    }
+}
 
 if (!$commit) {
     echo "\nNothing written. Re-run with --commit to apply.\n";
@@ -134,7 +177,24 @@ try {
     }
 
     $pdo->commit();
-    printf("\nDone. %d tracking number(s) removed, %d label file(s) deleted.\n", count($doomed), $files);
+
+    // After the commit: the rows are gone, so anything still unreferenced is rubbish.
+    // Recomputed rather than reusing the list above, which was taken before the delete.
+    $swept = 0;
+
+    foreach (orphanedLabels() as $f) {
+        if (@unlink($f)) {
+            $swept++;
+        }
+    }
+
+    printf(
+        "\nDone. %d tracking number(s) removed, %d label file(s) deleted with them, "
+        . "%d orphaned file(s) swept.\n",
+        count($doomed),
+        $files,
+        $swept
+    );
 } catch (\Throwable $e) {
     $pdo->rollBack();
     fwrite(STDERR, "\nRolled back: " . $e->getMessage() . "\n");
