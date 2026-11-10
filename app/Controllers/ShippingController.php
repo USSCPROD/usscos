@@ -354,7 +354,7 @@ class ShippingController extends Controller
      */
     public function pull(Request $request, Response $response): Response
     {
-        $benches = ['parcel', 'freight', 'pickup', 'other'];
+        $benches = ['parcel', 'freight', 'delivery', 'pickup', 'other'];
         $bench   = (string)($request->query('bench') ?? '');
         $bench   = in_array($bench, $benches, true) ? $bench : '';
 

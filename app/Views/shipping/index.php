@@ -19,10 +19,11 @@ $tomorrow = date('Y-m-d', strtotime('+1 day'));
 // One tab per BENCH that has work. Parcel and freight are different people, and a
 // tab each for FedEx and FedEx Freight put one of them inside the other's list.
 $benchNames = [
-    'parcel'  => 'Parcel (FedEx, UPS)',
-    'freight' => 'Freight',
-    'pickup'  => 'Pick-up',
-    'other'   => 'Other',
+    'parcel'   => 'Parcel (FedEx, UPS)',
+    'freight'  => 'Freight',
+    'delivery' => 'Our truck',
+    'pickup'   => 'Collected',
+    'other'    => 'Other',
 ];
 
 $tabsWithOrders = [];

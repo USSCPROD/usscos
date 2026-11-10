@@ -28,11 +28,12 @@ $plNum  = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
  * people, and a single combined list makes each of them read past the other's work.
  */
 $benchTabs = [
-    ''        => 'Everything',
-    'parcel'  => 'Parcel',
-    'freight' => 'Freight',
-    'pickup'  => 'Pick-up',
-    'other'   => 'No carrier',
+    ''         => 'Everything',
+    'parcel'   => 'Parcel',
+    'freight'  => 'Freight',
+    'delivery' => 'Our truck',
+    'pickup'   => 'Collected',
+    'other'    => 'No carrier',
 ];
 $activeBench = $bench ?? '';
 ?>

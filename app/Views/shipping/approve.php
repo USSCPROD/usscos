@@ -6,27 +6,35 @@
  * Split by bench, because parcel and freight are worked by different people and
  * neither wants the other's orders mixed into their list.
  */
-$byBench = ['parcel' => [], 'freight' => [], 'pickup' => [], 'other' => []];
+$byBench = [
+    'unassigned' => [], 'parcel' => [], 'freight' => [],
+    'delivery'   => [], 'pickup' => [], 'other'   => [],
+];
 
 foreach ($orders as $o) {
-    // An order with no carrier yet is nobody's work: it cannot be sorted to a bench
-    // until somebody says how it goes. It is listed on its own, above both.
-    $bench = empty($o['ship_via_id']) ? 'other' : ($o['ship_mode'] ?? 'other');
+    // No carrier at all is its own case, listed first. It is not the same as a carrier
+    // we simply do not sort to a bench, and reading them as one made an order going out
+    // on our own truck look like one nobody had routed.
+    $bench = empty($o['ship_via_id']) ? 'unassigned' : ($o['ship_mode'] ?? 'other');
     $byBench[$bench][] = $o;
 }
 
 $benchLabel = [
-    'parcel'  => 'Parcel — FedEx, UPS, USPS',
-    'freight' => 'Freight',
-    'pickup'  => 'Customer pick-up & will call',
-    'other'   => 'No carrier yet',
+    'unassigned' => 'No carrier yet',
+    'parcel'     => 'Parcel — FedEx, UPS, USPS',
+    'freight'    => 'Freight',
+    'delivery'   => 'Our own truck',
+    'pickup'     => 'Customer collects',
+    'other'      => 'Other',
 ];
 
 $benchNote = [
-    'parcel'  => 'Boxes on the parcel bench.',
-    'freight' => 'Pallets and LTL. Worked separately from parcel.',
-    'pickup'  => 'Nothing to label — the customer collects it.',
-    'other'   => 'Set how each one ships before approving it, or the warehouse cannot tell whose work it is.',
+    'unassigned' => 'Say how each one ships before approving it, or the warehouse cannot tell whose work it is.',
+    'parcel'     => 'Boxes on the parcel bench.',
+    'freight'    => 'Pallets and LTL. Worked separately from parcel.',
+    'delivery'   => 'USSC delivery. No carrier label to buy.',
+    'pickup'     => 'Nothing to label — the customer collects it.',
+    'other'      => 'Not sorted to a bench.',
 ];
 
 $prio = [
