@@ -207,10 +207,14 @@ if ($activeTab === 'all') {
                             <a href="/shipping/<?= (int)$o['id'] ?>/pack"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Pack</a>
+                            <?php /* "Release" said nothing about what it does. It invoices
+                                      what has been picked, and that is what the button
+                                      should say — it is also the one step here that
+                                      bills a customer. */ ?>
                             <a href="/shipping/release"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #16a34a;border-radius:5px;color:#16a34a;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''"
-                               title="Invoice what is picked — the step between packing and labelling">Release</a>
+                               title="Ready to ship — invoice what has been picked, then make the label">Invoice</a>
                             <a href="/shipping/<?= (int)$o['id'] ?>/label"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Label</a>

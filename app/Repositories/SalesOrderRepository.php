@@ -632,6 +632,7 @@ class SalesOrderRepository
             WHERE so.status IN ('confirmed','processing','partially_shipped')
               AND so.approved_at IS NOT NULL
               AND (li.qty_ordered - COALESCE(li.qty_picked, 0)) > 0
+              AND NOT " . self::NOT_GOODS . "
               {$benchWhere}
             ORDER BY p.sku, so.ship_by IS NULL, so.ship_by, so.id
         ", $benchParams);
@@ -854,6 +855,27 @@ class SalesOrderRepository
         ");
     }
 
+    /**
+     * Nothing anybody picks or packs. Shipping, handling, freight, a delivery charge,
+     * a discount: a line on the order and money on the invoice, but not an object in
+     * the building. Listing them at the bench asks somebody to go and find a thing
+     * that does not exist, and then to count it into a box.
+     *
+     * Matched on the product's item type where there is a product, and on the wording
+     * where there is not - a typed 'Shipping and Handling' line has no product to ask.
+     * A free-text line that is NOT a charge still appears, because that is a real thing
+     * somebody has to go and find.
+     */
+    private const NOT_GOODS = "
+        (
+            (li.product_id IS NOT NULL
+             AND COALESCE(p.item_type,'') NOT IN ('inventory_part','inventory_assembly'))
+         OR (li.product_id IS NULL
+             AND CONCAT(COALESCE(li.quickbooks_item,''), ' ', COALESCE(li.description,''))
+                 REGEXP '(^|[^a-z])(shipping|handling|freight|delivery|surcharge|discount|fuel charge|service charge)([^a-z]|$)')
+        )
+    ";
+
     public function getPickLines(int $salesOrderId): array
     {
         $stmt = $this->pdo->prepare("
@@ -865,6 +887,7 @@ class SalesOrderRepository
             FROM sales_order_line_items li
             LEFT JOIN products p ON p.id = li.product_id
             WHERE li.sales_order_id = ?
+              AND NOT " . self::NOT_GOODS . "
             ORDER BY li.sort_order, li.id
         ");
         $stmt->execute([$salesOrderId]);

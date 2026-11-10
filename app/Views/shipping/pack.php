@@ -35,7 +35,9 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             <span style="font-weight:400;color:#6b7280"> — <?= e($order['company_name']) ?></span>
         </h1>
         <p class="page-subtitle" style="margin:.3rem 0 0">
-            Scan each item as it goes in the box. This checks the pick — not the order — so a
+            Scan each item as it goes in a box. The count is in the unit each line is sold
+            in — a case counts as one — and the box breakdown under each line says how many
+            boxes that comes to. This checks the pick — not the order — so a
             short pick is not an error here.
         </p>
     </div>
@@ -69,7 +71,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
 <!-- Progress -->
 <div style="margin-bottom:1rem">
     <div style="display:flex;justify-content:space-between;font-size:.85rem;color:#6b7280;margin-bottom:.35rem">
-        <span id="progressText"><?= $qty($totalPacked) ?> of <?= $qty($totalPicked) ?> in the box</span>
+        <span id="progressText"><?= $qty($totalPacked) ?> of <?= $qty($totalPicked) ?> checked off</span>
         <span id="progressPct"><?= $pct ?>%</span>
     </div>
     <div style="height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden">
@@ -87,6 +89,26 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--primary"
                style="padding:.85rem 2rem;font-size:1.1rem">Label &amp; ship</a>
         </div>
+    </div>
+<?php elseif (!empty($toVerify)): ?>
+    <?php /* The way to finish was at the foot of the page, under a heading about not
+             scanning, and people could not find it. Say up front what finishing this
+             screen looks like, with the button on it. */ ?>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;
+                padding:1rem 1.1rem;margin-bottom:1.25rem;display:flex;gap:1rem;
+                align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div style="font-size:.9rem">
+            <strong>Scan each item into the box</strong>, or confirm the whole order at
+            once if nothing will scan. Either way this order is not finished until one
+            of those happens.
+        </div>
+        <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/pack/confirm" style="margin:0">
+            <?= csrf_field() ?>
+            <button type="submit" class="btn btn--secondary" style="white-space:nowrap"
+                    onclick="return confirm('Confirm the whole order is packed as picked, without scanning?')">
+                Confirm without scanning
+            </button>
+        </form>
     </div>
 <?php endif; ?>
 
@@ -119,8 +141,22 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
                         <div style="font-weight:600"><?= e($l['product_name'] ?? $l['description'] ?? 'Item') ?></div>
                         <div style="font-size:.8rem;color:#6b7280;font-family:monospace">
                             <?= e($l['sku'] ?? $l['quickbooks_item'] ?? '') ?>
-                            <?php if (!empty($l['uom_code'])): ?> · <?= e($l['uom_code']) ?><?php endif; ?>
                         </div>
+                        <?php
+                        // What the number counts. uom_code is the smallest unit the
+                        // catalogue knows — '18 oz Can' — and printing it beside a
+                        // quantity of cases read as nine cans rather than nine cases.
+                        $unit = \App\Services\PackUnit::label($l, $picked);
+                        $plan = $boxPlan[(int)$l['id']] ?? '';
+                        ?>
+                        <div style="font-size:.8rem;color:#6b7280">
+                            counted in <strong><?= e($unit) ?></strong>
+                        </div>
+                        <?php if ($plan !== ''): ?>
+                            <div style="font-size:.8rem;color:#0A3D91;margin-top:.15rem">
+                                📦 <?= e($plan) ?>
+                            </div>
+                        <?php endif; ?>
                         <?php if (!empty($l['pack_note'])): ?>
                             <div style="font-size:.8rem;color:#b45309;margin-top:.2rem">⚠ <?= e($l['pack_note']) ?></div>
                         <?php endif; ?>

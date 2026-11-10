@@ -46,6 +46,48 @@ class ShippingController extends Controller
         ]);
     }
 
+    /**
+     * How each picked line breaks down into boxes, keyed by line id.
+     *
+     * The bench counts cases; the boxes are what actually get taped shut. "9" and
+     * "4 double boxes and a single" are the same fact, and only one of them is useful
+     * when you are standing in front of the tape gun.
+     *
+     * @return array<int,string>
+     */
+    private function boxPlanByLine(array $lines): array
+    {
+        $forPacking = array_map(
+            fn (array $l) => $l + ['qty' => (float)($l['qty_picked'] ?? 0)],
+            $lines
+        );
+
+        try {
+            $plan = (new CartonizerService())->pack($forPacking);
+        } catch (\Throwable) {
+            return [];   // no packing rules yet is not a reason to break the screen
+        }
+
+        $packages = $plan['packages'] ?? [];
+        $names    = [];
+
+        foreach ((new CartonizerService())->boxes() as $b) {
+            $names[(string)$b['code']] = (string)$b['name'];
+        }
+
+        $out = [];
+
+        foreach ($lines as $l) {
+            $productId = (int)($l['product_id'] ?? 0);
+
+            if ($productId > 0) {
+                $out[(int)$l['id']] = \App\Services\PackUnit::boxBreakdown($packages, $productId, $names);
+            }
+        }
+
+        return $out;
+    }
+
     /** The picking screen for one order — built for a shared tablet at the bench. */
     public function pick(Request $request, Response $response, string $id = '0'): Response
     {
@@ -142,10 +184,13 @@ class ShippingController extends Controller
             return $this->view('errors.404', ['title' => 'Not Found'], 404);
         }
 
+        $lines = $this->repo->getPickLines((int)$id);
+
         return $this->view('shipping.pack', [
-            'title' => 'Pack SO #' . $order['so_number'],
-            'order' => $order,
-            'lines' => $this->repo->getPickLines((int)$id),
+            'title'    => 'Pack SO #' . $order['so_number'],
+            'order'    => $order,
+            'lines'    => $lines,
+            'boxPlan'  => $this->boxPlanByLine($lines),
         ]);
     }
 

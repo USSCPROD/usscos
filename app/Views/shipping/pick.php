@@ -85,7 +85,9 @@ $qty = fn($n) => (string)(int)round((float)$n);
                     <div style="font-weight:600"><?= e($l['product_name'] ?? $l['description'] ?? 'Item') ?></div>
                     <div style="font-size:.8rem;color:#6b7280;font-family:monospace">
                         <?= e($l['sku'] ?? $l['quickbooks_item'] ?? '') ?>
-                        <?php if (!empty($l['uom_code'])): ?> · <?= e($l['uom_code']) ?><?php endif; ?>
+                    </div>
+                    <div style="font-size:.8rem;color:#6b7280">
+                        counted in <strong><?= e(\App\Services\PackUnit::label($l, (float)($l['qty_ordered'] ?? 1))) ?></strong>
                     </div>
                     <?php if (!empty($l['pick_note'])): ?>
                         <div style="font-size:.8rem;color:#b91c1c;margin-top:.2rem"><?= e($l['pick_note']) ?></div>
