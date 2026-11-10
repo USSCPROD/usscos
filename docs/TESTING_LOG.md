@@ -47,7 +47,6 @@ Nothing moves on these until a decision or a file arrives.
 | 44 traffic paints and 17 striping machines are misfiled under Specialty Coatings | Category assignment, not a code fault |
 | `database/issue_draft_invoices.php` | Only exists for invoices stranded by the old draft behavior. Delete it once the data is re-imported |
 | A new sales order is saved as **Draft**, and a draft is invisible to the shipping queue | Nothing on the order says so. Found on 2026-11-10 while walking the flow — it is the most likely thing to derail a demo. Worth either defaulting to Confirmed or saying plainly on the order that shipping cannot see it yet |
-| 10 products on the pull list belong to orders with **no carrier set** | Those orders were auto-approved by the migration because picking had already started on them. Going forward the carrier is settled at gate one, but the existing ones need a carrier before anyone can tell which bench they belong to |
 | The id in the URL is not the SO number | `/sales-orders/24` is SO #11. Every link passes the right one, so it only bites when a URL is typed or read aloud |
 
 ## Open — deferred to the import
@@ -92,6 +91,12 @@ order and nobody had said it was OK.
 - **Batch packing slips** — tick orders at gate 1, print the lot as one job. This
   replaces printing labels and stapling them to slips; the labels leave that habit,
   because a label needs a packed box before it means anything.
+- **Every open test order now has a carrier**, so the No Carrier tab is empty and gone.
+  18 orders had none: they were approved by the migration because picking had already
+  started, so they never passed gate one where the carrier gets settled.
+  `database/set_test_carriers.php` splits them the way a real order would split —
+  pails, jugs and drums to freight, aerosol cases to parcel — and only touches orders
+  that are still work. Re-runnable, dry run by default.
 
 ### 2026-10-29 — invoices
 
