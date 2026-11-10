@@ -20,8 +20,11 @@ declare(strict_types=1);
  *   anything in pails, jugs or drums  ->  Freight
  *   everything else (aerosol cases)   ->  FedEx
  *
- * Only orders still open and still without a carrier are touched. Nothing that has
- * shipped, been invoiced or been cancelled is rewritten - history is not ours to tidy.
+ * Only orders that are still WORK are touched. "Open" is not the right test on its own:
+ * an invoiced order with no tracking number yet is still sitting in the shipping queue
+ * waiting for somebody to put a label on it, and it needs a bench exactly as much as a
+ * confirmed one does. An order that has already been labelled is history, and history
+ * is not ours to tidy.
  */
 
 define('BASE_PATH', dirname(__DIR__));
@@ -66,7 +69,17 @@ $rows = Database::select("
     LEFT JOIN sales_order_line_items li ON li.sales_order_id = so.id
     LEFT JOIN products p ON p.id = li.product_id
     WHERE so.ship_via_id IS NULL
-      AND so.status IN ('draft','confirmed','processing','partially_shipped','paid')
+      AND (
+            so.status IN ('draft','confirmed','processing','partially_shipped','paid')
+         OR (
+              so.status = 'invoiced'
+              AND NOT EXISTS (
+                  SELECT 1 FROM shipment_tracking t
+                  JOIN invoices i ON i.id = t.invoice_id
+                  WHERE i.sales_order_id = so.id
+              )
+            )
+      )
     GROUP BY so.id
     ORDER BY so.id
 ");
