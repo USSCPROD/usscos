@@ -590,7 +590,11 @@ function soThStyle(): string {
         if(via) via.addEventListener('change',syncQuoteBtn);
         syncQuoteBtn();
         btn.addEventListener('click',function(){
-            const fd=new FormData(document.querySelector('form'));
+            // The order form by id, not the first form on the page. The topbar has a
+            // company-switch form above it, so querySelector('form') posted that one —
+            // no customer, no lines, no address, and a quote that could only ever
+            // answer "add the delivery ZIP code first".
+            const fd=new FormData(document.getElementById('soForm'));
             btn.disabled=true; btn.textContent='Asking FedEx…';
             out.innerHTML='';
             fetch('/sales-orders/quote-shipping',{method:'POST',body:fd})
