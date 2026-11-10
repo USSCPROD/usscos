@@ -327,6 +327,15 @@ class ShippingController extends Controller
             FROM sales_order_line_items li WHERE li.sales_order_id = ?
         ", [$soId]);
 
+        // The box has to have been checked. Packing used to be advisory, so an order
+        // could go from Picked straight to invoiced with nobody having looked in it.
+        $blocked = $this->repo->packGate($soId);
+
+        if ($blocked !== null) {
+            Session::flash('error', $blocked);
+            return $response->redirect('/shipping/' . $soId . '/pack');
+        }
+
         if ((float)($outstanding['to_ship'] ?? 0) <= 0) {
             Session::flash('error', 'Nothing picked that has not already shipped — there is nothing to invoice.');
             return $response->redirect('/shipping/release');

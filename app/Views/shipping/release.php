@@ -13,6 +13,7 @@ $rqTd   = 'padding:.7rem .75rem;border-top:1px solid #eef0f3;vertical-align:midd
         <p class="page-subtitle" style="margin:.3rem 0 0">
             What the warehouse has actually pulled, against what was ordered. Releasing an
             order invoices only what is picked — anything still owed stays on the order.
+            An order has to be packed and verified before it can be released.
         </p>
     </div>
     <div>
@@ -99,8 +100,21 @@ $rqTd   = 'padding:.7rem .75rem;border-top:1px solid #eef0f3;vertical-align:midd
                         $<?= number_format((float)$o['total_amount'], 2) ?>
                     </td>
                     <td style="<?= $rqTd ?>;text-align:right;white-space:nowrap">
+                        <?php
+                        // Packing is a gate now, so the screen says so rather than
+                        // offering a button that will refuse. 'mismatch' passes: somebody
+                        // looked, wrote down what was wrong and chose to ship it.
+                        $packed    = (float)($o['qty_packed'] ?? 0);
+                        $unpacked  = ($o['pack_status'] ?? '') !== 'mismatch'
+                                  && $packed + 0.0001 < $picked;
+                        ?>
                         <?php if ($nothing): ?>
                             <span class="text-muted" style="font-size:.8rem">nothing picked yet</span>
+                        <?php elseif ($unpacked): ?>
+                            <a href="/shipping/<?= (int)$o['id'] ?>/pack" class="btn btn--secondary btn--sm"
+                               title="The box has to be checked against the pick before this can be invoiced">
+                                Pack &amp; verify first
+                            </a>
                         <?php else: ?>
                             <form method="POST" action="/shipping/<?= (int)$o['id'] ?>/release" style="display:inline">
                                 <?= csrf_field() ?>

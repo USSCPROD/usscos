@@ -245,6 +245,15 @@ class SalesOrderController extends Controller
     {
         $user = Auth::user();
 
+        // The same gate the shipping screens enforce. This button is the other door
+        // into invoicing, and a gate with a door beside it is not a gate.
+        $blocked = (new SalesOrderRepository())->packGate((int)$id);
+
+        if ($blocked !== null) {
+            Session::flash('error', $blocked);
+            return $response->redirect('/shipping/' . (int)$id . '/pack');
+        }
+
         try {
             $invoiceService = new \App\Services\InvoiceService();
             $invoiceId = $invoiceService->shipAndInvoice((int)$id, (int)$user['id'], $_POST);

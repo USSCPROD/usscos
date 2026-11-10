@@ -24,7 +24,7 @@ $benchLabel = [
     'parcel'     => 'Parcel — FedEx, UPS, USPS',
     'freight'    => 'Freight',
     'delivery'   => 'Our own truck',
-    'pickup'     => 'Customer collects',
+    'pickup'     => 'CPU — customer pick-up',
     'other'      => 'Other',
 ];
 
@@ -33,7 +33,7 @@ $benchNote = [
     'parcel'     => 'Boxes on the parcel bench.',
     'freight'    => 'Pallets and LTL. Worked separately from parcel.',
     'delivery'   => 'USSC delivery. No carrier label to buy.',
-    'pickup'     => 'Nothing to label — the customer collects it.',
+    'pickup'     => 'The customer collects it. Nothing to label and no carrier to buy.',
     'other'      => 'Not sorted to a bench.',
 ];
 

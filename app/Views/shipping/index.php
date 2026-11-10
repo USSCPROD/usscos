@@ -22,13 +22,19 @@ $benchNames = [
     'parcel'   => 'Parcel (FedEx, UPS)',
     'freight'  => 'Freight',
     'delivery' => 'Our truck',
-    'pickup'   => 'Collected',
+    'pickup'   => 'CPU (customer pick-up)',
     'other'    => 'Other',
 ];
 
+// Parcel, freight and CPU are the three benches USSC actually works, so they are
+// shown whether or not there is anything on them today. An empty CPU tab says "no
+// collections waiting", which is information; a missing one says the system does not
+// do collections, which is wrong.
+$alwaysShow = ['parcel', 'freight', 'pickup'];
+
 $tabsWithOrders = [];
 foreach ($benchNames as $benchKey => $benchName) {
-    if (!empty($grouped[$benchKey])) {
+    if (!empty($grouped[$benchKey]) || in_array($benchKey, $alwaysShow, true)) {
         $tabsWithOrders[] = ['id' => $benchKey, 'name' => $benchName];
     }
 }
@@ -226,9 +232,19 @@ if ($activeTab === 'all') {
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #16a34a;border-radius:5px;color:#16a34a;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''"
                                title="Ready to ship — invoice what has been picked, then make the label">Invoice</a>
-                            <a href="/shipping/<?= (int)$o['id'] ?>/label"
-                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
-                               onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Label</a>
+                            <?php if (($o['ship_mode'] ?? '') === 'pickup'): ?>
+                                <?php /* Nothing to label: the customer is coming for it.
+                                         Offering a FedEx label here is an invitation to
+                                         buy one by mistake. */ ?>
+                                <span title="The customer collects this one — no carrier label"
+                                      style="font-size:.8rem;padding:.3rem .7rem;border:1px dashed #cbd5e1;border-radius:5px;color:#94a3b8;margin-right:.4rem">
+                                    No label
+                                </span>
+                            <?php else: ?>
+                                <a href="/shipping/<?= (int)$o['id'] ?>/label"
+                                   style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
+                                   onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Label</a>
+                            <?php endif; ?>
                             <a href="/sales-orders/<?= (int)$o['id'] ?>/packing-slip" target="_blank"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #d1d5db;border-radius:5px;color:#374151;text-decoration:none"
                                onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">Packing Slip</a>

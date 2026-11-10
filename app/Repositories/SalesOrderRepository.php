@@ -775,6 +775,65 @@ class SalesOrderRepository
         ");
     }
 
+    /**
+     * Why this order may not be invoiced yet, or null when it may.
+     *
+     * Packing is the scan-to-verify step, and it was advisory: an order could go
+     * straight from Picked to invoiced with the box never checked, which is the error
+     * the whole bench exists to catch.
+     *
+     * The test is the quantities, not the status word. pack_status is not reset when an
+     * order part-ships, so an order packed once and then picked again would still read
+     * 'verified' while carrying goods nobody has looked at. Comparing packed against
+     * picked catches that on its own.
+     *
+     * 'mismatch' passes deliberately: somebody looked, found the box did not match the
+     * pick, said so in writing and chose to ship it. That is a decision, not a gap.
+     */
+    public function packGate(int $soId): ?string
+    {
+        $order = Database::selectOne(
+            "SELECT pack_status FROM sales_orders WHERE id = ?", [$soId]
+        );
+
+        if ($order === false) {
+            return 'That order no longer exists.';
+        }
+
+        if (($order['pack_status'] ?? '') === 'mismatch') {
+            return null;
+        }
+
+        $row = Database::selectOne("
+            SELECT COALESCE(SUM(li.qty_picked), 0)  AS picked,
+                   COALESCE(SUM(li.qty_packed), 0)  AS packed
+            FROM sales_order_line_items li
+            LEFT JOIN products p ON p.id = li.product_id
+            WHERE li.sales_order_id = ?
+              AND NOT " . self::NOT_GOODS . "
+        ", [$soId]) ?: [];
+
+        $picked = (float)($row['picked'] ?? 0);
+        $packed = (float)($row['packed'] ?? 0);
+
+        if ($picked <= 0) {
+            return 'Nothing has been picked on this order yet.';
+        }
+
+        if ($packed + 0.0001 < $picked) {
+            $n = fn (float $v) => rtrim(rtrim(number_format($v, 2), '0'), '.');
+
+            return sprintf(
+                'Pack and verify it first — %s of %s checked into the box. '
+                . 'Scan the rest, or use "Confirm without scanning" on the pack screen.',
+                $n($packed),
+                $n($picked)
+            );
+        }
+
+        return null;
+    }
+
     /** Let an order out to the warehouse, optionally settling the carrier on the way. */
     public function approve(int $soId, int $userId, ?int $shipViaId = null): void
     {
@@ -839,6 +898,8 @@ class SalesOrderRepository
                          THEN 1 ELSE 0 END)                            AS lines_short,
 
                    (SELECT COUNT(*) FROM invoices i WHERE i.sales_order_id = so.id) AS invoice_count,
+                   so.pack_status,
+                   SUM(COALESCE(li.qty_packed, 0))                     AS qty_packed,
                    sv.name AS ship_via_name,
                    COALESCE(sv.ship_mode, 'other') AS ship_mode
 

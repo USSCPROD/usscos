@@ -32,7 +32,7 @@ $benchTabs = [
     'parcel'   => 'Parcel',
     'freight'  => 'Freight',
     'delivery' => 'Our truck',
-    'pickup'   => 'Collected',
+    'pickup'   => 'CPU',
     'other'    => 'No carrier',
 ];
 $activeBench = $bench ?? '';
