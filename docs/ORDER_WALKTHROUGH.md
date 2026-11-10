@@ -202,6 +202,25 @@ Limited-quantity aerosol is ground only — it cannot go by air, and the screen 
 
 ---
 
+## CPU — when the customer collects
+
+Same flow, two steps shorter. Approve it at gate one with **Customer Pickup** as the
+carrier, pick it, pack and verify it, then **Invoice**.
+
+There is no label to make and no tracking number to wait for, so **the invoice is the
+finish line** — the order leaves the shipping queue as soon as it is invoiced. There is
+no separate "mark complete" to remember.
+
+The money is the only thing left, and it works the same as any other order:
+
+- **Paying at the counter** — take it on the sales order with **Collect Payment** before
+  invoicing, and the invoice is created already paid.
+- **On terms** — they take the goods, the invoice stands open, and it is settled later
+  from the customer's page with **Receive Payment**. Nothing else is needed; the order is
+  finished the moment it is invoiced.
+
+---
+
 ## Payment
 
 Two doors, depending on when the money arrives.
