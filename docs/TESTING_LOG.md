@@ -40,12 +40,44 @@ Nothing moves on these until a decision or a file arrives.
 
 ## Open — code
 
+### The first shipment of a product destroys its stock count
+
+**Found 10 November 2026, walking a test order end to end. This is the most serious
+thing in this file.**
+
+`products.qty_on_hand` is not stored — it is **recomputed** on every stock movement as
+the sum of that product's rows in `product_stock`. A product that was imported with a
+count but was never placed at a location has no rows at all, so the first time one
+ships, the recompute replaces the real number with the sum of nothing.
+
+Watched it happen: **DSY read 391 on hand, shipped 4, and came out at −4.** Not 387.
+The 391 was gone, not reduced.
+
+**284 products are in that state** — a count on the product, no row in `product_stock`
+(29 location rows exist in the whole database). Every one of them loses its count the
+first time it goes out of the door.
+
+Two things follow, and the second matters more than the first:
+
+- **The real import must land stock at a location**, not only on the product. If it
+  writes `products.qty_on_hand` the way the current data was written, day one looks
+  correct and then rots one product at a time as orders ship.
+- **The code should refuse to silently destroy a count.** When a product has a non-zero
+  count and no location rows, seeding the default location with that quantity before
+  consuming would preserve it and make the first movement behave. Not done yet — it
+  changes inventory behaviour and that is Chip's call.
+
+*The DSY count was restored to 387 by hand after the test.*
+
+### Other
+
 | What | Notes |
 |---|---|
 | Uploads post immediately and reload the page | Anything typed in the edit form and not yet saved is lost. Save first, then upload. Worth making the upload not discard the form |
 | 186 non-stencil products have `gross_weight` but no `case_weight_gross` | The cartonizer reads `case_weight_gross`, so these ship without a weight |
 | 44 traffic paints and 17 striping machines are misfiled under Specialty Coatings | Category assignment, not a code fault |
 | `database/issue_draft_invoices.php` | Only exists for invoices stranded by the old draft behavior. Delete it once the data is re-imported |
+| `pack_status` stays `not_started` and nothing requires packing before release | An order can be released and invoiced without ever being verified at the pack bench. *Ready to ship* reads Complete off the picked quantity alone. Worth deciding whether packing should gate release |
 | A new sales order is saved as **Draft**, and a draft is invisible to the shipping queue | Nothing on the order says so. Found on 2026-11-10 while walking the flow — it is the most likely thing to derail a demo. Worth either defaulting to Confirmed or saying plainly on the order that shipping cannot see it yet |
 | The id in the URL is not the SO number | `/sales-orders/24` is SO #11. Every link passes the right one, so it only bites when a URL is typed or read aloud |
 
@@ -67,6 +99,16 @@ Nothing here is urgent, and all of it is needed before the real cutover.
 ---
 
 ## Fixed
+
+### 2026-11-10 — blank form rows were being saved as line items
+
+The order form draws three empty rows, each with a default quantity of 1, and the
+parser skipped a row only when its quantity **and** price were both zero — so every
+empty row it drew became a line. A one-product order saved three: the pick screen
+listed two items nobody could find, *Ready to ship* read 6 ordered instead of 4, and a
+packing slip would have printed two blank rows. A line is now real when it **names**
+something. The same test was wrong in the invoice parser. 3 saved lines across 2 orders
+were cleared by `database/remove_blank_order_lines.php`.
 
 ### 2026-11-10 — two gates, two benches
 
