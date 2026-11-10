@@ -21,19 +21,22 @@ The end-to-end flow — what each person does and sees, in order — is written 
 
 ## Open — waiting on Chip
 
-### Paying before the goods ship
+### Emailed payment links — Square
 
 Chip described this on 10 November 2026: customers pay over the phone, **or are sent a
-link to pay online**, and only then does the order ship.
+link to pay online**, and only then does the order ship. **Square** is the processor —
+decided, so that part needs no revisiting.
 
-**There is no online payment capability in USSCOS at all** — no processor, no payment
-links, no card handling anywhere. Taking a payment over the phone works today
-(*Collect Payment* on the order, before invoicing). The link does not, and it is not a
-small addition: it needs a payment processor chosen and an account with them, and it
-decides how card data is handled, which is a compliance question before it is a coding
-one.
+Paying over the phone works today (*Collect Payment* on the order, before invoicing).
+The link does not exist: USSCOS has no online payment capability at all.
 
-Not started, deliberately. It needs a decision first.
+Agreed shape, in Chip's words: a **button on the sales order that emails a payment
+link**, and pressing it **saves the order first**. Card data must never touch the
+USSCOS server — a Square-hosted link keeps it that way, which is a compliance question
+before it is a coding one.
+
+**Deferred by Chip, not forgotten** — "we can build the email link later, just remember
+that it is going to happen."
 
 
 Nothing moves on these until a decision or a file arrives.
