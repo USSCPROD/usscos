@@ -117,23 +117,86 @@ class FedExClient
         return $res;
     }
 
-    /** The first human-readable message FedEx gave us, or something honest if it gave none. */
+    /**
+     * What FedEx actually said, in the words it said it.
+     *
+     * It used to look in exactly one place — body.errors — and answer "HTTP 400 with no
+     * message" for everything else, which is the least useful sentence a shipping bench
+     * can be handed. FedEx puts the reason in several places depending on which part of
+     * the request it disliked, and when it refuses outright the body is not JSON at all.
+     * Look in all of them, and fall back to the raw response rather than to nothing.
+     */
     public function errorOf(array $res): string
     {
         if (!empty($res['error'])) {
             return (string)$res['error'];
         }
 
-        $errors = $res['body']['errors'] ?? [];
+        $messages = [];
 
-        if (is_array($errors) && $errors !== []) {
-            return implode('; ', array_map(
-                fn($e) => trim(($e['code'] ?? '') . ' ' . ($e['message'] ?? '')),
-                $errors
-            ));
+        foreach ($this->errorNodes($res['body'] ?? []) as $e) {
+            $text = trim((string)($e['message'] ?? ''));
+            $code = trim((string)($e['code'] ?? ''));
+
+            if ($text === '' && $code === '') {
+                continue;
+            }
+
+            // The field name is often the whole answer: 'SHIPPER.POSTALCODE'.
+            $where = trim((string)($e['parameterList'][0]['value'] ?? ''));
+
+            $messages[] = trim($code . ' ' . $text . ($where !== '' ? ' (' . $where . ')' : ''));
         }
 
-        return 'FedEx returned HTTP ' . ($res['status'] ?? 0) . ' with no message.';
+        if ($messages !== []) {
+            return implode('; ', array_unique($messages));
+        }
+
+        // Nothing recognisable. The raw text beats a sentence that says nothing — it is
+        // at least something to paste into a search or send to FedEx.
+        $raw = trim((string)($res['raw'] ?? ''));
+
+        if ($raw !== '') {
+            return 'FedEx returned HTTP ' . ($res['status'] ?? 0) . ': '
+                 . (strlen($raw) > 300 ? substr($raw, 0, 300) . '…' : $raw);
+        }
+
+        return 'FedEx returned HTTP ' . ($res['status'] ?? 0) . ' and an empty response.';
+    }
+
+    /**
+     * Every error-shaped node in a FedEx response, wherever it is hiding.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function errorNodes(mixed $body): array
+    {
+        if (!is_array($body)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach (['errors', 'alerts'] as $key) {
+            if (isset($body[$key]) && is_array($body[$key])) {
+                foreach ($body[$key] as $e) {
+                    if (is_array($e)) {
+                        $out[] = $e;
+                    }
+                }
+            }
+        }
+
+        // output.alerts, output.transactionShipments[].*, and anything else nested.
+        foreach ($body as $k => $v) {
+            if (in_array($k, ['errors', 'alerts'], true) || !is_array($v)) {
+                continue;
+            }
+
+            $out = array_merge($out, $this->errorNodes($v));
+        }
+
+        return $out;
     }
 
     /** @return array{0:string, 1:string} */
@@ -181,15 +244,18 @@ class FedExClient
         curl_close($ch);
 
         if ($err !== '') {
-            return ['ok' => false, 'status' => 0, 'body' => [], 'error' => $err];
+            return ['ok' => false, 'status' => 0, 'body' => [], 'raw' => '', 'error' => $err];
         }
 
         $body = json_decode((string)$raw, true);
 
+        // The raw text is kept. A response that is not JSON, or is JSON in a shape we do
+        // not expect, used to leave nothing at all to report.
         return [
             'ok'     => $status >= 200 && $status < 300,
             'status' => $status,
             'body'   => is_array($body) ? $body : [],
+            'raw'    => (string)$raw,
             'error'  => null,
         ];
     }
