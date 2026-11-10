@@ -14,6 +14,9 @@ finding that lives only in a chat message is a finding that gets rediscovered.
 
 Counts quoted below come from the test database and are illustrative, not authoritative.
 
+The end-to-end flow — what each person does and sees, in order — is written up in
+[ORDER_WALKTHROUGH.md](ORDER_WALKTHROUGH.md).
+
 ---
 
 ## Open — waiting on Chip
@@ -43,6 +46,8 @@ Nothing moves on these until a decision or a file arrives.
 | 186 non-stencil products have `gross_weight` but no `case_weight_gross` | The cartonizer reads `case_weight_gross`, so these ship without a weight |
 | 44 traffic paints and 17 striping machines are misfiled under Specialty Coatings | Category assignment, not a code fault |
 | `database/issue_draft_invoices.php` | Only exists for invoices stranded by the old draft behavior. Delete it once the data is re-imported |
+| A new sales order is saved as **Draft**, and a draft is invisible to the shipping queue | Nothing on the order says so. Found on 2026-11-10 while walking the flow — it is the most likely thing to derail a demo. Worth either defaulting to Confirmed or saying plainly on the order that shipping cannot see it yet |
+| The id in the URL is not the SO number | `/sales-orders/24` is SO #11. Every link passes the right one, so it only bites when a URL is typed or read aloud |
 
 ## Open — deferred to the import
 
