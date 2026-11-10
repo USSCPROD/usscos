@@ -587,7 +587,10 @@ function soInpStyle2(string $type): string {
             const q=this.value.trim();
             if(!q){dropEl.style.display='none';return;}
             timer=setTimeout(()=>{
-                fetch('/products/autocomplete?q='+encodeURIComponent(q))
+                // Whoever is buying decides the price, so the lookup is told.
+                const cust=document.getElementById('customerId');
+                const who=cust && cust.value ? '&customer_id='+encodeURIComponent(cust.value) : '';
+                fetch('/products/autocomplete?q='+encodeURIComponent(q)+who)
                     .then(r=>r.json()).then(items=>showDrop(items,dropEl,tr)).catch(()=>{});
             },220);
         });
@@ -601,7 +604,10 @@ function soInpStyle2(string $type): string {
             d.style.cssText='display:flex;align-items:baseline;gap:.75rem;padding:.6rem 1rem;cursor:pointer;border-bottom:1px solid #eee;font-size:.9rem;color:#111';
             d.innerHTML=`<span style="font-weight:700;font-family:monospace;color:#0A3D91;min-width:110px;flex-shrink:0">${esc(p.sku||p.quickbooks_item)}</span>`+
                 `<span style="flex:1;color:#222">${esc(p.name||'')}</span>`+
-                (p.price?`<span style="margin-left:auto;color:#6b7280;font-size:.85rem">${fmt(p.price)}</span>`:'');
+                (p.price?`<span style="margin-left:auto;color:#6b7280;font-size:.85rem">${fmt(p.price)}`
+                    + (p.price_label && p.price_label!=='retail'
+                        ? ` <span style="color:${p.price_fell_back?'#b45309':'#0A3D91'}">${esc(p.price_label)}</span>` : '')
+                    + `</span>`:'');
             d.addEventListener('mouseover',()=>d.style.background='#f0f4ff');
             d.addEventListener('mouseout', ()=>d.style.background='');
             d.addEventListener('mousedown',e=>{

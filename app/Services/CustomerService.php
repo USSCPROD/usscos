@@ -73,7 +73,11 @@ class CustomerService extends Service
             'quickbooks_name' => trim((string)($input['quickbooks_name'] ?? '')),
             'email'           => trim((string)($input['email'] ?? '')),
             'phone'           => trim((string)($input['phone'] ?? '')),
-            'customer_type'   => trim((string)($input['customer_type'] ?? '')),
+            // Retail unless somebody says otherwise. A blank type priced at retail by
+            // accident and a Retail type priced at retail on purpose look identical on
+            // the order and are not the same thing — the first is a customer nobody
+            // classified, and that is worth being able to see.
+            'customer_type'   => trim((string)($input['customer_type'] ?? '')) ?: \App\Services\CustomerPricing::RETAIL,
             'bill_address_1'  => trim((string)($input['bill_address_1'] ?? '')),
             'bill_city'       => trim((string)($input['bill_city'] ?? '')),
             'bill_state'      => trim((string)($input['bill_state'] ?? '')),
@@ -180,7 +184,7 @@ class CustomerService extends Service
             'ship_zip'                  => trim($post['ship_zip']        ?? ''),
             'notes'                     => trim($post['notes']           ?? ''),
             'is_active'                 => isset($post['is_active']) ? 1 : 0,
-            'customer_type'             => ($post['customer_type'] ?? '') ?: null,
+            'customer_type'             => ($post['customer_type'] ?? '') ?: \App\Services\CustomerPricing::RETAIL,
             'rep_id'                    => (int)($post['rep_id'] ?? 0) ?: null,
         ]);
     }

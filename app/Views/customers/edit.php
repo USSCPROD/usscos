@@ -361,7 +361,7 @@
         <div class="form-group">
             <label class="form-label">Customer Type</label>
             <select name="customer_type" class="input">
-                <option value="">— None —</option>
+                <option value="">— Retail (default) —</option>
                 <?php foreach ($customer_types as $ct): ?>
                     <option value="<?= e($ct['name']) ?>" <?= ($c['customer_type'] ?? '') === $ct['name'] ? 'selected' : '' ?>>
                         <?= e($ct['name']) ?>
@@ -371,7 +371,7 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">Rep / Distributor</label>
+            <label class="form-label">Sales rep</label>
             <select name="rep_id" class="input">
                 <option value="">— None —</option>
                 <?php foreach ($users as $u): ?>
@@ -381,7 +381,20 @@
                     </option>
                 <?php endforeach; ?>
             </select>
-            <div class="text-muted text-sm" style="margin-top:.35rem">The internal rep or distributor manager assigned to this account.</div>
+            <div class="text-muted text-sm" style="margin-top:.35rem">
+                The internal sales rep credited with this account.
+                <?php
+                // Said plainly rather than left to be inferred from a list of names.
+                // No user carries the 'rep' role yet, so this can only offer employees
+                // — which is a missing rep list, not a working picker.
+                $soAnyRep = false;
+                foreach ($users as $u) { if (($u['role'] ?? '') === 'rep') { $soAnyRep = true; break; } }
+                ?>
+                <?php if (!$soAnyRep): ?>
+                    <br><span style="color:#b45309">No one is set up as a rep yet, so this
+                    lists employees. It becomes a real rep list once the reps are added.</span>
+                <?php endif; ?>
+            </div>
         </div>
 
         <div style="border-top:1px solid #e5e7eb;margin:1.5rem 0"></div>

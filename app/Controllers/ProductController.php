@@ -96,9 +96,20 @@ class ProductController extends Controller
             return $this->json([]);
         }
 
+        // The customer decides the price, so the lookup has to know who is buying.
+        // Without this every line came back at retail whoever it was for.
+        $customerType = null;
+        $customerId   = (int)($request->query('customer_id') ?? 0);
+
+        if ($customerId > 0) {
+            $row = Database::selectOne('SELECT customer_type FROM customers WHERE id = ?', [$customerId]);
+            $customerType = $row === false ? null : ($row['customer_type'] ?? null);
+        }
+
         $pdo  = Database::connection();
         $stmt = $pdo->prepare("
-            SELECT id, sku, quickbooks_item, name, price, cost, uom_code
+            SELECT id, sku, quickbooks_item, name, price, cost, uom_code,
+                   dist_price, dist_price_2026, stocking_dist
             FROM products
             WHERE is_active = 1
               AND item_type != 'raw_material'
@@ -109,6 +120,19 @@ class ProductController extends Controller
         $like = '%' . $term . '%';
         $stmt->execute([':s' => $like, ':s2' => $like, ':s3' => $like]);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $i => $row) {
+            $chosen = \App\Services\CustomerPricing::priceFor($row, $customerType);
+
+            $rows[$i]['price']       = $chosen['price'];
+            $rows[$i]['price_label'] = $chosen['label'];
+            $rows[$i]['price_fell_back'] = $chosen['fell_back'];
+
+            // The other tiers are nobody's business on this screen, and a distributor
+            // price sitting in a response that a retail order renders is one view bug
+            // away from being shown to the wrong person.
+            unset($rows[$i]['dist_price'], $rows[$i]['dist_price_2026'], $rows[$i]['stocking_dist']);
+        }
 
         return $this->json($rows);
     }
