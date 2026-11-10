@@ -698,9 +698,25 @@ class AdminRepository
     // Customer Types
     // -------------------------------------------------------------------------
 
+    /**
+     * Every type, retired ones included. The admin screen manages this table, so it has
+     * to be able to see a deactivated row in order to bring it back.
+     */
     public function allCustomerTypes(): array
     {
         return Database::select('SELECT * FROM customer_types ORDER BY sort_order, name');
+    }
+
+    /**
+     * The types a customer may be GIVEN.
+     *
+     * A retired classification still has to resolve for any row that already carries
+     * it — pricing reads the string stored on the customer, not this list — but it
+     * should not be on offer for a new one.
+     */
+    public function activeCustomerTypes(): array
+    {
+        return Database::select('SELECT * FROM customer_types WHERE is_active = 1 ORDER BY sort_order, name');
     }
 
     public function findCustomerType(int $id): array|false

@@ -132,7 +132,7 @@ class CustomerService extends Service
         return [
             'customer'       => $customer,
             'payment_terms'  => $this->customers->getAllPaymentTerms(),
-            'customer_types' => $this->admin->allCustomerTypes(),
+            'customer_types' => $this->admin->activeCustomerTypes(),
             'tax_rates'      => $this->admin->allTaxRates(),
             'users'          => $this->admin->allUsers(),
         ];

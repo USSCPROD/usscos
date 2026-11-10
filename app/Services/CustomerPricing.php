@@ -35,8 +35,13 @@ class CustomerPricing
     private const LADDER = [
         self::STOCKING => ['stocking_dist', 'dist_price_2026', 'dist_price', 'price'],
         self::DIST     => ['dist_price_2026', 'dist_price', 'price'],
-        self::REP      => ['dist_price_2026', 'dist_price', 'price'],
         self::RETAIL   => ['price'],
+
+        // 'Rep' is retired as a customer type — a rep is an employee, and USSC invoices
+        // the customer rather than the rep. The rung stays because pricing reads the
+        // string stored on the row: if an import ever brings one back, it prices as it
+        // always did instead of silently dropping to retail.
+        self::REP      => ['dist_price_2026', 'dist_price', 'price'],
     ];
 
     /** Human labels for the column actually used, so a fallback is visible. */
