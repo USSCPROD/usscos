@@ -555,6 +555,45 @@ class ShippingController extends Controller
      * accepted it or corrected it. Silently using the computed figure after someone typed
      * a different one would make the correction look like it worked when it did not.
      */
+    /**
+     * Every label on this shipment as one PDF.
+     *
+     * Twelve boxes is twelve labels, and twelve trips to a Print button with a pause
+     * between each is how one gets missed and a box goes out unlabelled.
+     */
+    public function labelSheet(Request $request, Response $response, string $id = '0'): Response
+    {
+        $order = $this->repo->findWithDetails((int)$id);
+
+        if (!$order) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        $paths = array_column(Database::select("
+            SELECT t.label_path
+            FROM shipment_tracking t
+            JOIN invoices i ON i.id = t.invoice_id
+            WHERE i.sales_order_id = ? AND t.label_path IS NOT NULL AND t.label_path <> ''
+            ORDER BY t.id
+        ", [(int)$id]), 'label_path');
+
+        $pdf = \App\Services\LabelSheet::merge($paths);
+
+        if ($pdf === null) {
+            Session::flash('error', $paths === []
+                ? 'No label files to print on this shipment yet.'
+                : 'Could not combine the labels — print them one at a time below.');
+
+            return $response->redirect('/shipping/' . (int)$id . '/label');
+        }
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="labels-so-' . $order['so_number'] . '.pdf"');
+        header('Content-Length: ' . strlen($pdf));
+        echo $pdf;
+        exit;
+    }
+
     public function createLabel(Request $request, Response $response, string $id = '0'): Response
     {
         if (\App\Repositories\FulfillmentRepository::orderIsManaged((int)$id)) {

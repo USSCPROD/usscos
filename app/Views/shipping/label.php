@@ -164,8 +164,39 @@ $suggestedPackages = max(1, count($packages));
     -->
 
     <!-- ── Make the label ───────────────────────────────────────────────── -->
+    <?php
+    /*
+     * Once labels exist the form folds away.
+     *
+     * Every press of Create buys a shipment. Leaving the form open and identical
+     * after a successful run means a slow page, a double click or a retry after an
+     * error that actually succeeded all produce a second set of labels — and FedEx
+     * may bill for every one. One order here reached eighteen tracking numbers that
+     * way.
+     *
+     * It is not removed, because a genuine second carton happens. It just stops being
+     * the easiest thing on the screen, and says what pressing it costs.
+     */
+    $alreadyLabelled = !empty($existing);
+    ?>
     <div style="<?= $lblCard ?>">
-        <div style="<?= $lblHead ?>">Create the label</div>
+        <?php if ($alreadyLabelled): ?>
+            <details>
+                <summary style="cursor:pointer;font-size:.8rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:.05em;color:#b45309;list-style:none">
+                    ▸ Another label for this shipment
+                </summary>
+                <div style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:7px;
+                            padding:.7rem .85rem;font-size:.85rem;margin:.9rem 0">
+                    <strong>This shipment already has <?= count($existing) ?>
+                    label<?= count($existing) === 1 ? '' : 's' ?>.</strong>
+                    Each one is a shipment FedEx can bill for, so only make another if a
+                    box is genuinely going out that does not have a label yet. To reprint
+                    one you already have, use the Print buttons below.
+                </div>
+        <?php endif; ?>
+
+        <div style="<?= $lblHead ?>"><?= $alreadyLabelled ? 'Create another label' : 'Create the label' ?></div>
 
         <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/label">
             <?= csrf_field() ?>
@@ -377,12 +408,28 @@ $suggestedPackages = max(1, count($packages));
             renumber();
         }());
         </script>
+        <?php if ($alreadyLabelled): ?>
+            </details>
+        <?php endif; ?>
     </div>
 
     <!-- ── Already labelled ─────────────────────────────────────────────── -->
     <?php if (!empty($existing)): ?>
+        <?php
+        $printable = array_values(array_filter(
+            $existing, fn ($t) => trim((string)($t['label_path'] ?? '')) !== ''
+        ));
+        ?>
         <div style="<?= $lblCard ?>">
-            <div style="<?= $lblHead ?>">Labels on this shipment</div>
+            <div style="<?= $lblHead ?>;display:flex;justify-content:space-between;align-items:center;gap:1rem">
+                <span>Labels on this shipment</span>
+                <?php if (count($printable) > 1): ?>
+                    <a href="/shipping/<?= (int)$order['id'] ?>/labels.pdf" target="_blank" rel="noopener"
+                       class="btn btn--primary btn--sm" style="text-transform:none;letter-spacing:0">
+                        Print all <?= count($printable) ?>
+                    </a>
+                <?php endif; ?>
+            </div>
             <table style="width:100%;border-collapse:collapse;font-size:.9rem">
                 <?php foreach ($existing as $trk): ?>
                     <tr style="border-bottom:1px solid #f3f4f6">

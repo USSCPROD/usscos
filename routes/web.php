@@ -205,6 +205,7 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::post('/shipping/{id}/short',     [ShippingController::class, 'short'])->name('shipping.short');
     Router::get('/shipping/{id}/label',       [ShippingController::class, 'label'])->name('shipping.label');
     Router::post('/shipping/{id}/label',      [ShippingController::class, 'createLabel'])->name('shipping.label.create');
+    Router::get('/shipping/{id}/labels.pdf',  [ShippingController::class, 'labelSheet'])->name('shipping.label.sheet');
 
     // Receiving — where stock first enters USSCOS
     Router::get('/receiving',         [ReceivingController::class, 'index'])->name('receiving');
