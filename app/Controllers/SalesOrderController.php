@@ -263,12 +263,35 @@ class SalesOrderController extends Controller
             }
         }
 
-        $result = (new \App\Services\ShippingQuoteService())->quote([
-            'city'        => (string)($_POST['ship_city']  ?? ''),
-            'state'       => (string)($_POST['ship_state'] ?? ''),
-            'zip'         => (string)($_POST['ship_zip']   ?? ''),
-            'residential' => false,
-        ], $lines);
+        $to = [
+            'city'  => trim((string)($_POST['ship_city']  ?? '')),
+            'state' => trim((string)($_POST['ship_state'] ?? '')),
+            'zip'   => trim((string)($_POST['ship_zip']   ?? '')),
+        ];
+
+        // "Same as billing" leaves the delivery fields empty, which is correct on the
+        // form and useless to a carrier — it asked for a ZIP the person had quite
+        // reasonably not typed. Fall back to the customer's billing address, which is
+        // exactly what the tick box says is being used.
+        if ($to['zip'] === '' && ($_POST['customer_id'] ?? '') !== '') {
+            $billing = Database::selectOne(
+                'SELECT bill_city, bill_state, bill_zip FROM customers WHERE id = ?',
+                [(int)$_POST['customer_id']]
+            );
+
+            if ($billing !== false) {
+                $to = [
+                    'city'  => trim((string)($billing['bill_city']  ?? '')),
+                    'state' => trim((string)($billing['bill_state'] ?? '')),
+                    'zip'   => trim((string)($billing['bill_zip']   ?? '')),
+                ];
+            }
+        }
+
+        $result = (new \App\Services\ShippingQuoteService())->quote(
+            $to + ['residential' => false],
+            $lines
+        );
 
         return $response->json($result);
     }

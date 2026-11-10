@@ -252,10 +252,11 @@ foreach ($line_items as $li) {
             </td>
             <td style="padding:.85rem 1.25rem;vertical-align:top;width:20%">
                 <div style="<?= soInpStyle2('lbl') ?>">Ship Via</div>
-                <select name="ship_via_id" style="<?= soInpStyle2('inp') ?>">
-                    <option value="">— Select —</option>
+                <select name="ship_via_id" id="shipViaSelect" style="<?= soInpStyle2('inp') ?>">
+                    <option value="" data-mode="">— Select —</option>
                     <?php foreach ($ship_via_options as $sv): ?>
-                        <option value="<?= (int)$sv['id'] ?>" <?= (int)($so['ship_via_id'] ?? 0) === (int)$sv['id'] ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
+                        <option value="<?= (int)$sv['id'] ?>" data-mode="<?= e($sv['ship_mode'] ?? 'other') ?>"
+                            <?= (int)($so['ship_via_id'] ?? 0) === (int)$sv['id'] ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </td>
@@ -626,6 +627,7 @@ function soInpStyle2(string $type): string {
                  || parseFloat(last.querySelector('.f-price')?.value||0)>0;
         if(used) addLine();
     }
+    var FREIGHT_MARKUP = <?= json_encode((float)(\App\Core\Config::get('shipping.freight_markup') ?? 20.0)) ?>;
     document.getElementById('lineBody').addEventListener('input',ensureSpareRow);
 
     /*
@@ -638,6 +640,32 @@ function soInpStyle2(string $type): string {
     (function(){
         const btn=document.getElementById('fQuoteBtn'), out=document.getElementById('fQuoteOut');
         if(!btn) return;
+
+        /*
+         * Only offer the quote when a parcel carrier is selected.
+         *
+         * Nobody can ask FedEx what an LTL pallet costs, and a button that is always
+         * going to answer "this is freight" is just a thing to press and be told off
+         * by. Freight gets the Keubix reminder instead, which is the actual next step.
+         */
+        const via=document.getElementById('shipViaSelect');
+        const wrap=btn.parentNode;
+        function syncQuoteBtn(){
+            const mode=via && via.options[via.selectedIndex]
+                ? (via.options[via.selectedIndex].dataset.mode||'') : '';
+            const parcel = mode==='parcel' || mode==='';
+            wrap.style.display = parcel ? '' : 'none';
+            if(!parcel){
+                out.innerHTML = mode==='freight'
+                    ? '<div style="color:#6b7280">Freight — get the price from Keubix and add $'
+                      + FREIGHT_MARKUP.toFixed(2) + '.</div>'
+                    : '';
+            } else if(out.textContent.indexOf('Keubix')>-1){
+                out.innerHTML='';
+            }
+        }
+        if(via) via.addEventListener('change',syncQuoteBtn);
+        syncQuoteBtn();
         btn.addEventListener('click',function(){
             const fd=new FormData(document.querySelector('form'));
             btn.disabled=true; btn.textContent='Asking FedEx…';

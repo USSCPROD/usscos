@@ -1171,8 +1171,12 @@ class SalesOrderRepository
 
     public function getShipViaOptions(): array
     {
-        return $this->pdo->query("SELECT id, name FROM ship_via WHERE is_active = 1 ORDER BY sort_order, name")
-            ->fetchAll(\PDO::FETCH_ASSOC);
+        // ship_mode comes along so the form knows whether a FedEx quote is even a
+        // sensible thing to offer. Nobody can ask FedEx what an LTL pallet costs.
+        return $this->pdo->query("
+            SELECT id, name, COALESCE(ship_mode, 'other') AS ship_mode
+            FROM ship_via WHERE is_active = 1 ORDER BY sort_order, name
+        ")->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getTaxRates(): array
