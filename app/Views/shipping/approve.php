@@ -49,6 +49,14 @@ $prio = [
         <p class="page-subtitle">
             <?= count($orders) ?> waiting. The warehouse cannot see an order until it is approved here.
         </p>
+        <p style="font-size:.85rem;color:#6b7280;margin:.4rem 0 0;max-width:62rem">
+            <strong>OK to ship</strong> puts the order on the
+            <a href="/shipping/pull" style="color:#0A3D91">pull list</a> and in the
+            <a href="/shipping" style="color:#0A3D91">shipping queue</a>, which is where
+            the warehouse picks and packs it. You decide full or partial later, at
+            <a href="/shipping/release" style="color:#0A3D91">Ready to ship</a>, once
+            somebody has actually been to the shelf — <em>not</em> here.
+        </p>
     </div>
     <div style="display:flex;gap:.75rem">
         <a href="/shipping/pull" class="btn btn--secondary">Pull list</a>
@@ -136,8 +144,10 @@ $prio = [
                     <td style="padding:.55rem .6rem;text-align:right">$<?= number_format((float)$o['total_amount'], 2) ?></td>
                     <td style="padding:.55rem .6rem;text-align:right;white-space:nowrap">
                         <?php if ((int)$o['lines_tight'] > 0): ?>
-                            <span title="The counts say this may not fill. The quantity decision happens after picking."
-                                  style="font-size:.7rem;color:#92400e;margin-right:.4rem">may be tight</span>
+                            <span title="On today's stock figures, <?= (int)$o['lines_tight'] ?> line<?= (int)$o['lines_tight'] === 1 ? '' : 's' ?> on this order may not fill. Approve it anyway — the warehouse will find out what is really on the shelf, and you decide full or partial at Ready to ship."
+                                  style="font-size:.7rem;color:#92400e;margin-right:.4rem;cursor:help;border-bottom:1px dotted #d97706">
+                                <?= (int)$o['lines_tight'] ?> line<?= (int)$o['lines_tight'] === 1 ? '' : 's' ?> may be short
+                            </span>
                         <?php endif; ?>
                         <button type="submit" form="approve-<?= (int)$o['id'] ?>"
                                 class="btn btn--sm btn--primary">OK to ship</button>

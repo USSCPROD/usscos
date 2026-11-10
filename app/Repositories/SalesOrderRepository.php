@@ -538,7 +538,17 @@ class SalesOrderRepository
                    so.ship_address_1, so.ship_city, so.ship_state, so.ship_zip,
                    c.id AS customer_id, c.company_name, c.phone,
                    sv.name AS ship_via_name, sv.ship_mode,
-                   u.first_name AS rep_first, u.last_name AS rep_last
+                   u.first_name AS rep_first, u.last_name AS rep_last,
+                   -- What the row's own action should be, rather than a button that
+                   -- sends somebody to a list their order is not on.
+                   (SELECT i.id FROM invoices i WHERE i.sales_order_id = so.id
+                     ORDER BY i.id DESC LIMIT 1)             AS invoice_id,
+                   (SELECT i.invoice_number FROM invoices i WHERE i.sales_order_id = so.id
+                     ORDER BY i.id DESC LIMIT 1)             AS invoice_number,
+                   (SELECT COALESCE(SUM(li.qty_picked - COALESCE(li.qty_shipped,0)), 0)
+                      FROM sales_order_line_items li WHERE li.sales_order_id = so.id) AS qty_to_ship,
+                   (SELECT COALESCE(SUM(li.qty_picked - COALESCE(li.qty_packed,0)), 0)
+                      FROM sales_order_line_items li WHERE li.sales_order_id = so.id) AS qty_unpacked
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
             LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
@@ -563,6 +573,11 @@ class SalesOrderRepository
                         JOIN invoices i2 ON i2.id = t.invoice_id
                         WHERE i2.sales_order_id = so.id
                     )
+                    -- ...unless nothing is going to be labelled. A customer collection
+                    -- and a run on our own truck never get a tracking number, so waiting
+                    -- for one kept them in the queue for ever. For those the invoice is
+                    -- the finish line.
+                    AND COALESCE(sv.ship_mode, 'other') NOT IN ('pickup', 'delivery')
                 )
             )
             ORDER BY so.requested_ship_date ASC, so.order_date ASC

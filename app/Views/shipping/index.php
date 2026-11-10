@@ -224,14 +224,46 @@ if ($activeTab === 'all') {
                             <a href="/shipping/<?= (int)$o['id'] ?>/pack"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
                                onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Pack</a>
-                            <?php /* "Release" said nothing about what it does. It invoices
-                                      what has been picked, and that is what the button
-                                      should say — it is also the one step here that
-                                      bills a customer. */ ?>
-                            <a href="/shipping/release"
-                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #16a34a;border-radius:5px;color:#16a34a;text-decoration:none;margin-right:.4rem"
-                               onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''"
-                               title="Ready to ship — invoice what has been picked, then make the label">Invoice</a>
+                            <?php
+                            /*
+                             * The row's own next step, not a link to a list.
+                             *
+                             * This used to send everybody to Ready to ship whatever
+                             * state their order was in — including orders already
+                             * invoiced, which are not on that page at all, so the
+                             * button led to a screen without the order on it.
+                             */
+                            $toShip   = (float)($o['qty_to_ship'] ?? 0);
+                            $unpacked = (float)($o['qty_unpacked'] ?? 0);
+                            $invId    = (int)($o['invoice_id'] ?? 0);
+                            $btn      = 'font-size:.8rem;padding:.3rem .7rem;border-radius:5px;'
+                                      . 'text-decoration:none;margin-right:.4rem;display:inline-block';
+                            ?>
+                            <?php if ($toShip <= 0 && $invId > 0): ?>
+                                <a href="/invoices/<?= $invId ?>"
+                                   title="Already invoiced — nothing left to bill on this order"
+                                   style="<?= $btn ?>;border:1px solid #cbd5e1;color:#475569">
+                                    Invoice <?= e($o['invoice_number'] ?? '') ?>
+                                </a>
+                            <?php elseif ($toShip <= 0): ?>
+                                <span title="Nothing picked yet, so there is nothing to invoice"
+                                      style="<?= $btn ?>;border:1px dashed #cbd5e1;color:#94a3b8">Invoice</span>
+                            <?php elseif ($unpacked > 0.0001 && ($o['pack_status'] ?? '') !== 'mismatch'): ?>
+                                <a href="/shipping/<?= (int)$o['id'] ?>/pack"
+                                   title="The box has to be checked against the pick before this can be invoiced"
+                                   style="<?= $btn ?>;border:1px solid #d97706;color:#b45309">Pack first</a>
+                            <?php else: ?>
+                                <form method="POST" action="/shipping/<?= (int)$o['id'] ?>/release"
+                                      style="display:inline;margin-right:.4rem">
+                                    <?= csrf_field() ?>
+                                    <button type="submit"
+                                            title="Invoice what has been picked on this order, then make the label"
+                                            onclick="return confirm('Invoice the <?= rtrim(rtrim(number_format($toShip, 2), '0'), '.') ?> picked on SO #<?= e($o['so_number']) ?>?')"
+                                            style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #16a34a;border-radius:5px;color:#16a34a;background:#fff;cursor:pointer">
+                                        Invoice
+                                    </button>
+                                </form>
+                            <?php endif; ?>
                             <?php if (($o['ship_mode'] ?? '') === 'pickup'): ?>
                                 <?php /* Nothing to label: the customer is coming for it.
                                          Offering a FedEx label here is an invitation to
