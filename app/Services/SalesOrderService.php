@@ -261,7 +261,17 @@ class SalesOrderService
             $qty   = (float)str_replace(',', '', $qty);
             $price = (float)str_replace(',', '', $prices[$i] ?? '0');
             $disc  = (float)($discounts[$i] ?? 0);
-            if ($qty == 0 && $price == 0) continue;
+
+            // A line is real when it NAMES something. The blank rows the form draws
+            // carry a default quantity of 1, so testing the quantity kept every one of
+            // them: a three-line form saved one product and two empty lines, which then
+            // appeared on the pick screen as items to find and on the packing slip as
+            // rows with nothing in them.
+            $named = ($productIds[$i] ?? '') !== ''
+                  || trim((string)($items[$i] ?? '')) !== ''
+                  || trim((string)($descs[$i] ?? '')) !== '';
+
+            if (!$named && $price == 0) continue;
 
             $lineTotal = round($qty * $price * (1 - $disc / 100), 2);
 
