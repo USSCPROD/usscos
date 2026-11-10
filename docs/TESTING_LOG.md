@@ -100,6 +100,24 @@ Nothing here is urgent, and all of it is needed before the real cutover.
 
 ## Fixed
 
+### 2026-11-10 — the pack bench was counting the wrong things
+
+Found by Chip walking SO #2 (Monarch Country Club) at the bench.
+
+- **"Shipping and Handling" was a line to pick and pack.** It is money on an invoice,
+  not an object in the building. Charge lines are now kept off the pull list, the pick
+  screen and the pack screen — matched on the product's item type, or on the wording
+  where there is no product. A free-text line that is *not* a charge still appears,
+  because that is a real thing somebody has to go and find.
+- **The unit was wrong by a factor of twelve.** `uom_code` is the smallest unit the
+  catalogue knows, so 9 cases printed as "9 · 18 oz Can". Both screens now say what the
+  number counts — *"9 cases of 12 × 18 oz Can"* — and the pack screen adds the box
+  breakdown: *"4 × Aerosol double box (2 each) + 1 × Aerosol single box"*.
+- **"Release" said nothing about what it does.** It invoices what has been picked, so
+  the button now says **Invoice**.
+- **Confirming an order was hidden** at the foot of the pack screen under a heading
+  about not scanning. It is now stated at the top with the button on it.
+
 ### 2026-11-10 — blank form rows were being saved as line items
 
 The order form draws three empty rows, each with a default quantity of 1, and the
