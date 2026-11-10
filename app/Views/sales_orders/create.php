@@ -274,6 +274,11 @@ $currentUser = \App\Core\Auth::user();
                                    step="0.01" min="0" placeholder="0.00"
                                    style="width:100%;max-width:7.5rem;padding:.35rem .5rem;border:1px solid #d1d5db;
                                           border-radius:6px;font-family:monospace;text-align:right;font-size:.9rem">
+                            <div style="margin-top:.35rem;text-align:right">
+                                <button type="button" id="fQuoteBtn" class="btn btn--sm btn--secondary"
+                                        style="font-size:.78rem">Get FedEx quote</button>
+                            </div>
+                            <div id="fQuoteOut" style="margin-top:.4rem;font-size:.8rem;text-align:left"></div>
                         </td>
                         <td></td>
                     </tr>
@@ -536,6 +541,51 @@ function soThStyle(): string {
         if(used) addLine();
     }
     document.getElementById('lineBody').addEventListener('input',ensureSpareRow);
+
+    /*
+     * Ask FedEx what it would cost.
+     *
+     * Quoted from what is on the form, because the order is not saved yet. The boxes
+     * come from the same cartonizer the label screen uses, so the quote and the label
+     * are describing the same parcels rather than two guesses.
+     */
+    (function(){
+        const btn=document.getElementById('fQuoteBtn'), out=document.getElementById('fQuoteOut');
+        if(!btn) return;
+        btn.addEventListener('click',function(){
+            const fd=new FormData(document.querySelector('form'));
+            btn.disabled=true; btn.textContent='Asking FedEx…';
+            out.innerHTML='';
+            fetch('/sales-orders/quote-shipping',{method:'POST',body:fd})
+                .then(r=>r.json())
+                .then(d=>{
+                    btn.disabled=false; btn.textContent='Get FedEx quote';
+                    if(!d.ok){ out.innerHTML='<div style="color:#b45309">'+esc(d.message||'No quote.')+'</div>'; return; }
+                    let h='<div style="color:#6b7280;margin-bottom:.3rem">'+d.boxes+' box(es), '+d.weight+' lb — '
+                        +'FedEx price plus $'+Number(d.markup).toFixed(2)+'. Click one to use it.</div>';
+                    d.rates.forEach(function(r){
+                        h+='<div class="q-rate" data-charge="'+r.charge+'" style="display:flex;justify-content:space-between;'
+                          +'gap:1rem;padding:.3rem .45rem;cursor:pointer;border-radius:5px">'
+                          +'<span>'+esc(r.label)+'</span>'
+                          +'<span style="font-family:monospace"><span style="color:#9ca3af">'+fmt(r.cost)+'</span> → <strong>'+fmt(r.charge)+'</strong></span>'
+                          +'</div>';
+                    });
+                    out.innerHTML=h;
+                    out.querySelectorAll('.q-rate').forEach(function(el){
+                        el.addEventListener('mouseover',()=>el.style.background='#eff6ff');
+                        el.addEventListener('mouseout', ()=>el.style.background='');
+                        el.addEventListener('click',function(){
+                            document.getElementById('fShipAmount').value=Number(this.dataset.charge).toFixed(2);
+                            out.innerHTML='<div style="color:#166534">Shipping set to '+fmt(this.dataset.charge)+'.</div>';
+                            recalcAll();
+                        });
+                    });
+                })
+                .catch(()=>{ btn.disabled=false; btn.textContent='Get FedEx quote';
+                             out.innerHTML='<div style="color:#b45309">Could not reach the quote service.</div>'; });
+        });
+    }());
+
 
     /* Same-as-billing */
     const sameCb=document.getElementById('sameAsBilling');

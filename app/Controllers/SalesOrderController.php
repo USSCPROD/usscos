@@ -241,6 +241,38 @@ class SalesOrderController extends Controller
         return $response->redirect('/sales-orders/' . (int)$id);
     }
 
+    /**
+     * What FedEx would charge to send what is on the form, plus USSC's markup.
+     *
+     * Answers from the posted form rather than from a saved order, because the person
+     * asking is part way through typing one.
+     */
+    public function quoteShipping(Request $request, Response $response): Response
+    {
+        $lines = [];
+
+        foreach ((array)($_POST['line_product_id'] ?? []) as $i => $productId) {
+            $qty = (float)str_replace(',', '', (string)($_POST['line_qty'][$i] ?? 0));
+
+            if ($qty > 0) {
+                $lines[] = [
+                    'product_id'      => $productId !== '' ? (int)$productId : null,
+                    'quickbooks_item' => (string)($_POST['line_item'][$i] ?? ''),
+                    'qty'             => $qty,
+                ];
+            }
+        }
+
+        $result = (new \App\Services\ShippingQuoteService())->quote([
+            'city'        => (string)($_POST['ship_city']  ?? ''),
+            'state'       => (string)($_POST['ship_state'] ?? ''),
+            'zip'         => (string)($_POST['ship_zip']   ?? ''),
+            'residential' => false,
+        ], $lines);
+
+        return $response->json($result);
+    }
+
     public function ship(Request $request, Response $response, string $id = '0'): Response
     {
         $user = Auth::user();

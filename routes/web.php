@@ -218,6 +218,7 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     // Sales Orders
     Router::get('/sales-orders',                 [SalesOrderController::class, 'index'])->name('sales_orders');
     Router::get('/sales-orders/create',          [SalesOrderController::class, 'create'])->name('sales_orders.create');
+    Router::post('/sales-orders/quote-shipping', [SalesOrderController::class, 'quoteShipping'])->name('sales_orders.quote_shipping');
     Router::post('/sales-orders',                [SalesOrderController::class, 'store'])->name('sales_orders.store');
     Router::get('/sales-orders/{id}',            [SalesOrderController::class, 'show'])->name('sales_orders.show');
     Router::get('/sales-orders/{id}/edit',       [SalesOrderController::class, 'edit'])->name('sales_orders.edit');
