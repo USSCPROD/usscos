@@ -336,7 +336,10 @@ class FedExShippingService
 
         $dir = BASE_PATH . '/public/uploads/labels/' . $invoiceId;
 
-        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+        // 0775, not 0755: the uploads tree is shared between the web user that writes
+        // these and the deploy account that has to tidy them up afterwards. At 0755 the
+        // second one cannot delete a file it can plainly see.
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
             return null;
         }
 

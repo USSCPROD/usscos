@@ -180,11 +180,14 @@ try {
 
     // After the commit: the rows are gone, so anything still unreferenced is rubbish.
     // Recomputed rather than reusing the list above, which was taken before the delete.
-    $swept = 0;
+    $swept  = 0;
+    $failed = [];
 
     foreach (orphanedLabels() as $f) {
         if (@unlink($f)) {
             $swept++;
+        } else {
+            $failed[] = $f;
         }
     }
 
@@ -195,6 +198,17 @@ try {
         $files,
         $swept
     );
+
+    // Said out loud. An earlier run reported a clean sweep having deleted nothing,
+    // because the unlink was silenced and its failure went with it — the files were
+    // owned by the web user in a directory this account cannot write to.
+    if ($failed !== []) {
+        printf("\n%d file(s) could NOT be deleted — check ownership:\n", count($failed));
+
+        foreach ($failed as $f) {
+            echo '    ' . $f . "\n";
+        }
+    }
 } catch (\Throwable $e) {
     $pdo->rollBack();
     fwrite(STDERR, "\nRolled back: " . $e->getMessage() . "\n");
