@@ -246,6 +246,44 @@ class SalesOrderService
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    /**
+     * The shipping charge, as a line of its own.
+     *
+     * A line rather than a column on the order: it has to appear on the invoice the
+     * customer reads, and every total in the application already works by summing
+     * lines. A separate column would mean finding and fixing each of those sums, and
+     * missing one.
+     *
+     * It is deliberately NOT a product. The pick and pack screens drop charge lines by
+     * their wording, so nobody is sent to find a box of handling.
+     */
+    private function shippingLine(array $post): ?array
+    {
+        $raw = $post['shipping_amount'] ?? '';
+
+        if ($raw === '' || $raw === null) {
+            return null;
+        }
+
+        $amount = round((float)str_replace([',', '$'], '', (string)$raw), 2);
+
+        if ($amount <= 0) {
+            return null;
+        }
+
+        return [
+            'product_id'      => null,
+            'quickbooks_item' => 'SH',
+            'description'     => 'Shipping and Handling',
+            'qty_ordered'     => 1.0,
+            'uom_id'          => null,
+            'unit_price'      => $amount,
+            'discount_pct'    => 0.0,
+            'taxable'         => 0,
+            'line_total'      => $amount,
+        ];
+    }
+
     private function parseLines(array $post): array
     {
         $items      = $post['line_item']     ?? [];
@@ -287,6 +325,22 @@ class SalesOrderService
                 'line_total'     => $lineTotal,
             ];
         }
+        // Any shipping line the form previously wrote is replaced rather than added to,
+        // so editing an order twice does not bill the freight twice.
+        $lines = array_values(array_filter(
+            $lines,
+            fn (array $l) => !(
+                ($l['product_id'] ?? null) === null
+                && preg_match('~^\s*(shipping|handling|freight)~i', (string)($l['description'] ?? ''))
+            )
+        ));
+
+        $shipping = $this->shippingLine($post);
+
+        if ($shipping !== null) {
+            $lines[] = $shipping;
+        }
+
         return $lines;
     }
 

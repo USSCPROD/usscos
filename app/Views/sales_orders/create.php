@@ -261,6 +261,22 @@ $currentUser = \App\Core\Auth::user();
                         <td style="padding:.4rem .75rem;text-align:right;font-family:monospace;color:#ef4444" id="fDiscount"></td>
                         <td></td>
                     </tr>
+                    <?php /* Shipping is charged, not picked. It becomes its own line on
+                             the order so it reads correctly on the invoice, and the
+                             shipping screens already know to keep charge lines off the
+                             bench — nobody goes and finds a box of handling. */ ?>
+                    <tr>
+                        <td colspan="7" style="padding:.5rem .75rem;text-align:right;color:#6b7280;font-size:.9rem">
+                            Shipping &amp; handling
+                        </td>
+                        <td style="padding:.5rem .75rem;text-align:right">
+                            <input type="number" name="shipping_amount" id="fShipAmount"
+                                   step="0.01" min="0" placeholder="0.00"
+                                   style="width:100%;max-width:7.5rem;padding:.35rem .5rem;border:1px solid #d1d5db;
+                                          border-radius:6px;font-family:monospace;text-align:right;font-size:.9rem">
+                        </td>
+                        <td></td>
+                    </tr>
                     <tr>
                         <td colspan="7" style="padding:.7rem .75rem;text-align:right">
                             <label style="display:inline-flex;align-items:center;gap:.6rem;font-weight:600;color:#374151">
@@ -503,6 +519,23 @@ function soThStyle(): string {
         recalcAll();
     });
     document.getElementById('addLineBtn').addEventListener('click',()=>addLine());
+
+    /*
+     * Keep one empty row at the bottom.
+     *
+     * The form drew three and then made you reach for a button, which breaks the
+     * rhythm of typing an order — the next line should just be there. Only ever one
+     * spare, so a saved order does not collect blanks.
+     */
+    function ensureSpareRow(){
+        const rows=[...document.querySelectorAll('#lineBody tr')];
+        if(!rows.length){addLine();return;}
+        const last=rows[rows.length-1];
+        const used=['.f-code','.f-desc'].some(sel=>(last.querySelector(sel)?.value||'').trim()!=='')
+                 || parseFloat(last.querySelector('.f-price')?.value||0)>0;
+        if(used) addLine();
+    }
+    document.getElementById('lineBody').addEventListener('input',ensureSpareRow);
 
     /* Same-as-billing */
     const sameCb=document.getElementById('sameAsBilling');
