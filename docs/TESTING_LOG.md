@@ -198,7 +198,7 @@ The flow did not match what had been agreed: the clerk's approval sat *after* pi
 and was fused to invoicing, so the warehouse started work the moment sales confirmed an
 order and nobody had said it was OK.
 
-- **Gate 1 added** — *Shipping → Orders to approve*. The warehouse cannot see an order
+- **Gate 1 added** — *Shipping → Waiting for your OK*. The warehouse cannot see an order
   at all until the clerk approves it. The approval is its own timestamped column, not a
   status value: collecting a payment sets status to `paid` and releasing sets
   `partially_shipped`, either of which would have erased an approval kept in status.

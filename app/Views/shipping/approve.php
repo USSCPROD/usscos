@@ -45,9 +45,16 @@ $prio = [
 
 <div class="page-header">
     <div class="page-header__left">
-        <h1 class="page-title">Orders to approve</h1>
+        <h1 class="page-title">Waiting for your OK</h1>
         <p class="page-subtitle">
             <?= count($orders) ?> waiting. The warehouse cannot see an order until it is approved here.
+        </p>
+        <p style="font-size:.85rem;color:#6b7280;margin:.4rem 0 0;max-width:62rem">
+            <strong>Nothing to do with approving an invoice.</strong> This is about
+            letting work start. Signing off a finished invoice — the step that would
+            send the customer their tracking — is
+            <a href="/invoices/review" style="color:#0A3D91">Invoices &rsaquo; Awaiting
+            Review</a>, at the other end of the job.
         </p>
         <p style="font-size:.85rem;color:#6b7280;margin:.4rem 0 0;max-width:62rem">
             <strong>OK to ship</strong> puts the order on the

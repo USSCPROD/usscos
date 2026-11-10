@@ -17,7 +17,7 @@ $rqTd   = 'padding:.7rem .75rem;border-top:1px solid #eef0f3;vertical-align:midd
         </p>
     </div>
     <div>
-        <a href="/shipping/approve" class="btn btn--secondary">Orders to approve</a>
+        <a href="/shipping/approve" class="btn btn--secondary">Waiting for OK</a>
         <a href="/shipping/pull" class="btn btn--secondary">Pull list</a>
         <a href="/shipping" class="btn btn--secondary">Queue</a>
     </div>

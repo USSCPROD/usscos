@@ -55,7 +55,7 @@ $activeTab = $_GET['tab'] ?? 'all';
         <p class="page-subtitle"><?= count($orders) ?> order<?= count($orders) !== 1 ? 's' : '' ?> ready to ship</p>
     </div>
     <div style="display:flex;gap:.5rem;flex-shrink:0">
-        <a href="/shipping/approve" class="btn btn--secondary">Orders to approve</a>
+        <a href="/shipping/approve" class="btn btn--secondary">Waiting for OK</a>
         <a href="/shipping/pull" class="btn btn--secondary">Pull list</a>
         <a href="/shipping/release" class="btn btn--primary">Ready to ship</a>
     </div>

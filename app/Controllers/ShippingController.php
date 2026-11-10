@@ -220,7 +220,7 @@ class ShippingController extends Controller
     public function approve(Request $request, Response $response): Response
     {
         return $this->view('shipping.approve', [
-            'title'   => 'Orders to approve',
+            'title'   => 'Waiting for your OK',
             'orders'  => $this->repo->approvalQueue(),
             'carriers'=> $this->repo->getShipViaOptions(),
         ]);

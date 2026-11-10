@@ -15,6 +15,9 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
         <h1 class="page-title" style="margin:0">Awaiting Review</h1>
         <p class="page-subtitle" style="margin:.25rem 0 0">
             Review the invoice before customer communication. New fulfillment invoices may be COD bills prepared before handoff. Approval does not confirm payment.
+            This is the last step of a job, not the first: letting the warehouse
+            <em>start</em> an order is <a href="/shipping/approve" class="link">Shipping
+            &rsaquo; Waiting for your OK</a>.
         </p>
     </div>
 </div>

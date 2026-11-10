@@ -8,6 +8,22 @@ comes from not knowing which of the three you are standing in at any moment.
 
 ---
 
+## Two different "approvals", at opposite ends of the job
+
+Worth settling before anything else, because the words look alike and the screens are
+nowhere near each other.
+
+| | **Shipping › Waiting for your OK** | **Invoices › Awaiting Review** |
+|---|---|---|
+| When | Before any work starts | After the goods have gone |
+| About | A sales order | A finished invoice |
+| Who | Shipping clerk or admin | Bookkeeper |
+| Doing it | Puts the order in front of the warehouse | Signs the invoice off — and is what would send the customer their tracking |
+
+Nothing in the first one emails anybody.
+
+---
+
 ## The one thing that derails a demo
 
 **A new order is saved as a Draft, and a draft is invisible to shipping.**
@@ -50,9 +66,9 @@ and on the **Pull list**.
 
 ---
 
-## Phase 2 — The clerk approves it ("OK to ship")
+## Phase 2 — The clerk says it may be worked ("OK to ship")
 
-**Who:** shipping clerk or admin. **Screen:** Shipping → **Orders to approve**.
+**Who:** shipping clerk or admin. **Screen:** Shipping → **Waiting for your OK**.
 
 A confirmed order is not yet work. It waits here until somebody says it may be worked,
 and **the warehouse cannot see it at all until then** — not on the pull list, not in the
@@ -284,7 +300,7 @@ Orders #1–30 are seeded test data, marked *"SEED — test order, safe to delet
 
 1. **Sales Orders → + New Order.** Enter one for a real customer. Save, **set
    Confirmed**, and say out loud that this is the handoff to the clerk.
-2. **Shipping → Orders to approve.** Your order is here, and *only* here — the
+2. **Shipping → Waiting for your OK.** Your order is here, and *only* here — the
    warehouse cannot see it yet. Set the carrier, tick it, **print the packing slip**,
    then **OK to ship**. Point out the parcel and freight sections.
 3. **Shipping → Pull list.** The order has appeared. Point out it is totalled by
