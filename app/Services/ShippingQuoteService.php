@@ -109,10 +109,12 @@ class ShippingQuoteService
         $res = $fedex->call('POST', '/rate/v1/rates/quotes', [
             'accountNumber'     => ['value' => trim((string)($_ENV['FEDEX_ACCOUNT_NUMBER'] ?? ''))],
             'requestedShipment' => [
+                // postal_code, not zip: that is what the companies table calls it, and
+                // guessing the column name sent FedEx an empty origin.
                 'shipper' => ['address' => [
-                    'postalCode'          => (string)($company['zip']   ?? ''),
-                    'stateOrProvinceCode' => (string)($company['state'] ?? ''),
-                    'city'                => (string)($company['city']  ?? ''),
+                    'postalCode'          => (string)($company['postal_code'] ?? ''),
+                    'stateOrProvinceCode' => (string)($company['state']       ?? ''),
+                    'city'                => (string)($company['city']        ?? ''),
                     'countryCode'         => 'US',
                 ]],
                 'recipient' => ['address' => array_filter([
