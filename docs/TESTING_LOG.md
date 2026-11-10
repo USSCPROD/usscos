@@ -21,6 +21,25 @@ The end-to-end flow — what each person does and sees, in order — is written 
 
 ## Open — waiting on Chip
 
+### Duplicate customers — 9,665 pairs
+
+**Data, not a code fault.** The partial extract appears to have been imported twice:
+TRUMARK exists as id 31000 (267 invoices, created 1 July) and id 125701 (nothing at
+all, created 7 July), with the **same `qb_balance` on both** — so any total that sums
+balances double-counts them.
+
+Across the base: **9,665 duplicate name groups**, each with exactly one extra row, and
+18,656 rows inside those groups have no invoices and no orders.
+
+**Not worth bulk-fixing in the test data**, which is deleted and re-imported at cutover
+anyway. Two things that *are* worth doing:
+
+- **The real import needs a dedupe step**, or this arrives again at full scale.
+- **The duplicate check Chip asked for** — when a rep adds a customer, check whether it
+  already exists and already has a rep — is the thing that stops this recurring by hand.
+
+The empty TRUMARK (125701) was deactivated so testing is not confused by it.
+
 ### Reps: two rep columns, and only one login linked
 
 Found 10 November 2026 while wiring distributor pricing.
@@ -174,6 +193,17 @@ The same client does tracking, so those errors become readable too.
 The failure underneath turned out to be test data: TRUMARK's ship-to reads
 **Chattanooga, TN 30534** — and 30534 is Dawsonville, Georgia. FedEx now says so in
 plain words: *"Recipient state and postal code mismatch."*
+
+### 2026-11-10 — unticking "Active" on a customer did nothing
+
+**Two checkboxes named `is_active` on one form** — *"Active"* on the Company tab and
+*"Active customer"* under Status on Additional Info. An unticked checkbox submits
+nothing, so whichever one you could see, the other was still ticked on a hidden tab and
+still sent `is_active=1`. Unticking either had no effect, and the page came back saying
+Active — which reads as a save that silently failed.
+
+One field, one control. Additional Info now points at the Company tab instead of
+offering a second switch for the same thing.
 
 ### 2026-11-10 — Larry Fitzpatrick was in the rep list
 
