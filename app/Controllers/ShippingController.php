@@ -28,10 +28,13 @@ class ShippingController extends Controller
         $orders    = $this->repo->getShippingQueue();
         $shipVias  = $this->repo->getShipViaOptions();
 
-        // Group orders by ship_via_id (null = unassigned)
+        // Grouped by BENCH, not by carrier. Parcel and freight are worked by
+        // different people, and FedEx and FedEx Freight sitting next to each other as
+        // two tabs put one person's work inside the other's list.
         $grouped = [];
+
         foreach ($orders as $o) {
-            $key = $o['ship_via_id'] ?? 'none';
+            $key = empty($o['ship_via_id']) ? 'none' : ($o['ship_mode'] ?? 'other');
             $grouped[$key][] = $o;
         }
 
@@ -162,6 +165,95 @@ class ShippingController extends Controller
      * what actually goes out — full, partial, or wait for the rest — which is why this
      * runs alongside the pull list rather than after it.
      */
+    /**
+     * Gate one: orders the clerk has not yet let out to the warehouse.
+     *
+     * The warehouse cannot see an unapproved order at all - not on the pull list, not
+     * in the queue, not on a pick screen. Work starts because somebody said it should,
+     * which is the whole point of the gate.
+     */
+    public function approve(Request $request, Response $response): Response
+    {
+        return $this->view('shipping.approve', [
+            'title'   => 'Orders to approve',
+            'orders'  => $this->repo->approvalQueue(),
+            'carriers'=> $this->repo->getShipViaOptions(),
+        ]);
+    }
+
+    /** Let one order out to the floor. */
+    public function approveOrder(Request $request, Response $response, string $id = '0'): Response
+    {
+        $soId      = (int)$id;
+        $userId    = (int)(\App\Core\Auth::user()['id'] ?? 0);
+        $shipVia   = (int)($_POST['ship_via_id'] ?? 0);
+
+        $this->repo->approve($soId, $userId, $shipVia > 0 ? $shipVia : null);
+
+        Session::flash('success', 'Approved — it is on the warehouse list now.');
+
+        return $response->redirect('/shipping/approve');
+    }
+
+    /** Take one back off the floor, while that is still honest. */
+    public function unapproveOrder(Request $request, Response $response, string $id = '0'): Response
+    {
+        if ($this->repo->unapprove((int)$id)) {
+            Session::flash('success', 'Pulled back — the warehouse can no longer see it.');
+        } else {
+            Session::flash('error', 'Picking has already started on that one. Flag it short or hold it instead.');
+        }
+
+        return $response->redirect('/shipping/approve');
+    }
+
+    /**
+     * Every approved order's packing slip as one print job.
+     *
+     * The clerk used to print labels and staple them to slips so the warehouse had
+     * something physical to work from. The labels are gone from that habit - they need
+     * a packed box before they mean anything - but the batch of paperwork is real work
+     * and still wanted.
+     */
+    public function packingSlips(Request $request, Response $response): Response
+    {
+        $ids = array_values(array_filter(
+            array_map('intval', (array)($_POST['so'] ?? $request->query('so') ?? [])),
+            fn ($n) => $n > 0
+        ));
+
+        if ($ids === []) {
+            Session::flash('error', 'Tick the orders whose slips you want.');
+            return $response->redirect('/shipping/approve');
+        }
+
+        $company = Database::selectOne('SELECT * FROM companies WHERE id = 1');
+        $service = new \App\Services\SalesOrderService();
+        $pages   = [];
+
+        foreach ($ids as $soId) {
+            try {
+                $data = $service->show($soId);
+            } catch (\RuntimeException) {
+                continue;   // deleted between ticking the box and pressing print
+            }
+
+            $so         = $data['so'];
+            $line_items = $data['line_items'];
+
+            ob_start();
+            require BASE_PATH . '/app/Views/sales_orders/packing_slip.php';
+            $pages[] = ob_get_clean();
+        }
+
+        if ($pages === []) {
+            Session::flash('error', 'None of those orders could be found.');
+            return $response->redirect('/shipping/approve');
+        }
+
+        return $response->html(\App\Services\PrintBatch::stitch($pages));
+    }
+
     public function release(Request $request, Response $response): Response
     {
         return $this->view('shipping.release', [
@@ -262,12 +354,26 @@ class ShippingController extends Controller
      */
     public function pull(Request $request, Response $response): Response
     {
-        $list = $this->repo->pullList();
+        $benches = ['parcel', 'freight', 'pickup', 'other'];
+        $bench   = (string)($request->query('bench') ?? '');
+        $bench   = in_array($bench, $benches, true) ? $bench : '';
+
+        $list = $this->repo->pullList($bench);
+
+        // Counts for the tabs, so somebody can see there is freight waiting without
+        // having to click into it.
+        $counts = ['' => count($this->repo->pullList())];
+
+        foreach ($benches as $b) {
+            $counts[$b] = count($this->repo->pullList($b));
+        }
 
         return $this->view('shipping.pull', [
             'title'   => 'Pull list',
             'changes' => $this->repo->pickedChanges(),
             'list'    => $list,
+            'bench'   => $bench,
+            'counts'  => $counts,
             'short'  => array_values(array_filter($list, fn($p) => $p['qty_on_hand'] < $p['total_needed'])),
         ]);
     }

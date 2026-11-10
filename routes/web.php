@@ -185,6 +185,10 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
 
     Router::get('/shipping', [ShippingController::class, 'index'])->name('shipping');
     Router::get('/shipping/pull',       [ShippingController::class, 'pull'])->name('shipping.pull');
+    Router::get('/shipping/approve',        [ShippingController::class, 'approve'])->name('shipping.approve');
+    Router::post('/shipping/{id}/approve',  [ShippingController::class, 'approveOrder'])->name('shipping.approve.go');
+    Router::post('/shipping/{id}/unapprove',[ShippingController::class, 'unapproveOrder'])->name('shipping.unapprove');
+    Router::post('/shipping/packing-slips', [ShippingController::class, 'packingSlips'])->name('shipping.packing_slips');
     Router::get('/shipping/release',    [ShippingController::class, 'release'])->name('shipping.release');
     Router::post('/shipping/{id}/release', [ShippingController::class, 'releaseOrder'])->name('shipping.release.go');
     Router::post('/shipping/{id}/hold',    [ShippingController::class, 'holdOrder'])->name('shipping.hold');

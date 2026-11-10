@@ -537,13 +537,13 @@ class SalesOrderRepository
                    so.po_number, so.total_amount, so.ship_via_id,
                    so.ship_address_1, so.ship_city, so.ship_state, so.ship_zip,
                    c.id AS customer_id, c.company_name, c.phone,
-                   sv.name AS ship_via_name,
+                   sv.name AS ship_via_name, sv.ship_mode,
                    u.first_name AS rep_first, u.last_name AS rep_last
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
             LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
             LEFT JOIN users u ON u.id = so.rep_id
-            WHERE (
+            WHERE so.approved_at IS NOT NULL AND (
                 so.status IN ('confirmed', 'processing', 'partially_shipped', 'paid')
 
                 -- Released but not yet labelled. Invoicing an order moves it to
@@ -589,8 +589,23 @@ class SalesOrderRepository
      *
      * @return list<array> one row per product, each with an `orders` list
      */
-    public function pullList(): array
+    /**
+     * @param string $bench 'parcel', 'freight', 'pickup', 'other' — or '' for all
+     */
+    public function pullList(string $bench = ''): array
     {
+        // 'other' also catches an order whose carrier was never set, which belongs to
+        // nobody's bench until somebody says how it ships.
+        $benchWhere  = '';
+        $benchParams = [];
+
+        if ($bench !== '') {
+            $benchWhere  = $bench === 'other'
+                ? "AND (so.ship_via_id IS NULL OR COALESCE(sv.ship_mode,'other') = 'other')"
+                : "AND so.ship_via_id IS NOT NULL AND sv.ship_mode = ?";
+            $benchParams = $bench === 'other' ? [] : [$bench];
+        }
+
         $rows = Database::select("
             SELECT li.product_id,
                    p.sku,
@@ -607,15 +622,19 @@ class SalesOrderRepository
                    li.qty_ordered,
                    li.qty_picked,
                    (li.qty_ordered - COALESCE(li.qty_picked, 0)) AS qty_outstanding,
-                   COALESCE(p.qty_on_hand, 0)                   AS qty_on_hand
+                   COALESCE(p.qty_on_hand, 0)                   AS qty_on_hand,
+                   COALESCE(sv.ship_mode, 'other')              AS ship_mode
             FROM sales_order_line_items li
             JOIN sales_orders so ON so.id = li.sales_order_id
             JOIN customers c     ON c.id  = so.customer_id
+            LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
             LEFT JOIN products p ON p.id  = li.product_id
             WHERE so.status IN ('confirmed','processing','partially_shipped')
+              AND so.approved_at IS NOT NULL
               AND (li.qty_ordered - COALESCE(li.qty_picked, 0)) > 0
+              {$benchWhere}
             ORDER BY p.sku, so.ship_by IS NULL, so.ship_by, so.id
-        ");
+        ", $benchParams);
 
         $byProduct = [];
 
@@ -714,6 +733,83 @@ class SalesOrderRepository
      *
      * @return list<array>
      */
+    /**
+     * Orders the clerk has not yet let out to the warehouse — gate one.
+     *
+     * Confirmed by sales and nothing more. The warehouse cannot see these at all, so
+     * the only way an order becomes work is somebody here deciding it should.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function approvalQueue(): array
+    {
+        return Database::select("
+            SELECT so.id, so.so_number, so.order_date, so.ship_by, so.priority,
+                   so.po_number, so.total_amount, so.memo, so.pick_note,
+                   so.ship_via_id, so.ship_city, so.ship_state,
+                   c.id AS customer_id, c.company_name,
+                   sv.name AS ship_via_name,
+                   COALESCE(sv.ship_mode, 'other') AS ship_mode,
+
+                   COUNT(li.id)            AS line_count,
+                   SUM(li.qty_ordered)     AS qty_ordered,
+
+                   -- What the system thinks can be filled today. Advisory only: the
+                   -- counts are not trusted yet, which is exactly why the quantity
+                   -- decision belongs at gate two, after somebody has walked the floor.
+                   SUM(CASE
+                         WHEN COALESCE(p.qty_on_hand, 0) < li.qty_ordered
+                         THEN 1 ELSE 0 END) AS lines_tight
+
+            FROM sales_orders so
+            JOIN customers c      ON c.id = so.customer_id
+            LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
+            LEFT JOIN sales_order_line_items li ON li.sales_order_id = so.id
+            LEFT JOIN products p  ON p.id = li.product_id
+            WHERE so.approved_at IS NULL
+              AND so.status IN ('confirmed', 'paid')
+            GROUP BY so.id
+            ORDER BY FIELD(so.priority,'urgent','high','normal'),
+                     so.ship_by IS NULL, so.ship_by, so.id
+        ");
+    }
+
+    /** Let an order out to the warehouse, optionally settling the carrier on the way. */
+    public function approve(int $soId, int $userId, ?int $shipViaId = null): void
+    {
+        if ($shipViaId !== null) {
+            Database::statement(
+                "UPDATE sales_orders SET ship_via_id = ? WHERE id = ?", [$shipViaId, $soId]
+            );
+        }
+
+        Database::statement("
+            UPDATE sales_orders
+            SET approved_at = NOW(), approved_by = ?
+            WHERE id = ? AND approved_at IS NULL
+        ", [$userId, $soId]);
+    }
+
+    /** Pull an order back off the floor. Only while nothing has been picked. */
+    public function unapprove(int $soId): bool
+    {
+        $row = Database::selectOne("
+            SELECT COALESCE(SUM(li.qty_picked), 0) AS picked
+            FROM sales_order_line_items li WHERE li.sales_order_id = ?
+        ", [$soId]);
+
+        if ((float)($row['picked'] ?? 0) > 0) {
+            return false;
+        }
+
+        Database::statement(
+            "UPDATE sales_orders SET approved_at = NULL, approved_by = NULL WHERE id = ?",
+            [$soId]
+        );
+
+        return true;
+    }
+
     public function releaseQueue(): array
     {
         return Database::select("
@@ -741,13 +837,17 @@ class SalesOrderRepository
                           AND COALESCE(p.qty_on_hand,0) < (li.qty_ordered - COALESCE(li.qty_picked,0))
                          THEN 1 ELSE 0 END)                            AS lines_short,
 
-                   (SELECT COUNT(*) FROM invoices i WHERE i.sales_order_id = so.id) AS invoice_count
+                   (SELECT COUNT(*) FROM invoices i WHERE i.sales_order_id = so.id) AS invoice_count,
+                   sv.name AS ship_via_name,
+                   COALESCE(sv.ship_mode, 'other') AS ship_mode
 
             FROM sales_orders so
             JOIN customers c             ON c.id  = so.customer_id
+            LEFT JOIN ship_via sv        ON sv.id = so.ship_via_id
             LEFT JOIN sales_order_line_items li ON li.sales_order_id = so.id
             LEFT JOIN products p         ON p.id  = li.product_id
             WHERE so.status IN ('confirmed','processing','partially_shipped')
+              AND so.approved_at IS NOT NULL
             GROUP BY so.id
             ORDER BY FIELD(so.priority,'urgent','high','normal'),
                      so.ship_by IS NULL, so.ship_by, so.id

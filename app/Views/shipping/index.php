@@ -16,12 +16,19 @@ $statusBadge = [
 $today    = date('Y-m-d');
 $tomorrow = date('Y-m-d', strtotime('+1 day'));
 
-// Build tab list: All + one per ship_via that has orders
-// shipVias comes from DB (all active); only show tabs that have orders
+// One tab per BENCH that has work. Parcel and freight are different people, and a
+// tab each for FedEx and FedEx Freight put one of them inside the other's list.
+$benchNames = [
+    'parcel'  => 'Parcel (FedEx, UPS)',
+    'freight' => 'Freight',
+    'pickup'  => 'Pick-up',
+    'other'   => 'Other',
+];
+
 $tabsWithOrders = [];
-foreach ($shipVias as $sv) {
-    if (!empty($grouped[(string)$sv['id']])) {
-        $tabsWithOrders[] = $sv;
+foreach ($benchNames as $benchKey => $benchName) {
+    if (!empty($grouped[$benchKey])) {
+        $tabsWithOrders[] = ['id' => $benchKey, 'name' => $benchName];
     }
 }
 $hasUnassigned = !empty($grouped['none']);
@@ -41,6 +48,7 @@ $activeTab = $_GET['tab'] ?? 'all';
         <p class="page-subtitle"><?= count($orders) ?> order<?= count($orders) !== 1 ? 's' : '' ?> ready to ship</p>
     </div>
     <div style="display:flex;gap:.5rem;flex-shrink:0">
+        <a href="/shipping/approve" class="btn btn--secondary">Orders to approve</a>
         <a href="/shipping/pull" class="btn btn--secondary">Pull list</a>
         <a href="/shipping/release" class="btn btn--primary">Ready to ship</a>
     </div>
@@ -51,7 +59,7 @@ $activeTab = $_GET['tab'] ?? 'all';
     <?php
     $tabs = [['id' => 'all', 'name' => 'All', 'count' => count($orders)]];
     foreach ($tabsWithOrders as $sv) {
-        $tabs[] = ['id' => (string)$sv['id'], 'name' => $sv['name'], 'count' => count($grouped[(string)$sv['id']] ?? [])];
+        $tabs[] = ['id' => $sv['id'], 'name' => $sv['name'], 'count' => count($grouped[$sv['id']] ?? [])];
     }
     if ($hasUnassigned) {
         $tabs[] = ['id' => 'none', 'name' => 'No Carrier', 'count' => count($grouped['none'] ?? [])];

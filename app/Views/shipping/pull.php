@@ -16,9 +16,43 @@ $plNum  = fn($n) => rtrim(rtrim(number_format((float)$n, 2), '0'), '.');
         </p>
     </div>
     <div>
+        <a href="/shipping/approve" class="btn btn--secondary">Orders to approve</a>
         <a href="/shipping/release" class="btn btn--primary">Ready to ship</a>
         <a href="/shipping" class="btn btn--secondary">Queue</a>
     </div>
+</div>
+
+<?php
+/*
+ * One walk per bench. The parcel pullers and the freight pullers are different
+ * people, and a single combined list makes each of them read past the other's work.
+ */
+$benchTabs = [
+    ''        => 'Everything',
+    'parcel'  => 'Parcel',
+    'freight' => 'Freight',
+    'pickup'  => 'Pick-up',
+    'other'   => 'No carrier',
+];
+$activeBench = $bench ?? '';
+?>
+<div style="border-bottom:2px solid #d1d5db;margin-bottom:1.25rem;white-space:nowrap;overflow-x:auto">
+    <?php foreach ($benchTabs as $key => $label): ?>
+        <?php
+        $n = (int)($counts[$key] ?? 0);
+        if ($key !== '' && $n === 0) { continue; }
+        $on = $activeBench === $key;
+        ?>
+        <a href="/shipping/pull<?= $key === '' ? '' : '?bench=' . $key ?>"
+           style="display:inline-block;padding:.55rem 1rem;font-size:.9rem;text-decoration:none;
+                  font-weight:<?= $on ? '700' : '500' ?>;color:<?= $on ? '#222b59' : '#6b7280' ?>;
+                  border-bottom:3px solid <?= $on ? '#222b59' : 'transparent' ?>;margin-bottom:-2px">
+            <?= e($label) ?>
+            <span style="display:inline-block;background:<?= $on ? '#222b59' : '#e5e7eb' ?>;
+                         color:<?= $on ? '#fff' : '#374151' ?>;font-size:.72rem;font-weight:700;
+                         border-radius:999px;padding:.1rem .5rem;margin-left:.3rem"><?= $n ?></span>
+        </a>
+    <?php endforeach; ?>
 </div>
 
 <?php if (!empty($changes)): ?>
