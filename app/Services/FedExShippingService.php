@@ -242,8 +242,11 @@ class FedExShippingService
             return ['ok' => false, 'message' => 'FedEx accepted the request but returned no shipment.'];
         }
 
-        $numbers   = [];
-        $labelPath = null;
+        // One PDF per tracking number, kept against the number it belongs to. Keeping
+        // only the first meant a two-parcel shipment had one label anybody could find
+        // and one that existed on disk with nothing pointing at it.
+        $numbers = [];
+        $labels  = [];
 
         foreach ($shipment['pieceResponses'] ?? [] as $piece) {
             $number = trim((string)($piece['trackingNumber'] ?? ''));
@@ -254,9 +257,14 @@ class FedExShippingService
 
             foreach ($piece['packageDocuments'] ?? [] as $doc) {
                 $saved = $this->storeLabel($invoiceId, $number, $doc);
-                $labelPath ??= $saved;
+
+                if ($saved !== null && $number !== '') {
+                    $labels[$number] ??= $saved;
+                }
             }
         }
+
+        $labelPath = $labels === [] ? null : reset($labels);
 
         if ($numbers === []) {
             return ['ok' => false, 'message' => 'FedEx returned a shipment with no tracking number.'];
@@ -271,12 +279,17 @@ class FedExShippingService
         // Keep the PDF with the tracking number. Without this the file sits on disk with
         // nothing pointing at it, and the label can be created once and never reprinted -
         // which is one jammed printer away from a parcel nobody can ship.
-        if ($labelPath !== null) {
+        // Matched one number at a time. This used to look for a row whose tracking
+        // number was every number joined with spaces — a string addTracking never
+        // stores, because it writes one row per parcel. So the UPDATE matched nothing,
+        // every label_path stayed NULL, and the PDFs sat on disk unreachable: the label
+        // could be made once and never reprinted, which is one jammed printer away from
+        // a parcel nobody can ship.
+        foreach ($labels as $number => $path) {
             Database::statement(
                 "UPDATE shipment_tracking SET label_path = ?
-                 WHERE invoice_id = ? AND tracking_number = ?
-                 ORDER BY id DESC LIMIT 1",
-                [$labelPath, $invoiceId, implode(' ', $numbers)]
+                 WHERE invoice_id = ? AND tracking_number = ?",
+                [$path, $invoiceId, $number]
             );
         }
 
