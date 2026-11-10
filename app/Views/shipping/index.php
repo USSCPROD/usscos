@@ -170,10 +170,15 @@ if ($activeTab === 'all') {
                             // Pick state, so the floor can see at a glance what's underway
                             // and what someone has already flagged as short.
                             $pickState = $o['pick_status'] ?? 'not_started';
+                            // The fourth entry is the label, the fifth says what it means.
+                            // A two-word badge nobody can interpret is decoration.
                             $pickBadge = [
-                                'in_progress' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Picking'],
-                                'ready'       => ['#f0fdf4', '#bbf7d0', '#166534', 'Picked'],
-                                'short'       => ['#fffbeb', '#fcd34d', '#92400e', 'Short'],
+                                'in_progress' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Picking',
+                                    'Some of this order has been pulled, not all of it.'],
+                                'ready'       => ['#f0fdf4', '#bbf7d0', '#166534', 'Picked',
+                                    'Everything ordered has been pulled off the shelf.'],
+                                'short'       => ['#fffbeb', '#fcd34d', '#92400e', 'Short',
+                                    'Flagged short — it cannot be filled in full.'],
                             ][$pickState] ?? null;
                             ?>
                             <?php
@@ -181,23 +186,29 @@ if ($activeTab === 'all') {
                             // picked but unverified is the one about to go out wrong.
                             $packState = $o['pack_status'] ?? 'not_started';
                             $packBadge = [
-                                'in_progress' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Packing'],
+                                'in_progress' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'Packing',
+                                    'Some of the box has been scanned in, not all of it.'],
                                 // Confirmed by a person, not read by a scanner. Shown in a
                                 // quieter colour than Verified on purpose: both are finished,
                                 // one carries weaker evidence, and the badge should say so.
-                                'confirmed'   => ['#f8fafc', '#cbd5e1', '#475569', 'Confirmed'],
-                                'verified'    => ['#f0fdf4', '#bbf7d0', '#166534', 'Verified'],
-                                'mismatch'    => ['#fef2f2', '#fca5a5', '#b91c1c', 'Mismatch'],
+                                'confirmed'   => ['#f8fafc', '#cbd5e1', '#475569', 'Confirmed',
+                                    'A person checked the box by eye and said it matches the pick — pressed "Confirm without scanning" on the Pack screen. Finished, but nothing was scanned.'],
+                                'verified'    => ['#f0fdf4', '#bbf7d0', '#166534', 'Verified',
+                                    'Every item was scanned into the box and matched the pick. The strongest check there is.'],
+                                'mismatch'    => ['#fef2f2', '#fca5a5', '#b91c1c', 'Mismatch',
+                                    'The box did not match the pick and somebody recorded why.'],
                             ][$packState] ?? null;
                             ?>
                             <?php if ($pickBadge): ?>
-                                <span style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;
+                                <span title="<?= e($pickBadge[4]) ?>"
+                                      style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;cursor:help;
                                              background:<?= $pickBadge[0] ?>;border:1px solid <?= $pickBadge[1] ?>;color:<?= $pickBadge[2] ?>">
                                     <?= $pickBadge[3] ?>
                                 </span>
                             <?php endif; ?>
                             <?php if ($packBadge): ?>
-                                <span style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;
+                                <span title="<?= e($packBadge[4]) ?>"
+                                      style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;cursor:help;
                                              background:<?= $packBadge[0] ?>;border:1px solid <?= $packBadge[1] ?>;color:<?= $packBadge[2] ?>">
                                     <?= $packBadge[3] ?>
                                 </span>

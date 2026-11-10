@@ -80,8 +80,17 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
 </div>
 
 <?php if ($allMatch): ?>
+    <?php $wasScanned = ($order['pack_status'] ?? '') === 'verified'; ?>
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:1rem 1.1rem;margin-bottom:1.25rem">
         <strong>✓ The box matches the pick.</strong> Ready to seal and ship.
+        <div style="font-size:.85rem;margin-top:.3rem">
+            <?php /* Say which of the two checks happened, in the words the queue uses
+                     for it, so the badge there is not a word nobody can place. */ ?>
+            Recorded as <strong><?= $wasScanned ? 'Verified' : 'Confirmed' ?></strong> —
+            <?= $wasScanned
+                ? 'every item was scanned into the box.'
+                : 'checked by a person, nothing scanned.' ?>
+        </div>
         <div style="font-size:.85rem;margin-top:.3rem">
             Packed by <?= e($packerName !== '' ? $packerName : 'not recorded') ?>
         </div>
