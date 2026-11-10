@@ -47,6 +47,7 @@ Nothing moves on these until a decision or a file arrives.
 | 44 traffic paints and 17 striping machines are misfiled under Specialty Coatings | Category assignment, not a code fault |
 | `database/issue_draft_invoices.php` | Only exists for invoices stranded by the old draft behavior. Delete it once the data is re-imported |
 | A new sales order is saved as **Draft**, and a draft is invisible to the shipping queue | Nothing on the order says so. Found on 2026-11-10 while walking the flow — it is the most likely thing to derail a demo. Worth either defaulting to Confirmed or saying plainly on the order that shipping cannot see it yet |
+| 10 products on the pull list belong to orders with **no carrier set** | Those orders were auto-approved by the migration because picking had already started on them. Going forward the carrier is settled at gate one, but the existing ones need a carrier before anyone can tell which bench they belong to |
 | The id in the URL is not the SO number | `/sales-orders/24` is SO #11. Every link passes the right one, so it only bites when a URL is typed or read aloud |
 
 ## Open — deferred to the import
@@ -67,6 +68,30 @@ Nothing here is urgent, and all of it is needed before the real cutover.
 ---
 
 ## Fixed
+
+### 2026-11-10 — two gates, two benches
+
+The flow did not match what had been agreed: the clerk's approval sat *after* picking
+and was fused to invoicing, so the warehouse started work the moment sales confirmed an
+order and nobody had said it was OK.
+
+- **Gate 1 added** — *Shipping → Orders to approve*. The warehouse cannot see an order
+  at all until the clerk approves it. The approval is its own timestamped column, not a
+  status value: collecting a payment sets status to `paid` and releasing sets
+  `partially_shipped`, either of which would have erased an approval kept in status.
+- **The quantity decision stays at gate 2**, after picking — the stock counts are not
+  trusted yet, so a partial decided before anyone walks the floor is decided on numbers
+  nobody believes.
+- **Parcel and freight are separate benches** throughout: approval screen, shipping
+  queue tabs and pull list. `ship_via.ship_mode` says which. FedEx and FedEx Freight
+  used to sit side by side as two carrier tabs, which put one person's work inside the
+  other's list.
+- **USSC's own truck is its own bench.** The live carrier rows are *Customer Pickup* and
+  *USSC Delivery*, not the names the seed migration created, so both fell through to
+  `other` — and `other` was drawn as *"no carrier yet"*.
+- **Batch packing slips** — tick orders at gate 1, print the lot as one job. This
+  replaces printing labels and stapling them to slips; the labels leave that habit,
+  because a label needs a packed box before it means anything.
 
 ### 2026-10-29 — invoices
 

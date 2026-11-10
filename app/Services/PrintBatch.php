@@ -38,7 +38,7 @@ class PrintBatch
 
         foreach ($documents as $doc) {
             $rest .= '<div style="page-break-before:always;break-before:page">'
-                   . self::body($doc)
+                   . self::stripScreenOnly(self::body($doc))
                    . '</div>';
         }
 
@@ -51,6 +51,19 @@ class PrintBatch
         }
 
         return substr($first, 0, $pos) . $rest . substr($first, $pos);
+    }
+
+    /**
+     * Drop the screen-only toolbar from every page but the first.
+     *
+     * It is .no-print, so paper was always right - but on screen a Print button
+     * appeared partway down each later slip, which reads as a broken page rather than
+     * as one print job. The first document keeps its toolbar, because that is the
+     * button somebody presses.
+     */
+    private static function stripScreenOnly(string $html): string
+    {
+        return preg_replace('~<div class="no-print".*?</div>~is', '', $html) ?? $html;
     }
 
     /** What is between <body> and </body>, or the whole string if there is no body. */
