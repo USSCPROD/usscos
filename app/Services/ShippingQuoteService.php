@@ -140,17 +140,50 @@ class ShippingQuoteService
 
         foreach ($res['body']['output']['rateReplyDetails'] ?? [] as $d) {
             $type = (string)($d['serviceType'] ?? '');
-            $cost = $d['ratedShipmentDetails'][0]['totalNetCharge'] ?? null;
 
-            if ($cost === null || ($wanted !== [] && !isset($wanted[$type]))) {
+            if ($wanted !== [] && !isset($wanted[$type])) {
+                continue;
+            }
+
+            // The ACCOUNT rate, which is what USSC is actually billed. FedEx returns
+            // both that and LIST, and taking the first one blindly meant quoting
+            // whichever order they happened to arrive in — list price is well above
+            // what a commercial account pays, so that is a charge nobody would win.
+            //
+            // In the sandbox the two are identical, because a test account has no
+            // negotiated rates. That is why this was invisible here.
+            $cost     = null;
+            $rateType = null;
+
+            foreach ($d['ratedShipmentDetails'] ?? [] as $rs) {
+                $net = $rs['totalNetCharge'] ?? null;
+
+                if ($net === null) {
+                    continue;
+                }
+
+                if (($rs['rateType'] ?? '') === 'ACCOUNT') {
+                    $cost     = (float)$net;
+                    $rateType = 'ACCOUNT';
+                    break;
+                }
+
+                if ($cost === null) {
+                    $cost     = (float)$net;
+                    $rateType = (string)($rs['rateType'] ?? 'UNKNOWN');
+                }
+            }
+
+            if ($cost === null) {
                 continue;
             }
 
             $rates[] = [
-                'service' => $type,
-                'label'   => $wanted[$type] ?? (string)($d['serviceName'] ?? $type),
-                'cost'    => round((float)$cost, 2),
-                'charge'  => round((float)$cost + $markup, 2),
+                'service'   => $type,
+                'label'     => $wanted[$type] ?? (string)($d['serviceName'] ?? $type),
+                'cost'      => round($cost, 2),
+                'charge'    => round($cost + $markup, 2),
+                'rate_type' => $rateType,
             ];
         }
 
@@ -163,11 +196,13 @@ class ShippingQuoteService
         usort($rates, fn ($a, $b) => array_search($a['service'], $order, true) <=> array_search($b['service'], $order, true));
 
         return [
-            'ok'     => true,
-            'boxes'  => count($items),
-            'weight' => round($weight, 2),
-            'markup' => $markup,
-            'rates'  => $rates,
+            'ok'        => true,
+            'boxes'     => count($items),
+            'weight'    => round($weight, 2),
+            'markup'    => $markup,
+            'sandbox'   => $fedex->environment() === 'sandbox',
+            'rate_type' => $rates[0]['rate_type'] ?? null,
+            'rates'     => $rates,
         ];
     }
 }

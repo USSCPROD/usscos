@@ -690,6 +690,10 @@ function soInpStyle2(string $type): string {
                     if(!d.ok){ out.innerHTML='<div style="color:#b45309">'+esc(d.message||'No quote.')+'</div>'; return; }
                     let h='<div style="color:#6b7280;margin-bottom:.3rem">'+d.boxes+' box(es), '+d.weight+' lb — '
                         +'FedEx price plus $'+Number(d.markup).toFixed(2)+'. Click one to use it.</div>';
+                    if(d.sandbox){
+                        h+='<div style="color:#b45309;margin-bottom:.3rem">Sandbox rates — list price, not '
+                          +'USSC\u2019s negotiated account rates. Expect these to be high.</div>';
+                    }
                     d.rates.forEach(function(r){
                         h+='<div class="q-rate" data-charge="'+r.charge+'" style="display:flex;justify-content:space-between;'
                           +'gap:1rem;padding:.3rem .45rem;cursor:pointer;border-radius:5px">'
