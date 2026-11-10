@@ -21,6 +21,21 @@ The end-to-end flow — what each person does and sees, in order — is written 
 
 ## Open — waiting on Chip
 
+### Paying before the goods ship
+
+Chip described this on 10 November 2026: customers pay over the phone, **or are sent a
+link to pay online**, and only then does the order ship.
+
+**There is no online payment capability in USSCOS at all** — no processor, no payment
+links, no card handling anywhere. Taking a payment over the phone works today
+(*Collect Payment* on the order, before invoicing). The link does not, and it is not a
+small addition: it needs a payment processor chosen and an account with them, and it
+decides how card data is handled, which is a compliance question before it is a coding
+one.
+
+Not started, deliberately. It needs a decision first.
+
+
 Nothing moves on these until a decision or a file arrives.
 
 | What | Why it is blocked |
@@ -119,6 +134,24 @@ The same client does tracking, so those errors become readable too.
 The failure underneath turned out to be test data: TRUMARK's ship-to reads
 **Chattanooga, TN 30534** — and 30534 is Dawsonville, Georgia. FedEx now says so in
 plain words: *"Recipient state and postal code mismatch."*
+
+### 2026-11-10 — shipping could not be charged for at all
+
+There was nowhere on a sales order to put shipping and handling. It is now a field in
+the totals, saved as its own line — a line rather than a column, because it has to read
+correctly on the invoice and every total in the application already works by summing
+lines. Editing an order replaces that line rather than adding to it.
+
+**Get FedEx quote** prices what is on the form, before the order is saved, using the
+same cartonizer the label screen uses so the quote and the label describe the same
+parcels. Each service shows the carrier price and the charge; the customer sees only
+the charge. Markups are in `config/shipping.php` — $10 parcel, $20 freight.
+
+Freight is not quoted: Keubix price it by hand and there is no API to ask, so an order
+the cartonizer calls freight says so and names the markup to add.
+
+The line table also keeps one empty row at the bottom instead of making you press
+*Add Line* after three.
 
 ### 2026-11-10 — every press of Create bought another shipment
 
