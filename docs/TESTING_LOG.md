@@ -120,6 +120,20 @@ The failure underneath turned out to be test data: TRUMARK's ship-to reads
 **Chattanooga, TN 30534** — and 30534 is Dawsonville, Georgia. FedEx now says so in
 plain words: *"Recipient state and postal code mismatch."*
 
+### 2026-11-10 — labels were created and then orphaned
+
+Found while retrying the TRUMARK label. FedEx returned the PDFs, they were written to
+`public/uploads/labels/`, and then nothing pointed at them: the UPDATE that records
+where a label lives looked for a `shipment_tracking` row whose `tracking_number` was
+every number joined with spaces — a string that is never stored, because tracking is
+written one row per parcel. So it matched nothing, `label_path` stayed NULL, and the
+**Print** link never appeared. A label could be made once and never reprinted, which is
+one jammed printer away from a parcel nobody can ship.
+
+Only the first path was kept anyway, so on a two-parcel shipment the second PDF existed
+on disk with nothing pointing at it even if the match had worked. Each PDF is now kept
+against its own number. The five labels already orphaned on disk were relinked.
+
 ### 2026-11-10 — packing is now required before release
 
 Decided by Chip. An order could go from Picked straight to invoiced with the box never
