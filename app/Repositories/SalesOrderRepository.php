@@ -948,7 +948,9 @@ class SalesOrderRepository
     private const NOT_GOODS = "
         (
             (li.product_id IS NOT NULL
-             AND COALESCE(p.item_type,'') NOT IN ('inventory_part','inventory_assembly'))
+             AND COALESCE(
+                   (SELECT np.item_type FROM products np WHERE np.id = li.product_id), ''
+                 ) NOT IN ('inventory_part','inventory_assembly'))
          OR (li.product_id IS NULL
              AND CONCAT(COALESCE(li.quickbooks_item,''), ' ', COALESCE(li.description,''))
                  REGEXP '(^|[^a-z])(shipping|handling|freight|delivery|surcharge|discount|fuel charge|service charge)([^a-z]|$)')
