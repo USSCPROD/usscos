@@ -57,6 +57,12 @@ class SalesOrderController extends Controller
 
         return $this->view('sales_orders.show', [
             'title'         => 'Sales Order #' . $data['so']['so_number'],
+
+            // Why this order cannot be invoiced yet, or null when it can. Worked out
+            // here rather than in the view, and used to decide whether Ship & Invoice
+            // is offered at all — the gate already refuses, but offering a button that
+            // refuses teaches people to distrust the buttons.
+            'pack_block'    => (new SalesOrderRepository())->packGate((int)$id),
             'artwork'       => $artwork->forSalesOrder((int)$id),
             'artworkCounts' => $artwork->counts((int)$id),
             'jobDocuments'  => $documents->forSalesOrder((int)$id),

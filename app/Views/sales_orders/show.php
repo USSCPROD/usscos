@@ -87,8 +87,19 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
                 </button>
             </form>
         <?php endif; ?>
+        <?php $packBlock = $pack_block ?? null; ?>
         <?php if (!$isLocked && !$soRestricted && ($so['status'] ?? '') !== 'draft'): ?>
-            <button class="btn btn--primary" onclick="document.getElementById('shipModal').style.display='flex'">Ship &amp; Invoice</button>
+            <?php if ($packBlock === null): ?>
+                <button class="btn btn--primary" onclick="document.getElementById('shipModal').style.display='flex'">Ship &amp; Invoice</button>
+            <?php else: ?>
+                <?php /* The gate refuses this already. Offering the button anyway and
+                         letting it bounce teaches people that buttons lie — so say
+                         what is missing, on the page, and link to the screen that
+                         fixes it. Not in a title attribute: the bench is a tablet and
+                         hover does not happen there. */ ?>
+                <a href="/shipping/<?= (int)$so['id'] ?>/pick" class="btn btn--secondary">Pick &amp; pack first</a>
+                <span style="font-size:.8rem;color:#92400e;max-width:26rem"><?= e($packBlock) ?></span>
+            <?php endif; ?>
         <?php endif; ?>
         <?php if (!$soRestricted && in_array($so['status'], ['confirmed', 'processing', 'partially_shipped'])): ?>
             <button class="btn btn--success" onclick="document.getElementById('paymentModal').style.display='flex'">Collect Payment</button>
