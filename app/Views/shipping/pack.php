@@ -9,16 +9,29 @@ $head = 'padding:.6rem .8rem;font-size:.75rem;font-weight:700;text-transform:upp
 // hundredths made the arrow keys useless - twenty presses to reach 0.20.
 $qty = fn($n) => (string)(int)round((float)$n);
 
-// Only lines that were actually picked need to be in the box. A line picked at zero is a
-// deliberate short, not something to verify.
-$toVerify    = array_values(array_filter($lines, fn($l) => (float)$l['qty_picked'] > 0));
-$totalPicked = array_sum(array_map(fn($l) => (float)$l['qty_picked'], $toVerify));
-$totalPacked = array_sum(array_map(fn($l) => (float)$l['qty_packed'], $toVerify));
+/*
+ * This box, not every box this order has ever had.
+ *
+ * Quantities already shipped went out on an earlier run and are not in front of
+ * anybody — but they were counted here, so a part-shipped order said "30 of 30
+ * packed" when 21 were on the bench, and the line that shipped last week sat in the
+ * list waiting to be scanned again.
+ *
+ * Everything below is therefore picked-minus-shipped: what this shipment consists of.
+ */
+$outstanding = fn (array $l) => max(0.0, (float)$l['qty_picked'] - (float)($l['qty_shipped'] ?? 0));
+$packedNow   = fn (array $l) => max(0.0, (float)$l['qty_packed'] - (float)($l['qty_shipped'] ?? 0));
+
+// A line picked at zero is a deliberate short, not something to verify. A line already
+// shipped in full is finished, not something to verify either.
+$toVerify    = array_values(array_filter($lines, fn ($l) => $outstanding($l) > 0));
+$totalPicked = array_sum(array_map($outstanding, $toVerify));
+$totalPacked = array_sum(array_map($packedNow, $toVerify));
 $pct         = $totalPicked > 0 ? min(100, round($totalPacked / $totalPicked * 100)) : 0;
 
 $allMatch = $toVerify !== [] && !array_filter(
     $toVerify,
-    fn($l) => abs((float)$l['qty_packed'] - (float)$l['qty_picked']) > 0.0001
+    fn ($l) => abs($packedNow($l) - $outstanding($l)) > 0.0001
 );
 
 $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last'] ?? ''));
@@ -144,8 +157,10 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             </td></tr>
         <?php else: ?>
             <?php foreach ($toVerify as $l):
-                $picked = (float)$l['qty_picked'];
-                $packed = (float)$l['qty_packed'];
+                // Both on this shipment's terms, so the row agrees with the counter
+                // above it rather than quietly including an earlier run.
+                $picked = $outstanding($l);
+                $packed = $packedNow($l);
                 $match  = abs($packed - $picked) < 0.0001;
                 $over   = $packed > $picked;
             ?>

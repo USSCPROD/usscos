@@ -58,7 +58,11 @@ class ShippingController extends Controller
     private function boxPlanByLine(array $lines): array
     {
         $forPacking = array_map(
-            fn (array $l) => $l + ['qty' => (float)($l['qty_picked'] ?? 0)],
+            // What is going out on THIS shipment. Including quantities already shipped
+            // had the box breakdown describing boxes that were taped shut last week.
+            fn (array $l) => $l + [
+                'qty' => max(0.0, (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0)),
+            ],
             $lines
         );
 
