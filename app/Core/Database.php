@@ -35,6 +35,37 @@ class Database
             Logger::critical('Database connection failed: ' . $e->getMessage());
             throw new \RuntimeException('Database connection failed. Please check your configuration.');
         }
+
+        self::alignTimezone();
+    }
+
+    /**
+     * Put MySQL on the same clock as PHP.
+     *
+     * The server runs UTC, so NOW() and CURDATE() were five hours ahead of Alpharetta:
+     * an invoice tipped into overdue in the early evening of the day before, and
+     * anything stamped by the database disagreed with everything stamped by PHP.
+     *
+     * Set as a numeric offset, not a name. MySQL's named-timezone tables are not
+     * loaded on this server, so 'America/New_York' is rejected outright. The offset is
+     * worked out in PHP for the moment the connection opens, which means it is the
+     * right one either side of a daylight-saving change — connections here live for a
+     * single request, so there is no chance of one going stale across the boundary.
+     *
+     * Failure is logged and swallowed. A wrong clock is a bug; refusing to serve the
+     * application because the clock could not be set would be a worse one.
+     */
+    private static function alignTimezone(): void
+    {
+        $zone = (string)(Config::get('app.timezone') ?: 'America/New_York');
+
+        try {
+            $offset = (new \DateTime('now', new \DateTimeZone($zone)))->format('P');
+
+            self::$connection->exec("SET time_zone = '{$offset}'");
+        } catch (\Throwable $e) {
+            Logger::error('Could not set the database timezone: ' . $e->getMessage());
+        }
     }
 
     public static function connection(): PDO
