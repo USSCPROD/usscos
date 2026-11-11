@@ -35,9 +35,10 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             <span style="font-weight:400;color:#6b7280"> — <?= e($order['company_name']) ?></span>
         </h1>
         <p class="page-subtitle" style="margin:.3rem 0 0">
-            Scan each item as it goes in a box. The count is in the unit each line is sold
-            in — a case counts as one — and the box breakdown under each line says how many
-            boxes that comes to. This checks the pick — not the order — so a
+            Check each item off as it goes in. The count is in the unit each line is sold
+            in — a case counts as one, however many boxes those cases end up in — and the
+            box breakdown under each line says what to build. This checks the pick — not
+            the order — so a
             short pick is not an error here.
         </p>
     </div>
@@ -53,7 +54,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
 <!-- Scan box -->
 <div class="card" style="padding:1.25rem;margin-bottom:1.25rem;background:#f8fafc">
     <label for="scanInput" style="display:block;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.5rem">
-        Scan into the box
+        Scan each item as it goes in
     </label>
     <input type="text" id="scanInput" autocomplete="off" autocapitalize="off" autocorrect="off"
            placeholder="Scan a barcode, or type a SKU and press Enter"
@@ -65,6 +66,10 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
     <div style="margin-top:.8rem;font-size:.8rem;color:#9ca3af">
         Anything not on this order will be refused — that is the point. Scanning a case
         barcode counts the whole case.
+        <br>
+        <strong>Picked and Checked count what the line is sold in</strong> — cases, pails,
+        gallons — not boxes. Three cases is still three here, however many boxes they go
+        into; the box breakdown is under the item.
     </div>
 </div>
 
@@ -128,7 +133,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             <tr>
                 <th style="<?= $head ?>">Item</th>
                 <th style="<?= $head ?>;text-align:right">Picked</th>
-                <th style="<?= $head ?>;text-align:right">In the box</th>
+                <th style="<?= $head ?>;text-align:right">Checked</th>
                 <th style="<?= $head ?>"></th>
             </tr>
         </thead>
