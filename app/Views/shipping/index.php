@@ -272,6 +272,19 @@ if ($activeTab === 'all') {
                                    . 'color:#fff;background:#0A3D91';
                             $quiet = 'font-size:.8rem;padding:.3rem .7rem;border-radius:5px;text-decoration:none;'
                                    . 'margin-right:.4rem;display:inline-block;border:1px solid #d1d5db;color:#6b7280';
+
+                            /*
+                             * A freight order has no label to lead with.
+                             *
+                             * Taking the FedEx button off those rows left them with no
+                             * action at all once picked and packed — the row went quiet
+                             * exactly when the shipment was ready to go. For anything not
+                             * going by parcel, invoicing IS the last step the system
+                             * takes; the carrier is booked outside it.
+                             */
+                            $parcelRow  = (($o['ship_mode'] ?? '') === 'parcel') || ($o['ship_mode'] ?? '') === '';
+                            $readyToGo  = !$needsPick && !$needsPack;
+                            $leadInvoice = $readyToGo && !$parcelRow;
                             ?>
                             <a href="/shipping/<?= (int)$o['id'] ?>/pick"
                                style="<?= $needsPick ? $lead : $quiet ?>">Pick</a>
@@ -310,9 +323,11 @@ if ($activeTab === 'all') {
                                       style="display:inline;margin-right:.4rem">
                                     <?= csrf_field() ?>
                                     <button type="submit"
-                                            title="Invoice what has been picked on this order, then make the label"
+                                            title="Invoice what has been picked and packed on this order"
                                             onclick="return confirm('Invoice the <?= rtrim(rtrim(number_format($toShip, 2), '0'), '.') ?> picked on SO #<?= e($o['so_number']) ?>?')"
-                                            style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #16a34a;border-radius:5px;color:#16a34a;background:#fff;cursor:pointer">
+                                            style="font-size:.8rem;padding:.3rem .7rem;border-radius:5px;cursor:pointer;<?= $leadInvoice
+                                                ? 'border:1px solid #16a34a;color:#fff;background:#16a34a'
+                                                : 'border:1px solid #16a34a;color:#16a34a;background:#fff' ?>">
                                         Invoice
                                     </button>
                                 </form>
@@ -334,7 +349,7 @@ if ($activeTab === 'all') {
                                 <?php /* The lead once the box is checked: the label
                                          screen invoices the order in the same press. */ ?>
                                 <a href="/shipping/<?= (int)$o['id'] ?>/label"
-                                   style="<?= (!$needsPick && !$needsPack) ? $lead : $quiet ?>">Label</a>
+                                   style="<?= $readyToGo ? $lead : $quiet ?>">Label</a>
                             <?php endif; ?>
                             <a href="/sales-orders/<?= (int)$o['id'] ?>/packing-slip" target="_blank"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #d1d5db;border-radius:5px;color:#374151;text-decoration:none"
