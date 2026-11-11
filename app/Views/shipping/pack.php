@@ -35,7 +35,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             <span style="font-weight:400;color:#6b7280"> — <?= e($order['company_name']) ?></span>
         </h1>
         <p class="page-subtitle" style="margin:.3rem 0 0">
-            Check each item off as it goes in. The count is in the unit each line is sold
+            Scan each item as you pack it. The count is in the unit each line is sold
             in — a case counts as one, however many boxes those cases end up in — and the
             box breakdown under each line says what to build. This checks the pick — not
             the order — so a
@@ -54,7 +54,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
 <!-- Scan box -->
 <div class="card" style="padding:1.25rem;margin-bottom:1.25rem;background:#f8fafc">
     <label for="scanInput" style="display:block;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;margin-bottom:.5rem">
-        Scan each item as it goes in
+        Scan each item as you pack it
     </label>
     <input type="text" id="scanInput" autocomplete="off" autocapitalize="off" autocorrect="off"
            placeholder="Scan a barcode, or type a SKU and press Enter"
@@ -67,7 +67,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
         Anything not on this order will be refused — that is the point. Scanning a case
         barcode counts the whole case.
         <br>
-        <strong>Picked and Checked count what the line is sold in</strong> — cases, pails,
+        <strong>Picked and Packed count what the line is sold in</strong> — cases, pails,
         gallons — not boxes. Three cases is still three here, however many boxes they go
         into; the box breakdown is under the item.
     </div>
@@ -76,7 +76,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
 <!-- Progress -->
 <div style="margin-bottom:1rem">
     <div style="display:flex;justify-content:space-between;font-size:.85rem;color:#6b7280;margin-bottom:.35rem">
-        <span id="progressText"><?= $qty($totalPacked) ?> of <?= $qty($totalPicked) ?> checked off</span>
+        <span id="progressText"><?= $qty($totalPacked) ?> of <?= $qty($totalPicked) ?> packed</span>
         <span id="progressPct"><?= $pct ?>%</span>
     </div>
     <div style="height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden">
@@ -112,7 +112,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
                 padding:1rem 1.1rem;margin-bottom:1.25rem;display:flex;gap:1rem;
                 align-items:center;justify-content:space-between;flex-wrap:wrap">
         <div style="font-size:.9rem">
-            <strong>Scan each item into the box</strong>, or confirm the whole order at
+            <strong>Scan each item as you pack it</strong>, or confirm the whole order at
             once if nothing will scan. Either way this order is not finished until one
             of those happens.
         </div>
@@ -133,7 +133,7 @@ $packerName = trim(($order['packed_first'] ?? '') . ' ' . ($order['packed_last']
             <tr>
                 <th style="<?= $head ?>">Item</th>
                 <th style="<?= $head ?>;text-align:right">Picked</th>
-                <th style="<?= $head ?>;text-align:right">Checked</th>
+                <th style="<?= $head ?>;text-align:right">Packed</th>
                 <th style="<?= $head ?>"></th>
             </tr>
         </thead>
