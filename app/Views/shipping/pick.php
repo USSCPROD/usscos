@@ -6,8 +6,23 @@ $cell   = 'padding:.9rem .8rem;font-size:1rem;vertical-align:middle';
 $head   = 'padding:.6rem .8rem;font-size:.75rem;font-weight:700;text-transform:uppercase;'
         . 'letter-spacing:.04em;color:#6b7280;background:#f8f9fb;border-bottom:1px solid #e5e7eb;text-align:left';
 
-$totalOrdered = array_sum(array_map(fn($l) => (float)$l['qty_ordered'], $lines));
-$totalPicked  = array_sum(array_map(fn($l) => (float)$l['qty_picked'], $lines));
+/*
+ * Progress on what is still owed, not on the whole order.
+ *
+ * Anything already shipped is out of the building and off this job. Counting it
+ * here made a part-shipped order read "9 of 30 picked" while the list below showed
+ * 21 to find — the 9 being a shipment that went last week. The two numbers on the
+ * same screen have to be about the same work.
+ */
+$totalOrdered = array_sum(array_map(
+    fn ($l) => max(0.0, (float)$l['qty_ordered'] - (float)($l['qty_shipped'] ?? 0)),
+    $lines
+));
+$totalPicked  = array_sum(array_map(
+    fn ($l) => max(0.0, (float)$l['qty_picked'] - (float)($l['qty_shipped'] ?? 0)),
+    $lines
+));
+$alreadyGone  = array_sum(array_map(fn ($l) => (float)($l['qty_shipped'] ?? 0), $lines));
 $pctDone      = $totalOrdered > 0 ? min(100, round($totalPicked / $totalOrdered * 100)) : 0;
 
 // Whole units. USSC does not sell partial cases, and a stepper that moved in
@@ -50,6 +65,11 @@ $qty = fn($n) => (string)(int)round((float)$n);
 <div style="margin-bottom:1rem">
     <div style="display:flex;justify-content:space-between;font-size:.85rem;color:#6b7280;margin-bottom:.35rem">
         <span id="progressText"><?= $qty($totalPicked) ?> of <?= $qty($totalOrdered) ?> picked</span>
+        <?php if ($alreadyGone > 0): ?>
+            <span style="color:#6b7280;font-size:.85rem">
+                (<?= $qty($alreadyGone) ?> already shipped on an earlier run)
+            </span>
+        <?php endif; ?>
         <span id="progressPct"><?= $pctDone ?>%</span>
     </div>
     <div style="height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden">
