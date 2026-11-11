@@ -279,6 +279,14 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
                     <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
                                   letter-spacing:.05em;color:#6b7280">
                         Carrier
+                        <?php if (empty($freightCarriers)): ?>
+                            <div style="font-size:.78rem;font-weight:400;text-transform:none;letter-spacing:0;
+                                        color:#b45309;margin-top:.3rem">
+                                No carriers set up yet —
+                                <a href="/admin/freight-carriers" style="color:#0A3D91">add them under Admin</a>,
+                                or type one in.
+                            </div>
+                        <?php endif; ?>
                         <?php if (!empty($freightCarriers)): ?>
                             <select name="freight_carrier_id"
                                     style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
@@ -301,18 +309,8 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
                                id="freightCarrierOther">
                     </label>
                     <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
-                                  letter-spacing:.05em;color:#6b7280">
-                        Number
-                        <select name="tracking_type"
-                                style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
-                                       border-radius:6px;font:inherit;font-size:.92rem">
-                            <option value="pro">PRO</option>
-                            <option value="bol">BOL</option>
-                        </select>
-                    </label>
-                    <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
                                   letter-spacing:.05em;color:#6b7280;flex:1;min-width:16rem">
-                        PRO / BOL number
+                        PRO number
                         <input type="text" name="tracking_number" required
                                placeholder="Several can be pasted at once"
                                style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
