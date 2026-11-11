@@ -21,6 +21,16 @@ class Config
         }
 
         self::$loaded = true;
+
+        /*
+         * The clock, set here because this is the one thing every entry point calls.
+         *
+         * Putting it in bootstrap/app.php covered the web request and nothing else:
+         * every script under database/ loads config directly and would have carried on
+         * in UTC while the database it writes to runs on Eastern — an importer stamping
+         * rows five hours into the future is a worse bug than the one being fixed.
+         */
+        date_default_timezone_set((string)(self::get('app.timezone') ?: 'America/New_York'));
     }
 
     public static function get(string $key, mixed $default = null): mixed
