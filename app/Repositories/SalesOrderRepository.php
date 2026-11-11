@@ -921,7 +921,10 @@ class SalesOrderRepository
             FROM sales_orders so
             JOIN customers c             ON c.id  = so.customer_id
             LEFT JOIN ship_via sv        ON sv.id = so.ship_via_id
-            LEFT JOIN sales_order_line_items li ON li.sales_order_id = so.id
+            -- Charges joined out: a shipping line inflates the ordered count and makes
+            -- a finished order read as unfinished work.
+            LEFT JOIN sales_order_line_items li
+                   ON li.sales_order_id = so.id AND NOT " . self::NOT_GOODS . "
             LEFT JOIN products p         ON p.id  = li.product_id
             WHERE so.status IN ('confirmed','processing','partially_shipped')
               AND so.approved_at IS NOT NULL
