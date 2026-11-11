@@ -135,6 +135,13 @@ class CustomerService extends Service
             'customer_types' => $this->admin->activeCustomerTypes(),
             'tax_rates'      => $this->admin->allTaxRates(),
             'users'          => $this->admin->allUsers(),
+
+            // The rep list proper. customers.rep_id -> users was never the link that
+            // meant anything: AccessScope decides what a rep sees from sales_rep_id,
+            // and the QuickBooks import populates that one.
+            'sales_reps'     => \App\Core\Database::select(
+                'SELECT id, name FROM sales_reps WHERE is_active = 1 ORDER BY name'
+            ),
         ];
     }
 
@@ -185,7 +192,11 @@ class CustomerService extends Service
             'notes'                     => trim($post['notes']           ?? ''),
             'is_active'                 => isset($post['is_active']) ? 1 : 0,
             'customer_type'             => ($post['customer_type'] ?? '') ?: \App\Services\CustomerPricing::RETAIL,
-            'rep_id'                    => (int)($post['rep_id'] ?? 0) ?: null,
+            // rep_id is the dead column from the migration collision. The form no
+            // longer offers it; this keeps whatever a row already had rather than
+            // quietly clearing it.
+            'rep_id'                    => $customer['rep_id'] ?? null,
+            'sales_rep_id'              => (int)($post['sales_rep_id'] ?? 0) ?: null,
         ]);
     }
 

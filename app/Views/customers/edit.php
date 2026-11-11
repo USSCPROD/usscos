@@ -372,28 +372,17 @@
 
         <div class="form-group">
             <label class="form-label">Sales rep</label>
-            <select name="rep_id" class="input">
+            <select name="sales_rep_id" class="input">
                 <option value="">— None —</option>
-                <?php foreach ($users as $u): ?>
-                    <option value="<?= (int)$u['id'] ?>" <?= (int)($c['rep_id'] ?? 0) === (int)$u['id'] ? 'selected' : '' ?>>
-                        <?= e($u['first_name'] . ' ' . $u['last_name']) ?>
-                        <?php if ($u['role'] ?? ''): ?>(<?= e($u['role']) ?>)<?php endif; ?>
+                <?php foreach ($sales_reps as $sr): ?>
+                    <option value="<?= (int)$sr['id'] ?>" <?= (int)($c['sales_rep_id'] ?? 0) === (int)$sr['id'] ? 'selected' : '' ?>>
+                        <?= e($sr['name']) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
             <div class="text-muted text-sm" style="margin-top:.35rem">
-                The internal sales rep credited with this account.
-                <?php
-                // Said plainly rather than left to be inferred from a list of names.
-                // No user carries the 'rep' role yet, so this can only offer employees
-                // — which is a missing rep list, not a working picker.
-                $soAnyRep = false;
-                foreach ($users as $u) { if (($u['role'] ?? '') === 'rep') { $soAnyRep = true; break; } }
-                ?>
-                <?php if (!$soAnyRep): ?>
-                    <br><span style="color:#b45309">No one is set up as a rep yet, so this
-                    lists employees. It becomes a real rep list once the reps are added.</span>
-                <?php endif; ?>
+                The sales rep credited with this account, and the one who sees it when
+                reps are limited to their own customers.
             </div>
         </div>
 

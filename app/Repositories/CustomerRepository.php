@@ -745,7 +745,8 @@ class CustomerRepository extends Repository
                 notes                     = :notes,
                 is_active                 = :is_active,
                 customer_type             = :customer_type,
-                rep_id                    = :rep_id
+                rep_id                    = :rep_id,
+                sales_rep_id              = :sales_rep_id
             WHERE id = :id
         ");
         $stmt->execute([
@@ -790,6 +791,7 @@ class CustomerRepository extends Repository
             ':is_active'                 => (int)($data['is_active'] ?? 1),
             ':customer_type'             => $data['customer_type']            ?: null,
             ':rep_id'                    => $data['rep_id']                   ?: null,
+            ':sales_rep_id'              => $data['sales_rep_id']             ?: null,
         ]);
         return $stmt->rowCount();
     }
