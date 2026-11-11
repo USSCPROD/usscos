@@ -97,6 +97,12 @@ class SalesOrderController extends Controller
             return $response->redirect('/sales-orders/' . $soId . '#documents');
         }
 
+        // Say what happened to it. A rep cannot see any of the screens downstream, so
+        // without this there is nothing anywhere telling them the order went.
+        Session::flash('success', ($_POST['so_action'] ?? '') === 'submit'
+            ? 'Submitted for shipping. It is with the shipping clerk now, and you will see it here as it moves.'
+            : 'Saved as a draft. Nobody else can see it until you submit it for shipping.');
+
         return $response->redirect('/sales-orders');
     }
 
@@ -149,6 +155,11 @@ class SalesOrderController extends Controller
             Session::flash('error',$e->getMessage());
             return $response->redirect('/sales-orders/'.(int)$id);
         }
+
+        if (($_POST['so_action'] ?? '') === 'submit') {
+            Session::flash('success', 'Submitted for shipping. It is with the shipping clerk now.');
+        }
+
         return $response->redirect('/sales-orders');
     }
 

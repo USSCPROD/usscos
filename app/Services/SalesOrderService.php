@@ -117,7 +117,11 @@ class SalesOrderService
             ':customer_id'        => (int)$post['customer_id'],
             ':created_by'         => $userId,
             ':rep_id'             => ($post['rep_id'] ?? '') !== '' ? (int)$post['rep_id'] : null,
-            ':status'             => 'draft',
+            // Draft unless the person said to send it. Two plain actions beat a
+            // seven-value status list: a draft is work in progress, submitted means
+            // the warehouse may be told about it, and nothing else on that list is a
+            // thing somebody entering an order decides.
+            ':status'             => ($post['so_action'] ?? '') === 'submit' ? 'confirmed' : 'draft',
             ':order_date'         => $post['order_date'],
             ':requested_ship_date'=> ($post['requested_ship_date'] ?? '') ?: null,
             ':po_number'          => ($post['po_number'] ?? '') ?: null,
@@ -190,7 +194,14 @@ class SalesOrderService
         $totals = $this->calcTotals($lines, (float)($post['tax_rate_pct'] ?? 0));
 
         $this->repo->update($id, [
-            ':status'             => $post['status'],
+            // The buttons win when they were used; the status list is still there for
+            // the corrections it is actually for — cancelling, or putting a shipped
+            // order back.
+            ':status'             => match ($post['so_action'] ?? '') {
+                'submit' => 'confirmed',
+                'draft'  => 'draft',
+                default  => $post['status'],
+            },
             ':created_by'         => ($post['processed_by_id'] ?? '') !== '' ? (int)$post['processed_by_id'] : ($so['created_by'] ?? null),
             ':order_date'         => $post['order_date'],
             ':requested_ship_date'=> ($post['requested_ship_date'] ?? '') ?: null,

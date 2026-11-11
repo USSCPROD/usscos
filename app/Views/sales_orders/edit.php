@@ -379,7 +379,15 @@ foreach ($line_items as $li) {
     <!-- ── Actions ──────────────────────────────────────────────────────── -->
     <div style="display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.5rem;background:#f8f9fb">
         <a href="/sales-orders/<?= (int)$so['id'] ?>" class="btn btn--secondary">Cancel</a>
-        <button type="submit" class="btn btn--primary">Save Changes</button>
+        <?php if (($so['status'] ?? '') === 'draft'): ?>
+            <?php /* Only while it is a draft. Once it has been submitted the question
+                     is no longer draft-or-send, and a Submit button on a shipped order
+                     would be an invitation to break something. */ ?>
+            <button type="submit" name="so_action" value="draft" class="btn btn--secondary">Save as draft</button>
+            <button type="submit" name="so_action" value="submit" class="btn btn--primary">Submit for shipping</button>
+        <?php else: ?>
+            <button type="submit" class="btn btn--primary">Save Changes</button>
+        <?php endif; ?>
     </div>
 
 </div>

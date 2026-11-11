@@ -354,7 +354,12 @@ $currentUser = \App\Core\Auth::user();
     <div style="display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.5rem;background:#f8f9fb">
         <a href="/sales-orders" class="btn btn--secondary">Cancel</a>
         <button type="submit" name="_action" value="save_new" class="btn btn--secondary">Save &amp; New</button>
-        <button type="submit" class="btn btn--primary">Save &amp; Close</button>
+        <?php /* Two actions, because there are two things somebody means. A draft is
+                 work in progress that nobody else can see; submitting is what puts it
+                 in front of the shipping clerk. Saying so on the buttons beats leaving
+                 it to a status dropdown nobody reads. */ ?>
+        <button type="submit" name="so_action" value="draft" class="btn btn--secondary">Save as draft</button>
+        <button type="submit" name="so_action" value="submit" class="btn btn--primary">Submit for shipping</button>
     </div>
 
 </div><!-- /document -->
