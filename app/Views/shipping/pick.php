@@ -117,8 +117,14 @@ $qty = fn($n) => (string)(int)round((float)$n);
         <span style="color:#166534">Now verify the box against the pick before it is sealed.</span>
         <a href="/shipping/<?= (int)$order['id'] ?>/pack" class="btn btn--primary"
            style="margin-left:.6rem;padding:.5rem 1.1rem">Pack &amp; Verify</a>
-        <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--secondary"
-           style="margin-left:.5rem">Label &amp; ship</a>
+        <?php /* Only once the box has been checked. A label needs an invoice, an
+                 invoice needs the packing gate, and the gate refuses an unpacked
+                 order — so this was a shortcut to being told no, sitting next to
+                 the button that actually does the work. */ ?>
+        <?php if (($pack_block ?? null) === null): ?>
+            <a href="/shipping/<?= (int)$order['id'] ?>/label" class="btn btn--secondary"
+               style="margin-left:.5rem">Label &amp; ship</a>
+        <?php endif; ?>
     </div>
 
 <!-- Short stock -->

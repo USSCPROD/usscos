@@ -98,9 +98,14 @@ class ShippingController extends Controller
         }
 
         return $this->view('shipping.pick', [
-            'title' => 'Pick SO #' . $order['so_number'],
-            'order' => $order,
-            'lines' => $this->repo->getPickLines((int)$id),
+            'title'      => 'Pick SO #' . $order['so_number'],
+            'order'      => $order,
+            'lines'      => $this->repo->getPickLines((int)$id),
+
+            // Whether this order could be invoiced yet. The pick screen offers a
+            // shortcut to labelling, and a label needs an invoice — so without this
+            // the shortcut led straight to a refusal.
+            'pack_block' => $this->repo->packGate((int)$id),
         ]);
     }
 
