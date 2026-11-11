@@ -29,6 +29,7 @@
         </td>
         <td style="padding:.5rem">
             <?php adminCard('Customer Types', 'Retail, Distributor, Rep, School — classify your customers.', '/admin/customer-types'); ?>
+            <?php adminCard('Freight Carriers', 'Who actually moves a pallet — Old Dominion, XPO. Offered when recording a PRO number.', '/admin/freight-carriers'); ?>
         </td>
     </tr>
     <tr style="vertical-align:top">

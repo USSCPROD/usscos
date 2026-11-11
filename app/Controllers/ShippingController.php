@@ -558,6 +558,7 @@ class ShippingController extends Controller
                  LEFT JOIN ship_via v ON v.id = s.ship_via_id WHERE s.id = ?',
                 [(int)$id]
             )['m'] ?? 'other',
+            'freightCarriers' => (new \App\Repositories\AdminRepository())->activeFreightCarriers(),
             'configured' => $fedex->configured(),
             'sandbox'    => $fedex->isSandbox(),
             'services'   => FedExShippingService::SERVICES,
@@ -635,8 +636,17 @@ class ShippingController extends Controller
             return $response->redirect('/shipping/' . (int)$id . '/label');
         }
 
-        $numbers = trim((string)($_POST['tracking_number'] ?? ''));
-        $carrier = trim((string)($_POST['carrier_name'] ?? ''));
+        $numbers   = trim((string)($_POST['tracking_number'] ?? ''));
+        $carrierId = (int)($_POST['freight_carrier_id'] ?? 0);
+        $carrier   = trim((string)($_POST['carrier_name'] ?? ''));
+
+        // A carrier from the list wins; the free-text box is for the one-off nobody
+        // wants to add to it. Either way a name is stored, so a shipment recorded
+        // today still reads correctly if the carrier is retired next year.
+        if ($carrierId > 0) {
+            $chosen  = (new \App\Repositories\AdminRepository())->findFreightCarrier($carrierId);
+            $carrier = $chosen === false ? $carrier : (string)$chosen['name'];
+        }
         $type    = in_array($_POST['tracking_type'] ?? '', ['pro', 'bol'], true) ? $_POST['tracking_type'] : 'pro';
 
         if ($numbers === '') {
@@ -650,7 +660,8 @@ class ShippingController extends Controller
             $numbers,
             null,
             (string)$type,
-            $carrier !== '' ? $carrier : null
+            $carrier !== '' ? $carrier : null,
+            $carrierId > 0 ? $carrierId : null
         );
 
         Session::flash(

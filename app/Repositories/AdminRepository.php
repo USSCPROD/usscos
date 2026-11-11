@@ -738,6 +738,64 @@ class AdminRepository
     }
 
     // -------------------------------------------------------------------------
+    // Freight carriers
+    // -------------------------------------------------------------------------
+
+    /** Every carrier, retired ones included — the admin screen manages this table. */
+    public function allFreightCarriers(): array
+    {
+        return Database::select('SELECT * FROM freight_carriers ORDER BY sort_order, name');
+    }
+
+    /** The ones a shipment may be recorded against today. */
+    public function activeFreightCarriers(): array
+    {
+        return Database::select(
+            'SELECT id, name, scac FROM freight_carriers WHERE is_active = 1 ORDER BY sort_order, name'
+        );
+    }
+
+    public function findFreightCarrier(int $id): array|false
+    {
+        return Database::selectOne('SELECT * FROM freight_carriers WHERE id = ?', [$id]);
+    }
+
+    public function insertFreightCarrier(array $d): void
+    {
+        Database::statement("
+            INSERT INTO freight_carriers (name, scac, tracking_url_template, phone, notes, sort_order, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ", [
+            $d['name'],
+            ($d['scac'] ?? '') ?: null,
+            ($d['tracking_url_template'] ?? '') ?: null,
+            ($d['phone'] ?? '') ?: null,
+            ($d['notes'] ?? '') ?: null,
+            (int)($d['sort_order'] ?? 0),
+            (int)($d['is_active'] ?? 1),
+        ]);
+    }
+
+    public function updateFreightCarrier(int $id, array $d): void
+    {
+        Database::update("
+            UPDATE freight_carriers
+            SET name = ?, scac = ?, tracking_url_template = ?, phone = ?, notes = ?,
+                sort_order = ?, is_active = ?
+            WHERE id = ?
+        ", [
+            $d['name'],
+            ($d['scac'] ?? '') ?: null,
+            ($d['tracking_url_template'] ?? '') ?: null,
+            ($d['phone'] ?? '') ?: null,
+            ($d['notes'] ?? '') ?: null,
+            (int)($d['sort_order'] ?? 0),
+            (int)($d['is_active'] ?? 1),
+            $id,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
     // Departments
     // -------------------------------------------------------------------------
 

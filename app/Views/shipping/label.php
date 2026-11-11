@@ -243,9 +243,26 @@ $suggestedPackages = max(1, count($packages));
                     <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
                                   letter-spacing:.05em;color:#6b7280">
                         Carrier
+                        <?php if (!empty($freightCarriers)): ?>
+                            <select name="freight_carrier_id"
+                                    style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
+                                           border-radius:6px;font:inherit;font-size:.92rem;min-width:14rem">
+                                <option value="">— Choose —</option>
+                                <?php foreach ($freightCarriers as $fc): ?>
+                                    <option value="<?= (int)$fc['id'] ?>"><?= e($fc['name']) ?><?php
+                                        if (!empty($fc['scac'])): ?> (<?= e($fc['scac']) ?>)<?php endif; ?></option>
+                                <?php endforeach; ?>
+                                <option value="other">Someone else — type it</option>
+                            </select>
+                        <?php endif; ?>
+                        <?php /* A one-off carrier still has to be recordable. The box is
+                                 there when the list is empty, and when "someone else" is
+                                 picked. */ ?>
                         <input type="text" name="carrier_name" placeholder="e.g. Old Dominion"
-                               style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
-                                      border-radius:6px;font:inherit;font-size:.92rem;min-width:14rem">
+                               <?= !empty($freightCarriers) ? 'style="display:none;' : 'style="' ?>
+                               margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
+                               border-radius:6px;font:inherit;font-size:.92rem;min-width:14rem"
+                               id="freightCarrierOther">
                     </label>
                     <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
                                   letter-spacing:.05em;color:#6b7280">
@@ -267,6 +284,18 @@ $suggestedPackages = max(1, count($packages));
                     </label>
                     <button type="submit" class="btn btn--primary" style="padding:.55rem 1.2rem">Record</button>
                 </form>
+                <script>
+                (function () {
+                    var sel = document.querySelector('select[name="freight_carrier_id"]');
+                    var txt = document.getElementById('freightCarrierOther');
+                    if (!sel || !txt) { return; }
+                    sel.addEventListener('change', function () {
+                        var other = this.value === 'other';
+                        txt.style.display = other ? 'block' : 'none';
+                        if (other) { txt.focus(); } else { txt.value = ''; }
+                    });
+                }());
+                </script>
             <?php endif; ?>
         </div>
     <?php else: ?>

@@ -57,7 +57,8 @@ class ShipmentNotificationService
         string $raw,
         ?int $shipViaId,
         string $type = 'parcel',
-        ?string $carrierName = null
+        ?string $carrierName = null,
+        ?int $freightCarrierId = null
     ): array {
         $numbers = preg_split('/[\s,;]+/', trim($raw)) ?: [];
         $stored  = [];
@@ -76,7 +77,8 @@ class ShipmentNotificationService
                 'tracking_type'   => $type,
                 // The LTL carrier that actually moved it. ship_via says 'Freight';
                 // this says Old Dominion.
-                'carrier_name'    => $carrierName,
+                'carrier_name'       => $carrierName,
+                'freight_carrier_id' => $freightCarrierId,
                 'created_by'      => Auth::id(),
             ]);
 

@@ -521,6 +521,66 @@ class AdminController extends Controller
     // Customer Types
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
+    // Freight carriers
+    // -------------------------------------------------------------------------
+
+    public function freightCarriers(Request $request, Response $response): Response
+    {
+        return $this->view('admin.freight_carriers', [
+            'title' => 'Freight Carriers — Admin',
+            'items' => $this->repo->allFreightCarriers(),
+        ]);
+    }
+
+    public function freightCarriersCreate(Request $request, Response $response): Response
+    {
+        return $this->view('admin.freight_carriers_form', ['title' => 'Add Freight Carrier', 'item' => null]);
+    }
+
+    public function freightCarriersStore(Request $request, Response $response): Response
+    {
+        $name = trim($_POST['name'] ?? '');
+
+        if ($name === '') {
+            Session::flash('error', 'A carrier needs a name.');
+
+            return $response->redirect('/admin/freight-carriers/create');
+        }
+
+        $this->repo->insertFreightCarrier($_POST + ['is_active' => isset($_POST['is_active']) ? 1 : 0]);
+        Session::flash('success', 'Carrier saved.');
+
+        return $response->redirect('/admin/freight-carriers');
+    }
+
+    public function freightCarriersEdit(Request $request, Response $response, string $id = '0'): Response
+    {
+        $item = $this->repo->findFreightCarrier((int)$id);
+
+        if ($item === false) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        return $this->view('admin.freight_carriers_form', ['title' => 'Edit Freight Carrier', 'item' => $item]);
+    }
+
+    public function freightCarriersUpdate(Request $request, Response $response, string $id = '0'): Response
+    {
+        $name = trim($_POST['name'] ?? '');
+
+        if ($name === '') {
+            Session::flash('error', 'A carrier needs a name.');
+
+            return $response->redirect('/admin/freight-carriers/' . (int)$id . '/edit');
+        }
+
+        $this->repo->updateFreightCarrier((int)$id, $_POST + ['is_active' => isset($_POST['is_active']) ? 1 : 0]);
+        Session::flash('success', 'Carrier saved.');
+
+        return $response->redirect('/admin/freight-carriers');
+    }
+
     public function customerTypes(Request $request, Response $response): Response
     {
         return $this->view('admin.customer_types', [

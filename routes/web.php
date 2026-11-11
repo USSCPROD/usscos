@@ -364,6 +364,11 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/admin/departments/{id}/edit',              [AdminController::class, 'departmentsEdit'])->name('admin.departments.edit');
     Router::post('/admin/departments/{id}/edit',             [AdminController::class, 'departmentsUpdate'])->name('admin.departments.update');
 
+    Router::get('/admin/freight-carriers',                   [AdminController::class, 'freightCarriers'])->name('admin.freight_carriers');
+    Router::get('/admin/freight-carriers/create',            [AdminController::class, 'freightCarriersCreate'])->name('admin.freight_carriers.create');
+    Router::post('/admin/freight-carriers',                  [AdminController::class, 'freightCarriersStore'])->name('admin.freight_carriers.store');
+    Router::get('/admin/freight-carriers/{id}/edit',         [AdminController::class, 'freightCarriersEdit'])->name('admin.freight_carriers.edit');
+    Router::post('/admin/freight-carriers/{id}/edit',        [AdminController::class, 'freightCarriersUpdate'])->name('admin.freight_carriers.update');
     Router::get('/admin/customer-types',                     [AdminController::class, 'customerTypes'])->name('admin.customer_types');
     Router::get('/admin/customer-types/create',              [AdminController::class, 'customerTypesCreate'])->name('admin.customer_types.create');
     Router::post('/admin/customer-types',                    [AdminController::class, 'customerTypesStore'])->name('admin.customer_types.store');
