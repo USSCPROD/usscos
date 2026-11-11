@@ -20,10 +20,16 @@
         <div class="kpi-card__label">Open Value</div>
         <div class="kpi-card__value">$<?= number_format((float)($stats['open_value'] ?? 0), 2) ?></div>
     </div>
-    <div class="kpi-card">
+    <?php /* A count on its own reads as neutral. Drafts are orders nobody downstream
+             can see, so a non-zero number here is a question - amber, clickable, and
+             saying what it means. */ ?>
+    <a class="kpi-card" href="/sales-orders?status=draft" style="text-decoration:none;color:inherit;display:block">
         <div class="kpi-card__label">Drafts</div>
-        <div class="kpi-card__value"><?= number_format((int)$stats['draft_count']) ?></div>
-    </div>
+        <div class="kpi-card__value"<?= (int)$stats['draft_count'] > 0 ? ' style="color:#b45309"' : '' ?>><?= number_format((int)$stats['draft_count']) ?></div>
+        <?php if ((int)$stats['draft_count'] > 0): ?>
+            <div style="font-size:.72rem;color:#b45309;margin-top:.15rem">Not visible to shipping</div>
+        <?php endif; ?>
+    </a>
     <div class="kpi-card">
         <div class="kpi-card__label">Paid (Unshipped)</div>
         <div class="kpi-card__value" style="color:#16a34a"><?= number_format((int)($stats['paid_count'] ?? 0)) ?></div>

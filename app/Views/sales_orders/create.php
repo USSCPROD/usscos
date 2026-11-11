@@ -353,7 +353,12 @@ $currentUser = \App\Core\Auth::user();
     <!-- ── Actions ──────────────────────────────────────────────────────── -->
     <div style="display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.5rem;background:#f8f9fb">
         <a href="/sales-orders" class="btn btn--secondary">Cancel</a>
-        <button type="submit" name="_action" value="save_new" class="btn btn--secondary">Save &amp; New</button>
+        <?php /* This one sends no so_action, so the order is saved as a draft - and a
+                 draft is invisible to shipping. It used to say just "Save & New", which
+                 made it the quietest way in the system to lose an order: enter five,
+                 press it five times, and none of them reach the warehouse. The button
+                 still does the same thing; it now says so. */ ?>
+        <button type="submit" name="_action" value="save_new" class="btn btn--secondary">Save draft &amp; New</button>
         <?php /* Two actions, because there are two things somebody means. A draft is
                  work in progress that nobody else can see; submitting is what puts it
                  in front of the shipping clerk. Saying so on the buttons beats leaving

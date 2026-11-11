@@ -143,6 +143,14 @@ class SalesOrderRepository
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /** The so_number for an id. The two differ, and it is the number people say out loud. */
+    public function soNumber(int $id): string
+    {
+        $row = Database::selectOne('SELECT so_number FROM sales_orders WHERE id = ?', [$id]);
+
+        return $row === false ? (string)$id : (string)$row['so_number'];
+    }
+
     public function nextSoNumber(): string
     {
         $stmt = $this->pdo->query("SELECT MAX(CAST(so_number AS UNSIGNED)) FROM sales_orders");

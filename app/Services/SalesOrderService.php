@@ -107,6 +107,12 @@ class SalesOrderService
         ];
     }
 
+    /** The so_number for an id, for messages that name the order people will look for. */
+    public function soNumber(int $id): string
+    {
+        return $this->repo->soNumber($id);
+    }
+
     public function store(int $userId, array $post): int
     {
         $lines    = $this->parseLines($post);

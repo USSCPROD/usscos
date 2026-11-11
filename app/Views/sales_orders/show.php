@@ -110,6 +110,26 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
     </div>
 </div>
 
+<?php if (($so['status'] ?? '') === 'draft'): ?>
+    <?php /* A draft is invisible to the shipping queue, and nothing on this page used to
+             say so. The order looks finished - it has a number, a customer and lines -
+             so the natural reading of "it is not in shipping" is that shipping is
+             broken. Saying it plainly, next to the button that fixes it, is the whole
+             repair. Not a .alert, because those read as something going wrong; this is
+             a normal state that just needs explaining. */ ?>
+    <div style="border:1px solid #fcd34d;background:#fffbeb;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.9rem;align-items:flex-start">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" style="flex:none;margin-top:.1rem">
+            <circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v5m0 3h.01"/>
+        </svg>
+        <div style="font-size:.9rem;line-height:1.55;color:#78350f">
+            <strong style="display:block;margin-bottom:.15rem">This is a draft. The warehouse cannot see it.</strong>
+            It will not appear in the shipping queue, nothing can be picked or packed against
+            it, and no one outside sales knows it exists. Press <strong>Submit for shipping</strong>
+            above when it is ready to go.
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Ship & Invoice Modal -->
 <div id="shipModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:28px 32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.25)">

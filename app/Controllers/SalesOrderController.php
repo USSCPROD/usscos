@@ -91,7 +91,15 @@ class SalesOrderController extends Controller
 
         $fileProblem = $this->fileAttachedDocument($soId);
 
+        // Save & New sends no so_action, so what it just saved is a draft - invisible to
+        // shipping. It used to redirect straight to a blank form with no message at all,
+        // which made it the quietest way in the system to lose an order: key five, press
+        // it five times, and nothing anywhere says the warehouse never heard about any
+        // of them. Say so before handing back the empty form.
         if (($_POST['_action'] ?? '') === 'save_new') {
+            Session::flash('success', 'Saved SO #' . $this->service->soNumber($soId)
+                . ' as a draft - the warehouse cannot see it yet. Open it and press '
+                . 'Submit for shipping when it is ready.');
             return $response->redirect('/sales-orders/create');
         }
 
@@ -107,7 +115,8 @@ class SalesOrderController extends Controller
         // without this there is nothing anywhere telling them the order went.
         Session::flash('success', ($_POST['so_action'] ?? '') === 'submit'
             ? 'Submitted for shipping. It is with the shipping clerk now, and you will see it here as it moves.'
-            : 'Saved as a draft. Nobody else can see it until you submit it for shipping.');
+            : 'Saved SO #' . $this->service->soNumber($soId) . ' as a draft. The warehouse '
+              . 'cannot see it until you submit it for shipping.');
 
         return $response->redirect('/sales-orders');
     }
