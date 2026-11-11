@@ -284,25 +284,114 @@ works on day one.
 
 ### Kuebix — it does have an API
 
-Confirmed 2026-09-23. Two endpoints matter:
+Confirmed 2026-09-23, endpoints captured from the published reference 2026-11-11.
+Spelled **Kuebix**, not Keubix. Owned by FreightWise since November 2023.
+
+Reference: <https://api-docs.kuebix.com/> (the rendered spec is at
+<https://kuebix-api-docs.s3.amazonaws.com/master/redoc/shipment-api/index.html>).
+
+**Authentication is HTTP Basic over HTTPS**, with an API username and key password
+issued by Kuebix. Simpler than the FedEx OAuth exchange `FedExClient` already handles.
+(An earlier note here said username + key + client ID. The published spec says Basic
+auth with two values; trust the spec.)
+
+Three base URLs, which is the first thing that trips you up:
+
+| Base URL | What lives there |
+|---|---|
+| `https://shipment.kuebix.com/api` | shipments, rating, booking, BOLs and labels |
+| `https://apis.kuebix.com/v2` | tracking |
+| `https://order.kuebix.com/api` | orders (PO / sales order records) |
+
+#### The PRO number — what the freight section is for
+
+`GET https://apis.kuebix.com/v2/shipment/track`
+
+Query parameter `kuebixBOLs`: a comma-separated list of Kuebix BOL numbers. The response
+is keyed by BOL:
+
+```json
+{ "trackDetailMap": { "KBX-0686140-21": {
+    "pro": "123456789",
+    "carrier": "FedEx Parcel",
+    "currentStatus": "Delivered",
+    "csxDeliveryDate": "07/22/2021",
+    "historyDetailsList": [
+      { "statusDate": "7/21/2021 12:24 PM", "status": "Delivered", "description": "Delivered" }
+    ],
+    "shipToAddress": { "companyName": "...", "city": "...", "state": "...", "postal": "..." }
+} } }
+```
+
+So it returns **more than the PRO** — the carrier name and a running status history too.
+That is the field a clerk is typing today, plus the delivery confirmation nobody has.
+
+#### The freight cost
+
+`GET https://shipment.kuebix.com/api/shipments/{shipmentId}/rates/view` returns a
+`rateMap` keyed by SCAC:
+
+```json
+{ "scac": "ABFS", "carrierName": "Pitt Ohio", "service": "Standard", "serviceDays": 3,
+  "gross": 1494.56, "linehaul": 1494.56, "fscPrice": 381.11,
+  "surchargePrice": 0, "accessorialPrice": 667.71, "totalPrice": 2543.38,
+  "deliveryDate": "2021-05-17T17:00:00.000-04:00" }
+```
+
+`totalPrice` is the number for the Shipping & Handling line. The breakdown beneath it
+(linehaul, fuel surcharge, accessorials) is what answers "why did the quote move?".
+
+`POST /action/quickRate` requests a fresh quote rather than reading saved ones.
+
+Other endpoints worth knowing about, same shipment base URL:
 
 | Purpose | Endpoint |
 |---|---|
-| Retrieve quotes already created for a shipment | `GET /shipments/{shipmentId}/rates/view` |
-| Request a fresh quote | `POST /action/quickRate` |
+| Create and book in one call | `POST /action/createAndBook` |
+| Book an existing shipment on a saved rate | `POST /shipments/{shipmentId}/rates/{rateQuoteId}/book` |
+| Bill of lading PDF | `POST /shipments/docs/bol` |
+| Shipping / parcel labels | `POST /shipments/docs/labels`, `POST /shipments/docs/parcel` |
+| Retrieve a shipment as JSON | `GET /shipments/{shipmentId}` |
 
-Quotes return carrier name, total price, fuel surcharge, additional charges, transit days
-and a quote reference. Authentication is an **API username, API key and client ID**.
+#### The open question that decides everything
 
-**Before building anything, ask Kuebix support two questions:** is API access enabled on
-our subscription, and does it cost extra? Neither is answerable from the documentation and
-both decide whether this is worth starting.
+**Does Kuebix know our SO number?** Tracking is keyed on the Kuebix BOL. Unless that
+BOL is stored against our sales order, matching is by hand — which is no better than
+typing the PRO, and the whole exercise is pointless.
 
-Assuming it is enabled, the useful shape is: request or retrieve quotes from the sales
-order, show the options with carrier, price and transit days, let the clerk pick one, and
-store the chosen quote against the order — carrier, cost, reference. That removes the
-retyping and, more usefully, keeps the freight cost attached to the order instead of
-living on paper.
+The Order API has `salesOrderNum`, described as the unique identifier for `Outbound`
+orders, which suggests we can push the SO number across and get the link back. **Confirm
+this before writing any code.** If instead someone books loads directly in the Kuebix
+screen with no reference to our order, the integration cannot work as described and the
+manual field stays.
+
+#### Before building anything, ask Kuebix support
+
+1. Is API access enabled on our subscription, and **does it cost extra?**
+2. Who holds the credentials, and can they issue an API username and key password?
+3. Is the Kuebix BOL recoverable from a sales order number — i.e. can we send
+   `salesOrderNum` on the order and read tracking back against it?
+
+None of those are answerable from the documentation and all three decide whether this is
+worth starting. One email, and it is unblocked.
+
+#### If it is enabled, the shape of the work
+
+Small, and self-contained — the pattern already exists:
+
+- A `KuebixClient` service alongside `FedExClient`. Basic auth, so no token refresh.
+  Set `CURLOPT_ENCODING => ''` as that one does — the FedEx responses were gzipped and
+  every error was unreadable until that was added. Assume the same here.
+- Freight orders with a BOL and no PRO get polled against `/shipment/track`, on demand
+  from the freight card and/or on a schedule. Fill `shipment_tracking.tracking_number`
+  and `freight_carrier_id` from `pro` and `carrier`.
+- `totalPrice` lands on the Shipping & Handling line, with the markup from
+  `config/shipping.php` ($20 freight) applied the same way the FedEx quote does it.
+- Match the carrier name back to the `freight_carriers` table rather than free text.
+
+**It is an efficiency gain, not a blocker.** The manual PRO and carrier fields on the
+freight card work today and should stay — the API fills them in, it does not replace
+them.
 
 A freight section is worth building **either way** — quote reference, carrier, cost, pallet
 count and BOL. The API makes it quicker to fill in; it is not what makes it valuable.
@@ -316,7 +405,7 @@ count and BOL. The API makes it quicker to fill in; it is not what makes it valu
 | **Accounting / general ledger** | QuickBooks keeps the books. Nothing operational depends on it. |
 | **Bills and AP** | Keep entering bills in QuickBooks. Pull the history later if ever needed. |
 | **FedEx API** | Manual tracking entry works today. |
-| **Kuebix automation** | Manual entry works today. |
+| **Kuebix automation** | Manual PRO and carrier entry works today. Endpoints captured; waiting on credentials. |
 | **Job Binder** (production, QA, photos) | Artwork is live; the rest is additive. |
 | **Dashboard** | Cosmetic. Currently shows zeros, which is worse than nothing, but breaks nothing. |
 | **Portals, tiered pricing** | Neither is needed to run the warehouse. |
@@ -354,7 +443,7 @@ critical path.
 
 13. QuickBooks bridge, with ListIDs and item sync
 14. FedEx API
-15. Kuebix, if it has an API
+15. Kuebix tracking and rating — endpoints captured, waiting on credentials
 16. Entity scoping, if TCC comes on
 
 ---
@@ -365,8 +454,9 @@ critical path.
   the one thing that blocks scanning entirely, and nothing else substitutes for it
 - ~~A name for the new warehouse~~ — **"730"** (the address), and **yes to bays/racks**,
   since that is how stock is physically stored
-- ~~Does Kuebix have an API?~~ — **yes**. Still needed: confirmation from Kuebix support
-  that it is enabled on our subscription, and whether it costs extra
+- ~~Does Kuebix have an API?~~ — **yes**, and the endpoints are captured in the Kuebix
+  section above. Still needed from Kuebix support: is it enabled on our subscription,
+  does it cost extra, and can tracking be tied back to our sales order number
 - ~~Will TCC people use USSCOS at go-live?~~ — **yes, partially.** Some users see parts of
   both companies; upper management sees everything in both. That makes access a
   **(entity x area) matrix**, not a single entity flag — see

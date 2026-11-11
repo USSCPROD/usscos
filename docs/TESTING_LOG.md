@@ -230,8 +230,11 @@ same cartonizer the label screen uses so the quote and the label describe the sa
 parcels. Each service shows the carrier price and the charge; the customer sees only
 the charge. Markups are in `config/shipping.php` — $10 parcel, $20 freight.
 
-Freight is not quoted: Keubix price it by hand and there is no API to ask, so an order
-the cartonizer calls freight says so and names the markup to add.
+Freight is not quoted in the system: Kuebix price it by hand, so an order the cartonizer
+calls freight says so and names the markup to add. (Noted 2026-11-11: Kuebix **does**
+have an API that returns both the PRO number and the freight cost — the endpoints are in
+[GO_LIVE.md](GO_LIVE.md). It is not wired up, and needs credentials from Kuebix first.
+The earlier note here saying there was no API to ask was wrong.)
 
 The line table also keeps one empty row at the bottom instead of making you press
 *Add Line* after three.
