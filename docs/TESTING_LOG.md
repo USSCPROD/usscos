@@ -158,6 +158,8 @@ What remains is one hard requirement and one cheap safety net:
 | 44 traffic paints and 17 striping machines are misfiled under Specialty Coatings | Category assignment, not a code fault |
 | `database/issue_draft_invoices.php` | Only exists for invoices stranded by the old draft behavior. Delete it once the data is re-imported |
 | A new sales order is saved as **Draft**, and a draft is invisible to the shipping queue | Nothing on the order says so. Found on 2026-11-10 while walking the flow — it is the most likely thing to derail a demo. Worth either defaulting to Confirmed or saying plainly on the order that shipping cannot see it yet |
+| Open Orders counts drafts | The list header reads 27 open / $31,724.46, and both include drafts. "Open" is defined as anything not invoiced or cancelled, so a draft falls in — yet the same screen now says a draft is not visible to shipping. An order nobody can act on is not open. Found 2026-11-11 |
+| A draft still has a Status dropdown on the order | It is kept for the corrections it is genuinely for (cancelling, putting a shipped order back), but on a draft it sits beside **Submit for shipping** and does the same job badly — somebody can set Confirmed by hand and skip the submit path. Found 2026-11-11 |
 | The id in the URL is not the SO number | `/sales-orders/24` is SO #11. Every link passes the right one, so it only bites when a URL is typed or read aloud |
 
 ## Open — before anyone quotes a customer
@@ -190,6 +192,45 @@ Nothing here is urgent, and all of it is needed before the real cutover.
 ---
 
 ## Fixed
+
+### 2026-11-11 — a draft could be created in silence
+
+A new sales order saves as a draft, and a draft never reaches the shipping queue.
+Nothing said so. The order has a number, a customer and lines, so the natural reading of
+"it is not in shipping" was that shipping is broken.
+
+Worse than the known half: **Save & New** sent no `so_action` and the controller returned
+to a blank form *before* reaching the flash. No message at all. Key five orders, press it
+five times, and nothing anywhere says the warehouse never heard about any of them.
+
+- The button says **Save draft & New**, and now sets a message naming the SO before
+  handing back the empty form.
+- The order page carries a notice next to Submit for shipping: *this is a draft, the
+  warehouse cannot see it, nothing can be picked or packed against it.*
+- Both draft messages name the SO number — the id in the URL is not it, so there was
+  previously nothing to search for.
+- The Drafts card on the list is amber, clickable through to `?status=draft`, and reads
+  "Not visible to shipping" when the count is above zero.
+
+Verified on SO #33 and #34, created back to back through Save draft & New.
+
+### 2026-11-11 — sales_orders.invoice_id was dead
+
+Declared in migration 021 with a foreign key, never written and never read: zero non-null
+rows. The real link is `invoices.sales_order_id`, which is the direction that survives an
+order being invoiced more than once — SO #15 shipped 9 on one invoice and 21 on another.
+Dropped in migration 119. The shipping queue already derived the current invoice with a
+subquery rather than trusting the column, so nothing changed behaviorally.
+
+### 2026-11-11 — rep password files were readable by the web server
+
+`create_rep_user.php` writes the password to a file and chmods it `0600`. `deploy.sh`
+then runs `find storage -type f -exec chmod 0664` across the whole directory, so every
+deploy re-widened them to group-readable by `www-data`. The three rep files have been
+shredded. **The deploy behaviour is unchanged** — the next password file written there
+will have the same problem. Setting a password in Admin → Users works and needs no file,
+which is the simpler path.
+
 
 ### 2026-11-10 — every FedEx error was unreadable
 
