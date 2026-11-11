@@ -317,7 +317,12 @@ if ($activeTab === 'all') {
                                     </button>
                                 </form>
                             <?php endif; ?>
-                            <?php if (($o['ship_mode'] ?? '') === 'pickup'): ?>
+                            <?php if (($o['ship_mode'] ?? '') === 'freight'): ?>
+                                <?php /* FedEx is not the carrier. Offering its label
+                                         screen on an LTL order is an invitation to buy
+                                         a parcel label for a pallet. */ ?>
+                                <span style="<?= $quiet ?>;border-style:dashed">No FedEx label</span>
+                            <?php elseif (($o['ship_mode'] ?? '') === 'pickup'): ?>
                                 <?php /* Nothing to label: the customer is coming for it.
                                          Offering a FedEx label here is an invitation to
                                          buy one by mistake. */ ?>

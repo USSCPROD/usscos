@@ -551,6 +551,13 @@ class ShippingController extends Controller
             'lines'      => $lines,
             'plan'       => $plan,
             'invoice'    => $invoice === false ? null : $invoice,
+            // What this order actually ships on. A freight order has no FedEx label to
+            // make, and the screen should say so rather than offer the form.
+            'shipMode'   => Database::selectOne(
+                'SELECT COALESCE(v.ship_mode, \'other\') m FROM sales_orders s
+                 LEFT JOIN ship_via v ON v.id = s.ship_via_id WHERE s.id = ?',
+                [(int)$id]
+            )['m'] ?? 'other',
             'configured' => $fedex->configured(),
             'sandbox'    => $fedex->isSandbox(),
             'services'   => FedExShippingService::SERVICES,

@@ -128,6 +128,14 @@ table.lines tr:nth-child(even) td { background: #f9fafb; }
              * nothing has, every line is — that slip is printed ahead of picking and is
              * a checklist rather than a record.
              */
+            // Charges are not in the box. Shipping and handling is money on the
+            // invoice; printing it on the list of contents asks the customer to look
+            // for it among the pails.
+            $line_items = array_values(array_filter(
+                $line_items,
+                fn (array $l) => !\App\Repositories\SalesOrderRepository::isChargeLine($l)
+            ));
+
             $slipPrior  = array_sum(array_map(fn ($l) => (float)($l['qty_shipped'] ?? 0), $line_items));
             $slipGoing  = fn (array $l) => max(0.0, (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0));
             $slipLines  = $line_items;

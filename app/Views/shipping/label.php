@@ -211,7 +211,28 @@ $suggestedPackages = max(1, count($packages));
      * the thing to do.
      */
     $canLabel = !empty($invoice);
+
+    /*
+     * Freight does not get a FedEx label.
+     *
+     * The screen warned that an order looked like freight and then offered the parcel
+     * form underneath the warning anyway. When the carrier on the order IS freight
+     * there is no judgement left to make: FedEx is not shipping it, and a form that
+     * buys a parcel label for a pallet should not be on the page.
+     */
+    $isFreightOrder = ($shipMode ?? 'other') === 'freight';
     ?>
+    <?php if ($isFreightOrder): ?>
+        <div style="<?= $lblCard ?>;background:#fffbeb;border-color:#fcd34d">
+            <div style="<?= $lblHead ?>;color:#92400e">This one goes freight</div>
+            <div style="font-size:.92rem;color:#92400e;line-height:1.6">
+                The carrier on this order is <strong><?= e($order['ship_via_name'] ?? 'Freight') ?></strong>,
+                so there is no FedEx label to make. Book it with Keubix, print the packing
+                slip above for the pallet, and put the PRO number on the invoice once you
+                have it.
+            </div>
+        </div>
+    <?php else: ?>
     <div style="<?= $lblCard ?>">
         <?php if ($alreadyLabelled): ?>
             <details>
@@ -451,6 +472,7 @@ $suggestedPackages = max(1, count($packages));
             </details>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
 
     <!-- ── Already labelled ─────────────────────────────────────────────── -->
     <?php if (!empty($existing)): ?>
