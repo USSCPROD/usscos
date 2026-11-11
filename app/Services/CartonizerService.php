@@ -46,6 +46,7 @@ class CartonizerService
     {
         $packages = [];
         $reasons  = [];
+        $notParcel = [];
         $missing  = [];
         $pending  = [];
         $freight  = false;
@@ -94,6 +95,18 @@ class CartonizerService
                     $this->fmt($qty),
                     $this->fmt($limit)
                 );
+
+                // Kept, not dropped. It used to `continue` straight past, so a line too
+                // big for a parcel vanished from the packing table altogether — the
+                // suggestion listed three of the twelve things that were packed and the
+                // boxes could not be made to add up. It is not a parcel box, but it is
+                // still going out, and the table has to account for everything.
+                $notParcel[] = [
+                    'product_id' => $productId,
+                    'sku'        => $label,
+                    'qty'        => $qty,
+                ];
+
                 continue;
             }
 
@@ -221,6 +234,7 @@ class CartonizerService
 
         return [
             'packages'         => $packages,
+            'not_parcel'       => $notParcel,
             'freight_required' => $freight,
             'reasons'          => $reasons,
             'missing'          => array_values(array_unique($missing)),

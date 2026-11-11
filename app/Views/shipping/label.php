@@ -99,7 +99,10 @@ $suggestedPackages = max(1, count($packages));
             </div>
         <?php endif; ?>
 
-        <?php if ($packages === []): ?>
+        <?php /* The table still has to be drawn when every line is freight: otherwise
+                 an order of nothing but pallets shows "nothing to pack", which is the
+                 opposite of true. */ ?>
+        <?php if ($packages === [] && ($plan['not_parcel'] ?? []) === []): ?>
             <div class="text-muted" style="font-size:.9rem">
                 Nothing to pack, or no box rules for these products.
             </div>
@@ -142,6 +145,19 @@ $suggestedPackages = max(1, count($packages));
                                 ? e($pkg['length'] . ' × ' . $pkg['width'] . ' × ' . $pkg['height'])
                                 : '—' ?>
                         </td>
+                    </tr>
+                <?php endforeach; ?>
+
+                <?php /* Too big for a parcel, but still going out. Listed so the table
+                         accounts for everything that was packed — leaving them off made
+                         the boxes impossible to reconcile against the pack screen. */ ?>
+                <?php foreach (($plan['not_parcel'] ?? []) as $np): ?>
+                    <tr style="border-bottom:1px solid #f3f4f6;background:#fffbeb">
+                        <td style="padding:.5rem 0"><?= e($np['sku']) ?></td>
+                        <td style="padding:.5rem;color:#92400e">Freight — no parcel box</td>
+                        <td style="padding:.5rem;text-align:right;font-family:monospace"><?= e(rtrim(rtrim(number_format((float)$np['qty'], 2), '0'), '.')) ?></td>
+                        <td style="padding:.5rem;text-align:right;color:#92400e">—</td>
+                        <td style="padding:.5rem 0;text-align:right;color:#92400e">—</td>
                     </tr>
                 <?php endforeach; ?>
             </table>
