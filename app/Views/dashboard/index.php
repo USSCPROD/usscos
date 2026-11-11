@@ -74,6 +74,35 @@ $dnum   = fn($n) => '$' . number_format((float)$n, 0);
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.25rem">
 
+            <?php if ($shows('my_orders')): ?>
+                <?php /* A rep cannot see the clerk's queue, the pull list or the bench,
+                         so this is the only place an order they submitted exists for
+                         them. Where it has got to is said in words, because that is
+                         what gets read out to a customer who rings up asking. */ ?>
+                <div style="<?= $dcard ?>">
+                    <div style="<?= $dhead ?>"><span>My orders in progress</span><a href="/sales-orders" style="font-size:.75rem">Open</a></div>
+                    <?php $ords = $d['my_orders'] ?? []; ?>
+                    <?php if ($ords === []): ?>
+                        <div style="padding:1.25rem;color:#9ca3af;font-size:.88rem">Nothing in flight.</div>
+                    <?php else: ?>
+                        <table style="width:100%;border-collapse:collapse">
+                            <?php foreach ($ords as $row): ?>
+                                <?php [$stage, $stageColour] = \App\Services\SalesDashboardService::orderStage($row); ?>
+                                <tr style="border-top:1px solid #f3f4f6">
+                                    <td style="padding:.6rem 1.1rem">
+                                        <a href="/sales-orders/<?= (int)$row['id'] ?>" style="font-weight:600;color:#0A3D91">
+                                            SO #<?= e($row['so_number']) ?></a>
+                                        <div style="font-size:.8rem;color:#6b7280"><?= e($row['company_name']) ?></div>
+                                    </td>
+                                    <td style="padding:.6rem;font-size:.82rem;color:<?= $stageColour ?>"><?= e($stage) ?></td>
+                                    <td style="padding:.6rem 1.1rem;text-align:right;font-family:monospace;font-weight:700"><?= $dnum($row['total_amount']) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <?php if ($shows('my_pipeline')): ?>
                 <div style="<?= $dcard ?>">
                     <div style="<?= $dhead ?>"><span>My pipeline</span><a href="/pipeline" style="font-size:.75rem">Open</a></div>

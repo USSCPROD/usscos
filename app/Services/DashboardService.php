@@ -77,6 +77,7 @@ class DashboardService extends Service
             $repId = $sales->repId();
 
             $data['my']          = $sales->kpis($repId);
+            $data['my_orders']   = $sales->orders($repId);
             $data['my_pipeline'] = $sales->pipeline($repId);
             $data['my_leads']    = $sales->leads($repId);
             $data['my_quotes']   = $sales->quotes($repId);

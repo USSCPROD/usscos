@@ -140,6 +140,82 @@ class SalesDashboardService
     }
 
     /**
+     * Orders on my accounts that have not finished yet.
+     *
+     * A rep submits an order and then cannot see a single screen it passes through —
+     * not the clerk's queue, not the pull list, not the bench. Without this the order
+     * leaves their hands and there is nowhere in the application that says it exists,
+     * which is exactly what somebody checks the dashboard for.
+     *
+     * Where it is, in words rather than a status code: the words are what a rep wants
+     * to read out to a customer who is asking.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function orders(?int $repId, int $limit = 8): array
+    {
+        if ($repId === null) {
+            return [];
+        }
+
+        return Database::select("
+            SELECT s.id, s.so_number, s.status, s.total_amount, s.order_date, s.ship_by,
+                   s.approved_at, s.pick_status, s.pack_status,
+                   c.company_name,
+                   (SELECT COUNT(*) FROM shipment_tracking t
+                     JOIN invoices i ON i.id = t.invoice_id
+                     WHERE i.sales_order_id = s.id) AS labelled
+            FROM sales_orders s
+            JOIN customers c ON c.id = s.customer_id
+            WHERE c.sales_rep_id = ?
+              AND s.status NOT IN ('cancelled')
+              AND (s.status <> 'invoiced' OR NOT EXISTS (
+                    SELECT 1 FROM shipment_tracking t2
+                    JOIN invoices i2 ON i2.id = t2.invoice_id
+                    WHERE i2.sales_order_id = s.id))
+            ORDER BY FIELD(s.status,'draft') DESC, s.order_date DESC, s.id DESC
+            LIMIT {$limit}
+        ", [$repId]);
+    }
+
+    /**
+     * Where an order has got to, said plainly.
+     *
+     * The rep has no way to look, so the answer has to be complete enough to repeat to
+     * a customer on the phone without checking anything else.
+     */
+    public static function orderStage(array $o): array
+    {
+        $status = (string)($o['status'] ?? '');
+
+        if ($status === 'draft') {
+            return ['Not sent yet', '#b45309'];
+        }
+
+        if ((int)($o['labelled'] ?? 0) > 0) {
+            return ['Shipped', '#166534'];
+        }
+
+        if ($status === 'invoiced' || $status === 'partially_shipped') {
+            return ['Invoiced, waiting on a label', '#0A3D91'];
+        }
+
+        if (empty($o['approved_at'])) {
+            return ['With the shipping clerk', '#0A3D91'];
+        }
+
+        return match ((string)($o['pack_status'] ?? '')) {
+            'verified', 'confirmed', 'mismatch' => ['Packed, ready to go', '#0A3D91'],
+            default => match ((string)($o['pick_status'] ?? '')) {
+                'ready'       => ['Picked, being packed', '#0A3D91'],
+                'in_progress' => ['Being picked', '#0A3D91'],
+                'short'       => ['Short — not all of it is in stock', '#b45309'],
+                default       => ['With the warehouse', '#0A3D91'],
+            },
+        };
+    }
+
+    /**
      * Overdue invoices on MY accounts.
      *
      * Bounded by the A/R opening date like every other receivables figure, so it cannot

@@ -56,6 +56,7 @@ class DashboardAudience
      * 'top_products'  what sells most, company-wide
      * 'my_pipeline'   my opportunities by stage
      * 'my_leads'      my leads needing a follow-up
+     * 'my_orders'     my orders still in flight, and where each one has got to
      * 'my_quotes'     my quotes still awaiting an answer
      * 'my_overdue'    overdue invoices on MY accounts, for chasing
      * 'my_quiet'      my accounts that have gone quiet
@@ -65,7 +66,7 @@ class DashboardAudience
     private const PANELS = [
         self::EXECUTIVE => ['kpis_company', 'chart', 'focus', 'tasks', 'activity', 'top_products', 'ai'],
         self::FINANCE   => ['kpis_finance', 'chart', 'focus', 'tasks', 'activity', 'ai'],
-        self::SALES     => ['kpis_mine', 'my_pipeline', 'my_leads', 'my_quotes', 'my_overdue', 'my_quiet', 'tasks'],
+        self::SALES     => ['kpis_mine', 'my_orders', 'my_pipeline', 'my_leads', 'my_quotes', 'my_overdue', 'my_quiet', 'tasks'],
         self::SHIPPING  => ['shipping_work', 'tasks', 'activity'],
     ];
 
