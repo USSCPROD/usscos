@@ -22,7 +22,14 @@ use App\Services\AccessScope;
  */
 class InternalOnlyMiddleware
 {
-    /** Sections a rep or distributor may not open at all. */
+    /**
+     * Sections a rep or distributor may not open at all.
+     *
+     * '/shipping' covers the pull list and the pick and pack screens with it, because
+     * they all sit beneath it. A rep sells; the warehouse floor is not theirs to watch,
+     * and a pull list is every open order across every rep's accounts — which is
+     * exactly what scoping them to their own customers is for.
+     */
     private const INTERNAL_PREFIXES = [
         '/accounting',
         '/admin',
@@ -32,6 +39,7 @@ class InternalOnlyMiddleware
         '/inventory',
         '/receiving',
         '/reports',
+        '/shipping',
     ];
 
     public function handle(Request $request, Response $response, callable $next): Response

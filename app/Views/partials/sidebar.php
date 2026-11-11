@@ -109,6 +109,16 @@ function isActiveExcept(string $prefix, array $children): string {
         <span class="sidebar__link-text">Sales Orders</span>
     </a>
 
+    <?php
+    /*
+     * The warehouse floor is not a rep's to watch.
+     *
+     * Hidden here and refused by InternalOnlyMiddleware — hiding alone would leave a
+     * typed URL or a bookmarked tab wide open, and the pull list is every open order
+     * across every rep's accounts, which is the opposite of scoping them to their own.
+     */
+    ?>
+    <?php if (!$restricted): ?>
     <a href="/shipping" class="sidebar__link <?= isActiveExcept('/shipping', ['/shipping/pull']) ?>">
         <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
@@ -135,6 +145,7 @@ function isActiveExcept(string $prefix, array $children): string {
         </svg>
         <span class="sidebar__link-text">Receiving</span>
     </a>
+    <?php endif; ?>
 
     <a href="/invoices" class="sidebar__link <?= isActive('/invoices') ?>">
         <svg class="sidebar__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
