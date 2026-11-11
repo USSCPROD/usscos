@@ -171,7 +171,10 @@ try {
                 'qty'            => abs((float)$m['qty']),
                 'type'           => 'return_in',
                 'to_location_id' => (int)$m['from_location_id'],
-                'reference_type' => 'sales_order',
+                // 'return', not 'sales_order' — the enum has no such value and MySQL
+                // truncated it to empty, which the transaction caught. This movement
+                // IS a return: goods coming back into stock.
+                'reference_type' => 'return',
                 'reference_id'   => $soId,
                 'reference_num'  => (string)$p['so']['so_number'],
                 'notes'          => 'Order un-shipped for testing',
