@@ -228,6 +228,7 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/sales-orders/{id}/packing-slip', [SalesOrderController::class, 'packingSlip'])->name('sales_orders.packing_slip');
     Router::post('/sales-orders/{id}/email',     [SalesOrderController::class, 'email'])->name('sales_orders.email');
     Router::post('/sales-orders/{id}/payment',   [SalesOrderController::class, 'collectPayment'])->name('sales_orders.payment');
+    Router::post('/sales-orders/{id}/submit',    [SalesOrderController::class, 'submit'])->name('sales_orders.submit');
     Router::post('/sales-orders/{id}/ship',      [SalesOrderController::class, 'ship'])->name('sales_orders.ship');
 
     // Invoices

@@ -64,11 +64,33 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
         </div>
         <p class="page-subtitle"><a href="/customers/<?= (int)$so['customer_id'] ?>" class="link"><?= e($so['company_name']) ?></a></p>
     </div>
+    <?php
+    /*
+     * A rep sells; they do not ship, invoice or take the money.
+     *
+     * Ship & Invoice was offered to everybody, on a draft, from the page a rep lands
+     * on — one click from billing a customer for an order the warehouse had never
+     * seen, skipping both gates. The routes behind it are guarded, but a button that
+     * refuses you is still a button that should not be there.
+     */
+    $soRestricted = \App\Services\AccessScope::isRestricted();
+    ?>
     <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
-        <?php if (!$isLocked): ?>
+        <?php if (($so['status'] ?? '') === 'draft'): ?>
+            <?php /* The thing to do with a draft, on the page people actually open.
+                     It lived only on the edit form, which is not where anybody looks. */ ?>
+            <form method="POST" action="/sales-orders/<?= (int)$so['id'] ?>/submit" style="margin:0">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn--primary"
+                        onclick="return confirm('Submit SO #<?= e($so['so_number']) ?> for shipping?')">
+                    Submit for shipping
+                </button>
+            </form>
+        <?php endif; ?>
+        <?php if (!$isLocked && !$soRestricted && ($so['status'] ?? '') !== 'draft'): ?>
             <button class="btn btn--primary" onclick="document.getElementById('shipModal').style.display='flex'">Ship &amp; Invoice</button>
         <?php endif; ?>
-        <?php if (in_array($so['status'], ['confirmed', 'processing', 'partially_shipped'])): ?>
+        <?php if (!$soRestricted && in_array($so['status'], ['confirmed', 'processing', 'partially_shipped'])): ?>
             <button class="btn btn--success" onclick="document.getElementById('paymentModal').style.display='flex'">Collect Payment</button>
         <?php endif; ?>
         <a href="/sales-orders/<?= (int)$so['id'] ?>/print" target="_blank" class="btn btn--secondary">Print / PDF</a>

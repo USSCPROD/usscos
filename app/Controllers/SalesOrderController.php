@@ -163,6 +163,38 @@ class SalesOrderController extends Controller
         return $response->redirect('/sales-orders');
     }
 
+    /**
+     * Send a draft to the shipping clerk.
+     *
+     * Its own action rather than a status edit: this is the moment an order stops
+     * being one person's work and becomes everybody's, and it is worth being a thing
+     * somebody did rather than a dropdown they changed.
+     */
+    public function submit(Request $request, Response $response, string $id = '0'): Response
+    {
+        $so = (new SalesOrderRepository())->findWithDetails((int)$id);
+
+        if (!$so) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        if (($so['status'] ?? '') !== 'draft') {
+            Session::flash('error', 'That order has already been submitted.');
+
+            return $response->redirect('/sales-orders/' . (int)$id);
+        }
+
+        Database::statement(
+            "UPDATE sales_orders SET status = 'confirmed' WHERE id = ? AND status = 'draft'",
+            [(int)$id]
+        );
+
+        Session::flash('success', 'Submitted for shipping. It is with the shipping clerk now, '
+            . 'and you will see it here as it moves.');
+
+        return $response->redirect('/sales-orders/' . (int)$id);
+    }
+
     public function destroy(Request $request, Response $response, string $id = '0'): Response
     {
         try {
@@ -309,6 +341,15 @@ class SalesOrderController extends Controller
 
     public function ship(Request $request, Response $response, string $id = '0'): Response
     {
+        // A rep sells. Shipping, invoicing and taking money are not theirs, and the
+        // button being hidden is not the same as the route being shut — a typed URL
+        // or a stale tab walks straight past a sidebar.
+        if (\App\Services\AccessScope::isRestricted()) {
+            Session::flash('error', 'That isn\'t available for your account.');
+
+            return $response->redirect('/sales-orders/' . (int)$id);
+        }
+
         $user = Auth::user();
 
         // The same gate the shipping screens enforce. This button is the other door
@@ -361,6 +402,15 @@ class SalesOrderController extends Controller
             Session::flash('error','Record payment against the fulfillment invoice.');
             return $response->redirect('/shipping/fulfillments/order/'.(int)$id);
         }
+        // A rep sells. Shipping, invoicing and taking money are not theirs, and the
+        // button being hidden is not the same as the route being shut — a typed URL
+        // or a stale tab walks straight past a sidebar.
+        if (\App\Services\AccessScope::isRestricted()) {
+            Session::flash('error', 'That isn\'t available for your account.');
+
+            return $response->redirect('/sales-orders/' . (int)$id);
+        }
+
         $method    = trim($_POST['payment_method']    ?? '');
         $reference = trim($_POST['payment_reference'] ?? '');
         $amount    = (float)($_POST['payment_amount'] ?? 0);
