@@ -41,14 +41,25 @@ $suggestedPackages = max(1, count($packages));
     </div>
 <?php endif; ?>
 
-<?php if (!$configured): ?>
+<?php
+/*
+ * What this order actually ships on, decided once and used everywhere.
+ *
+ * The banner and the card below were each asking the question in their own place,
+ * which is how a freight order came to be told that creating the label would invoice
+ * it — printed directly above a card saying there was no label to create.
+ */
+$isFreightOrder = ($shipMode ?? 'other') === 'freight';
+?>
+
+<?php if (!$configured && !$isFreightOrder): ?>
     <div class="alert alert--danger" style="margin-top:1rem">
         FedEx is not configured on this server. The account number and API keys go in
         <code>.env</code> — nothing can be printed until they are there.
     </div>
 <?php endif; ?>
 
-<?php if (empty($invoice)): ?>
+<?php if (empty($invoice) && !$isFreightOrder): ?>
     <?php
         // How much is ready to go. An order that has been picked does not need sending
         // away to find a different screen - the missing step can be taken from here.
@@ -219,21 +230,46 @@ $suggestedPackages = max(1, count($packages));
      * form underneath the warning anyway. When the carrier on the order IS freight
      * there is no judgement left to make: FedEx is not shipping it, and a form that
      * buys a parcel label for a pallet should not be on the page.
+     *
+     * $isFreightOrder is settled at the top of this file.
      */
-    $isFreightOrder = ($shipMode ?? 'other') === 'freight';
     ?>
     <?php if ($isFreightOrder): ?>
         <div style="<?= $lblCard ?>;background:#fffbeb;border-color:#fcd34d">
             <div style="<?= $lblHead ?>;color:#92400e">This one goes freight</div>
+            <?php
+            $freightReady = 0.0;
+            foreach (($lines ?? []) as $l) {
+                $freightReady += (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0);
+            }
+            ?>
             <div style="font-size:.92rem;color:#92400e;line-height:1.6;margin-bottom:1.1rem">
-                The carrier on this order is <strong><?= e($order['ship_via_name'] ?? 'Freight') ?></strong>,
-                so there is no FedEx label to make. Book it with Keubix and print the
-                packing slip above for the pallet, then record what took it below.
+                This order goes on <strong><?= e($order['ship_via_name'] ?? 'Freight') ?></strong>.
+                Book it with Keubix and print the packing slip for the pallet.
             </div>
 
             <?php if (empty($invoice)): ?>
-                <div style="font-size:.9rem;color:#92400e">
-                    Invoice it first — the PRO number is recorded against the invoice.
+                <?php /* The missing step, offered rather than described. The record form
+                         needs an invoice to hang the PRO number on. */ ?>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;
+                            flex-wrap:wrap;background:#fff;border:1px solid #fde68a;border-radius:8px;padding:1rem">
+                    <div style="font-size:.9rem;color:#92400e">
+                        <strong>Invoice it first.</strong>
+                        The PRO number is recorded against the invoice, so there is nowhere
+                        to put it until this order has been released.
+                        <?php if ($freightReady > 0): ?>
+                            <?= e(rtrim(rtrim(number_format($freightReady, 2), '0'), '.')) ?> picked and ready.
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($freightReady > 0): ?>
+                        <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/release" style="margin:0">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn btn--primary" style="white-space:nowrap"
+                                    onclick="return confirm('Invoice the <?= e(rtrim(rtrim(number_format($freightReady, 2), '0'), '.')) ?> picked on SO #<?= e($order['so_number']) ?>?')">
+                                Invoice it
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/freight"
