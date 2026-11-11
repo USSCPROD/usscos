@@ -61,13 +61,11 @@ $suggestedPackages = max(1, count($packages));
         <div class="alert" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;margin-top:1rem">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem">
                 <div>
-                    <strong>Next step: invoice it.</strong>
-                    FedEx ships against the invoice — it carries the delivery address and it is
-                    where the tracking number belongs, so the label cannot be made until this
-                    is done. This order has
-                    <?= e(rtrim(rtrim(number_format($readyQty, 2), '0'), '.')) ?> picked and ready.
-                    Releasing it invoices exactly that much and leaves anything still owed on
-                    the order.
+                    <strong>Not invoiced yet — the label will do it.</strong>
+                    FedEx ships against the invoice, so creating the label below invoices the
+                    <?= e(rtrim(rtrim(number_format($readyQty, 2), '0'), '.')) ?> picked and
+                    ready in the same step, leaving anything still owed on the order. Use the
+                    button here only if you want to invoice it now and label it later.
                 </div>
                 <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/release" style="flex-shrink:0">
                     <?= csrf_field() ?>
@@ -207,18 +205,6 @@ $suggestedPackages = max(1, count($packages));
      */
     $canLabel = !empty($invoice);
     ?>
-    <?php if (!$canLabel): ?>
-        <div style="<?= $lblCard ?>;background:#f8fafc">
-            <div style="<?= $lblHead ?>">Create the label</div>
-            <div style="font-size:.92rem;color:#374151;line-height:1.6">
-                <strong>Invoice it first.</strong> The label carries the invoice's delivery
-                address and tracking number, so there is nothing to put on a box until the
-                order has been released. Use <strong>Release &amp; invoice</strong> above —
-                the packing above is what it will be built from, and these boxes come back
-                ready to weigh.
-            </div>
-        </div>
-    <?php else: ?>
     <div style="<?= $lblCard ?>">
         <?php if ($alreadyLabelled): ?>
             <details>
@@ -357,9 +343,15 @@ $suggestedPackages = max(1, count($packages));
                             . ' ' . ($invoice['ship_state'] ?? '') . ' ' . ($invoice['ship_zip'] ?? ''), ' ,')) ?: 'the billing address' ?>
                     <?php endif; ?>
                 </div>
+                <?php /* One action. Making the label IS sending the order, and the
+                         invoice is a consequence of that rather than a separate
+                         decision — the quantity question was settled at packing. */ ?>
                 <button type="submit" class="btn btn--primary"
-                        <?= (!$configured || empty($invoice)) ? 'disabled' : '' ?>>
-                    Create FedEx label
+                        <?= !$configured ? 'disabled' : '' ?>
+                        <?php if ($canLabel === false): ?>
+                            onclick="return confirm('Invoice the <?= e(rtrim(rtrim(number_format($readyQty, 2), '0'), '.')) ?> packed and create the label?')"
+                        <?php endif; ?>>
+                    <?= $canLabel ? 'Create FedEx label' : 'Invoice &amp; create label' ?>
                 </button>
             </div>
         </form>
@@ -452,7 +444,6 @@ $suggestedPackages = max(1, count($packages));
             </details>
         <?php endif; ?>
     </div>
-    <?php endif; ?>
 
     <!-- ── Already labelled ─────────────────────────────────────────────── -->
     <?php if (!empty($existing)): ?>

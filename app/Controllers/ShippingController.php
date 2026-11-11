@@ -607,9 +607,43 @@ class ShippingController extends Controller
         }
         $invoiceId = (int)($_POST['invoice_id'] ?? 0);
 
+        /*
+         * Invoice it here if it has not been invoiced.
+         *
+         * Standing at the bench with a packed order, making the label IS the act of
+         * sending it — the invoice is a consequence of that, not a separate decision
+         * somebody wants to take first. Two buttons in sequence, where the first one
+         * only exists to enable the second, is a step that teaches people to click
+         * without reading.
+         *
+         * The quantity question is already settled by this point: the label screen
+         * labels what was picked and packed, which is exactly what releasing invoices.
+         * The gate still applies — an unpacked order cannot buy its way past it here.
+         */
         if ($invoiceId <= 0) {
-            Session::flash('error', 'No invoice to label — ship and invoice the order first.');
-            return $response->redirect('/shipping/' . (int)$id . '/label');
+            $blocked = $this->repo->packGate((int)$id);
+
+            if ($blocked !== null) {
+                Session::flash('error', $blocked);
+
+                return $response->redirect('/shipping/' . (int)$id . '/pack');
+            }
+
+            try {
+                $invoiceId = (new \App\Services\InvoiceService())->shipAndInvoice(
+                    (int)$id,
+                    (int)(\App\Core\Auth::user()['id'] ?? 0),
+                    $_POST
+                );
+            } catch (\RuntimeException $e) {
+                Session::flash('error', 'Could not invoice it: ' . $e->getMessage());
+
+                return $response->redirect('/shipping/' . (int)$id . '/label');
+            }
+
+            // Said out loud: the money moved even if the label then fails, and somebody
+            // needs to know that rather than assume nothing happened.
+            Session::flash('success', 'Invoiced. Now making the label…');
         }
 
         // Boxes typed on the bench, one row each. Rows with no weight are dropped rather
