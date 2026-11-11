@@ -59,3 +59,12 @@
 # Composer lock is intentionally ignored on this project
 # ---------------------------------------------------------------
 composer.lock
+
+# Generated credentials.
+#
+# These are written next to the application so whoever ran the script can read them
+# and hand them over. /storage itself is NOT ignored, only its subdirectories, so a
+# password file dropped here was an untracked file in the repo — one `git add -A` away
+# from being committed, and enough to make the tree dirty and block a deploy.
+/storage/*password*
+/storage/warehouse-logins.txt
