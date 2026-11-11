@@ -16,15 +16,32 @@ class CustomerRepository extends Repository
 
     public function search(string $term, array $columns = [], int $limit = 50): array
     {
-        $term = '%' . $term . '%';
+        $term   = '%' . $term . '%';
+        $params = [$term, $term, $term, $term];
+
+        // A rep looks up customers from the sales order form, and this query had no
+        // scope on it at all — so typing two letters returned every account in the
+        // database with its phone, email and balance, including other reps'. The
+        // customers LIST was scoped and this was not, which is the kind of gap that
+        // only shows up where somebody actually types.
+        [$scopeSql, $scopeParams] = \App\Services\AccessScope::customerCondition('customers');
+
+        if ($scopeSql !== '') {
+            $scopeSql = ' AND ' . $scopeSql;
+            array_push($params, ...$scopeParams);
+        }
+
+        $params[] = $limit;
+
         return Database::select("
             SELECT id, company_name, quickbooks_name, phone, email, qb_balance, is_active
             FROM customers
             WHERE (company_name LIKE ? OR quickbooks_name LIKE ? OR phone LIKE ? OR email LIKE ?)
             AND is_active = 1
+            {$scopeSql}
             ORDER BY company_name ASC
             LIMIT ?
-        ", [$term, $term, $term, $term, $limit]);
+        ", $params);
     }
 
     public function paginateWithBalance(int $page, int $perPage, string $search = '', string $filter = 'all', string $rep = ''): array
