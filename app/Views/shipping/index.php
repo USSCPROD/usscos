@@ -239,11 +239,34 @@ if ($activeTab === 'all') {
                                     <?= $packBadge[3] ?>
                                 </span>
                             <?php endif; ?>
+                            <?php
+                            /*
+                             * One step forward, the rest out of the way.
+                             *
+                             * Every action was offered on every row at the same weight,
+                             * so a fully picked order still led with a filled-in Pick
+                             * button and the thing actually left to do sat beside it
+                             * looking the same. Pick and Pack stay reachable once done
+                             * — picks get corrected — but as quiet links, not as the
+                             * instruction.
+                             */
+                            $toShipRow  = (float)($o['qty_to_ship'] ?? 0);
+                            $unpackedRow = (float)($o['qty_unpacked'] ?? 0);
+                            $packedOk   = $unpackedRow <= 0.0001 || ($o['pack_status'] ?? '') === 'mismatch';
+
+                            $needsPick = $toShipRow <= 0;
+                            $needsPack = !$needsPick && !$packedOk;
+
+                            $lead  = 'font-size:.8rem;padding:.3rem .7rem;border-radius:5px;text-decoration:none;'
+                                   . 'margin-right:.4rem;display:inline-block;border:1px solid #0A3D91;'
+                                   . 'color:#fff;background:#0A3D91';
+                            $quiet = 'font-size:.8rem;padding:.3rem .7rem;border-radius:5px;text-decoration:none;'
+                                   . 'margin-right:.4rem;display:inline-block;border:1px solid #d1d5db;color:#6b7280';
+                            ?>
                             <a href="/shipping/<?= (int)$o['id'] ?>/pick"
-                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#fff;background:#0A3D91;text-decoration:none;margin-right:.4rem">Pick</a>
+                               style="<?= $needsPick ? $lead : $quiet ?>">Pick</a>
                             <a href="/shipping/<?= (int)$o['id'] ?>/pack"
-                               style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
-                               onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Pack</a>
+                               style="<?= $needsPack ? $lead : $quiet ?>">Pack</a>
                             <?php
                             /*
                              * The row's own next step, not a link to a list.
@@ -269,9 +292,9 @@ if ($activeTab === 'all') {
                                 <span title="Nothing picked yet, so there is nothing to invoice"
                                       style="<?= $btn ?>;border:1px dashed #cbd5e1;color:#94a3b8">Invoice</span>
                             <?php elseif ($unpacked > 0.0001 && ($o['pack_status'] ?? '') !== 'mismatch'): ?>
-                                <a href="/shipping/<?= (int)$o['id'] ?>/pack"
-                                   title="The box has to be checked against the pick before this can be invoiced"
-                                   style="<?= $btn ?>;border:1px solid #d97706;color:#b45309">Pack first</a>
+                                <?php /* Nothing here: Pack is already the lead button on
+                                         this row, and a second button to the same screen
+                                         under a different name is not a second step. */ ?>
                             <?php else: ?>
                                 <form method="POST" action="/shipping/<?= (int)$o['id'] ?>/release"
                                       style="display:inline;margin-right:.4rem">
@@ -293,9 +316,10 @@ if ($activeTab === 'all') {
                                     No label
                                 </span>
                             <?php else: ?>
+                                <?php /* The lead once the box is checked: the label
+                                         screen invoices the order in the same press. */ ?>
                                 <a href="/shipping/<?= (int)$o['id'] ?>/label"
-                                   style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #0A3D91;border-radius:5px;color:#0A3D91;text-decoration:none;margin-right:.4rem"
-                                   onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">Label</a>
+                                   style="<?= (!$needsPick && !$needsPack) ? $lead : $quiet ?>">Label</a>
                             <?php endif; ?>
                             <a href="/sales-orders/<?= (int)$o['id'] ?>/packing-slip" target="_blank"
                                style="font-size:.8rem;padding:.3rem .7rem;border:1px solid #d1d5db;border-radius:5px;color:#374151;text-decoration:none"
