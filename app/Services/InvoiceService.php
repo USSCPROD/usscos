@@ -300,7 +300,12 @@ class InvoiceService extends Service
             // and stock would now be deducted twice as well.
             $qty = $wasPicked ? max(0.0, $picked - $alreadyGone) : max(0.0, $ordered - $alreadyGone);
 
-            if ($alreadyGone + $qty < $ordered) {
+            // A charge is not goods and cannot be short. Shipping and handling is a
+            // line on the order that nobody picks, so counting it here left every
+            // order carrying freight marked partially shipped for ever — sitting in
+            // the shipping queue after it had already gone out with a label on it.
+            if ($alreadyGone + $qty < $ordered
+                && !\App\Repositories\SalesOrderRepository::isChargeLine($li)) {
                 $shortfall = true;
             }
 

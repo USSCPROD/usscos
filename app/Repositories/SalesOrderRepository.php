@@ -952,6 +952,35 @@ class SalesOrderRepository
         )
     ";
 
+    /**
+     * True when a line is a charge rather than goods.
+     *
+     * The same question NOT_GOODS asks in SQL, for the places that have the row in
+     * hand already. Both have to agree: a charge the bench cannot see must also be a
+     * charge the shortfall arithmetic ignores, or an order carrying shipping is
+     * partially shipped for ever because nobody can pick "Shipping and Handling".
+     */
+    /** The NOT_GOODS test, for queries built outside this class. */
+    public static function notGoodsSql(): string
+    {
+        return self::NOT_GOODS;
+    }
+
+    public static function isChargeLine(array $line): bool
+    {
+        if (($line['product_id'] ?? null) !== null) {
+            return !in_array($line['item_type'] ?? '', ['inventory_part', 'inventory_assembly'], true)
+                && array_key_exists('item_type', $line);
+        }
+
+        $text = trim(((string)($line['quickbooks_item'] ?? '')) . ' ' . ((string)($line['description'] ?? '')));
+
+        return (bool)preg_match(
+            '~(^|[^a-z])(shipping|handling|freight|delivery|surcharge|discount|fuel charge|service charge)([^a-z]|$)~i',
+            $text
+        );
+    }
+
     public function getPickLines(int $salesOrderId): array
     {
         $stmt = $this->pdo->prepare("

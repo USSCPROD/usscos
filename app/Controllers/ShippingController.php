@@ -326,10 +326,15 @@ class ShippingController extends Controller
         $soId   = (int)$id;
         $userId = (int)(\App\Core\Auth::user()['id'] ?? 0);
 
+        // Goods only. A shipping charge is a line nobody picks, so counting it as
+        // outstanding left every order carrying freight looking part-shipped.
         $outstanding = Database::selectOne("
             SELECT SUM(li.qty_ordered - COALESCE(li.qty_picked,0)) AS remaining,
                    SUM(COALESCE(li.qty_picked,0) - COALESCE(li.qty_shipped,0)) AS to_ship
-            FROM sales_order_line_items li WHERE li.sales_order_id = ?
+            FROM sales_order_line_items li
+            LEFT JOIN products p ON p.id = li.product_id
+            WHERE li.sales_order_id = ?
+              AND NOT " . \App\Repositories\SalesOrderRepository::notGoodsSql() . "
         ", [$soId]);
 
         // The box has to have been checked. Packing used to be advisory, so an order
