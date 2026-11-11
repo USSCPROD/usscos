@@ -250,11 +250,21 @@ if ($activeTab === 'all') {
                              * — picks get corrected — but as quiet links, not as the
                              * instruction.
                              */
-                            $toShipRow  = (float)($o['qty_to_ship'] ?? 0);
                             $unpackedRow = (float)($o['qty_unpacked'] ?? 0);
-                            $packedOk   = $unpackedRow <= 0.0001 || ($o['pack_status'] ?? '') === 'mismatch';
+                            $packedOk    = $unpackedRow <= 0.0001 || ($o['pack_status'] ?? '') === 'mismatch';
 
-                            $needsPick = $toShipRow <= 0;
+                            /*
+                             * Picking is finished when the pick says so, not when
+                             * something has been picked.
+                             *
+                             * This read "nothing picked yet" as the only reason to lead
+                             * with Pick, so a half-picked order went quiet on the one
+                             * button that finishes it. 'short' counts as finished: it is
+                             * as far as that order can go, and the next move is to pack
+                             * what there is.
+                             */
+                            $pickState = $o['pick_status'] ?? 'not_started';
+                            $needsPick = in_array($pickState, ['not_started', 'in_progress'], true);
                             $needsPack = !$needsPick && !$packedOk;
 
                             $lead  = 'font-size:.8rem;padding:.3rem .7rem;border-radius:5px;text-decoration:none;'
