@@ -99,6 +99,27 @@ foreach ($orders as $o) {
         WHERE i.sales_order_id = ?
     ", [$soId]);
 
+    // Money already applied to these invoices. The application goes; the PAYMENT does
+    // not — somebody really did hand it over, and deleting the record of that is how a
+    // test script turns into a missing deposit.
+    $applied = Database::select("
+        SELECT pa.id, pa.payment_id, pa.amount_applied, p.sales_order_id AS paid_against_so
+        FROM payment_applications pa
+        JOIN invoices i ON i.id = pa.invoice_id
+        LEFT JOIN payments p ON p.id = pa.payment_id
+        WHERE i.sales_order_id = ?
+    ", [$soId]);
+
+    // Paid before it shipped, so it goes back to 'paid' rather than 'confirmed' —
+    // putting it back as merely confirmed would lose the fact the money is in.
+    $prepaid = false;
+
+    foreach ($applied as $a) {
+        if ((int)($a['paid_against_so'] ?? 0) === $soId) {
+            $prepaid = true;
+        }
+    }
+
     printf(
         "SO #%-5s %-28s %d invoice(s), %d stock move(s), %d label(s)\n",
         $o['so_number'],
@@ -112,7 +133,19 @@ foreach ($orders as $o) {
         printf("      put back %-14s %s\n", $m['sku'] ?? ('product ' . $m['product_id']), rtrim(rtrim(number_format(abs((float)$m['qty']), 2), '0'), '.'));
     }
 
-    $plan[] = ['so' => $o, 'invoices' => $invoices, 'moves' => $moves, 'tracking' => $tracking];
+    foreach ($applied as $a) {
+        printf(
+            "      unapply payment #%-4s %s%s\n",
+            $a['payment_id'],
+            '$' . number_format((float)$a['amount_applied'], 2),
+            (int)($a['paid_against_so'] ?? 0) === $soId ? ' (paid up front — order goes back to Paid)' : ' (payment kept, left unapplied)'
+        );
+    }
+
+    $plan[] = [
+        'so' => $o, 'invoices' => $invoices, 'moves' => $moves,
+        'tracking' => $tracking, 'applied' => $applied, 'prepaid' => $prepaid,
+    ];
 }
 
 if (!$commit) {
@@ -161,17 +194,23 @@ try {
             $pdo->prepare('DELETE FROM shipment_tracking WHERE id = ?')->execute([(int)$t['id']]);
         }
 
-        // 3. Invoices.
+        // 3. Money off the invoice, but still in the till.
+        foreach ($p['applied'] as $a) {
+            $pdo->prepare('DELETE FROM payment_applications WHERE id = ?')->execute([(int)$a['id']]);
+        }
+
+        // 4. Invoices.
         foreach ($p['invoices'] as $inv) {
             $pdo->prepare('DELETE FROM invoice_line_items WHERE invoice_id = ?')->execute([(int)$inv['id']]);
             $pdo->prepare('DELETE FROM invoices WHERE id = ?')->execute([(int)$inv['id']]);
         }
 
-        // 4. Nothing has shipped any more.
+        // 5. Nothing has shipped any more.
         $pdo->prepare('UPDATE sales_order_line_items SET qty_shipped = 0 WHERE sales_order_id = ?')->execute([$soId]);
 
-        // 5. Back in front of the clerk, still picked and still packed.
-        $pdo->prepare("UPDATE sales_orders SET status = 'confirmed' WHERE id = ?")->execute([$soId]);
+        // 6. Back in front of the clerk, still picked and still packed.
+        $pdo->prepare('UPDATE sales_orders SET status = ? WHERE id = ?')
+            ->execute([$p['prepaid'] ? 'paid' : 'confirmed', $soId]);
     }
 
     $pdo->commit();
