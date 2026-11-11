@@ -568,9 +568,19 @@ class DashboardService extends Service
         return ['labels' => $labels, 'this_month' => $a, 'last_month' => $b];
     }
 
-    /** What has actually sold this year, by revenue. */
+    /**
+     * What has actually sold this year, by revenue.
+     *
+     * Charge lines are excluded. "Shipping & Handling" was reaching second place with
+     * $453,632 against it, which is true and useless: it is not a product, nobody can
+     * decide to sell more of it, and it pushed a real product off a list of six. The
+     * same NOT_GOODS test the shipping bench uses decides what counts, so a line that
+     * cannot be picked also cannot be a top seller.
+     */
     private function getTopProducts(): array
     {
+        $notGoods = \App\Repositories\SalesOrderRepository::notGoodsSql();
+
         return Database::select("
             SELECT COALESCE(p.name, li.description) AS name,
                    SUM(li.qty)        AS sold,
@@ -580,6 +590,7 @@ class DashboardService extends Service
             LEFT JOIN products p ON p.id = li.product_id
             WHERE i.status <> 'void' AND i.invoice_type = 'invoice'
               AND i.invoice_date >= DATE_FORMAT(CURDATE(), '%Y-01-01')
+              AND NOT {$notGoods}
             GROUP BY COALESCE(p.name, li.description)
             ORDER BY revenue DESC
             LIMIT 6
