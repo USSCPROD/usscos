@@ -361,19 +361,30 @@ typing the PRO, and the whole exercise is pointless.
 
 The Order API has `salesOrderNum`, described as the unique identifier for `Outbound`
 orders, which suggests we can push the SO number across and get the link back. **Confirm
-this before writing any code.** If instead someone books loads directly in the Kuebix
-screen with no reference to our order, the integration cannot work as described and the
-manual field stays.
+this before writing any code.**
 
-#### Before building anything, ask Kuebix support
+**Ask the shipping clerk, not Kuebix.** This is a question about how loads actually get
+booked here, and only the person doing the booking knows the answer:
+
+- When you book a load in Kuebix, does our SO number go in anywhere — a reference,
+  a PO field, the shipper reference?
+- Does Kuebix give back a BOL number, and does it end up written on anything that
+  comes back to the order?
+- How do you find a shipment in Kuebix afterwards to read the PRO off it? Whatever
+  is typed into that search box is the key the integration has to use.
+
+If the answer is that loads are booked straight in the Kuebix screen with no reference
+to our order, the integration cannot work as described, and the manual PRO field stays.
+That is not a failure — it just means the question to answer first is whether the clerk
+can start putting the SO number in when booking.
+
+#### Then ask Kuebix support
 
 1. Is API access enabled on our subscription, and **does it cost extra?**
 2. Who holds the credentials, and can they issue an API username and key password?
-3. Is the Kuebix BOL recoverable from a sales order number — i.e. can we send
-   `salesOrderNum` on the order and read tracking back against it?
 
-None of those are answerable from the documentation and all three decide whether this is
-worth starting. One email, and it is unblocked.
+Neither is answerable from the documentation and both decide whether this is worth
+starting.
 
 #### If it is enabled, the shape of the work
 
