@@ -617,7 +617,7 @@ class ShippingController extends Controller
     }
 
     /**
-     * Record a freight shipment: the carrier that took it and the PRO or BOL number.
+     * Record a freight shipment: the carrier that took it and the PRO number.
      *
      * Nothing to buy and nothing to print — the booking happens at Keubix. This is the
      * record of what left and on whose truck, which is what somebody needs when the
@@ -647,10 +647,11 @@ class ShippingController extends Controller
             $chosen  = (new \App\Repositories\AdminRepository())->findFreightCarrier($carrierId);
             $carrier = $chosen === false ? $carrier : (string)$chosen['name'];
         }
-        $type    = in_array($_POST['tracking_type'] ?? '', ['pro', 'bol'], true) ? $_POST['tracking_type'] : 'pro';
+        // Always a PRO. Offering the choice was a question with one sensible answer.
+        $type    = 'pro';
 
         if ($numbers === '') {
-            Session::flash('error', 'Enter the PRO or BOL number.');
+            Session::flash('error', 'Enter the PRO number.');
 
             return $response->redirect('/shipping/' . (int)$id . '/label');
         }
