@@ -61,9 +61,10 @@ $suggestedPackages = max(1, count($packages));
         <div class="alert" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;margin-top:1rem">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem">
                 <div>
-                    <strong>Not invoiced yet.</strong>
+                    <strong>Next step: invoice it.</strong>
                     FedEx ships against the invoice — it carries the delivery address and it is
-                    where the tracking number belongs. This order has
+                    where the tracking number belongs, so the label cannot be made until this
+                    is done. This order has
                     <?= e(rtrim(rtrim(number_format($readyQty, 2), '0'), '.')) ?> picked and ready.
                     Releasing it invoices exactly that much and leaves anything still owed on
                     the order.
@@ -194,7 +195,30 @@ $suggestedPackages = max(1, count($packages));
      * the easiest thing on the screen, and says what pressing it costs.
      */
     $alreadyLabelled = !empty($existing);
+
+    /*
+     * No invoice, no label form.
+     *
+     * FedEx ships against the invoice, so without one the whole form is unusable —
+     * and it was drawn in full anyway, weights and dimensions and all, with a dead
+     * button at the bottom. Somebody fills it in, presses Create, and nothing happens.
+     * The real next step was a banner above it, which reads as commentary rather than
+     * the thing to do.
+     */
+    $canLabel = !empty($invoice);
     ?>
+    <?php if (!$canLabel): ?>
+        <div style="<?= $lblCard ?>;background:#f8fafc">
+            <div style="<?= $lblHead ?>">Create the label</div>
+            <div style="font-size:.92rem;color:#374151;line-height:1.6">
+                <strong>Invoice it first.</strong> The label carries the invoice's delivery
+                address and tracking number, so there is nothing to put on a box until the
+                order has been released. Use <strong>Release &amp; invoice</strong> above —
+                the packing above is what it will be built from, and these boxes come back
+                ready to weigh.
+            </div>
+        </div>
+    <?php else: ?>
     <div style="<?= $lblCard ?>">
         <?php if ($alreadyLabelled): ?>
             <details>
@@ -428,6 +452,7 @@ $suggestedPackages = max(1, count($packages));
             </details>
         <?php endif; ?>
     </div>
+    <?php endif; ?>
 
     <!-- ── Already labelled ─────────────────────────────────────────────── -->
     <?php if (!empty($existing)): ?>
