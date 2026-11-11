@@ -20,6 +20,20 @@ define('PUBLIC_PATH', $_ENV['PUBLIC_SITE_PATH'] ?? BASE_PATH . '/public');
 // Boot configuration
 Config::load(BASE_PATH . '/config');
 
+/*
+ * Apply the configured timezone.
+ *
+ * config/app.php has said 'America/New_York' all along and nothing ever read it, so
+ * PHP used its ini default — UTC on this server. Every date() in the application was
+ * therefore five hours ahead of Alpharetta: the greeting said good afternoon at
+ * half past ten in the morning, and, far worse, an order entered after 7pm was dated
+ * tomorrow, because date('Y-m-d') had already rolled over.
+ *
+ * Set here rather than in php.ini so the application carries its own answer and a
+ * rebuilt server cannot quietly disagree with it.
+ */
+date_default_timezone_set((string)(Config::get('app.timezone') ?: 'America/New_York'));
+
 // Initialize logger
 Logger::init();
 
