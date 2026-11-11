@@ -13,12 +13,14 @@ class TrackingRepository
     {
         Database::statement("
             INSERT INTO shipment_tracking
-                (invoice_id, sales_order_id, ship_via_id, tracking_number, tracking_type, notes, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (invoice_id, sales_order_id, ship_via_id, carrier_name,
+                 tracking_number, tracking_type, notes, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ", [
             $d['invoice_id']     ?? null,
             $d['sales_order_id'] ?? null,
             $d['ship_via_id']    ?? null,
+            ($d['carrier_name'] ?? '') !== '' ? $d['carrier_name'] : null,
             $d['tracking_number'],
             $d['tracking_type'] ?? 'parcel',
             $d['notes']   ?? null,

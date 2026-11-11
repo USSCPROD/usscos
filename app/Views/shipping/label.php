@@ -225,12 +225,49 @@ $suggestedPackages = max(1, count($packages));
     <?php if ($isFreightOrder): ?>
         <div style="<?= $lblCard ?>;background:#fffbeb;border-color:#fcd34d">
             <div style="<?= $lblHead ?>;color:#92400e">This one goes freight</div>
-            <div style="font-size:.92rem;color:#92400e;line-height:1.6">
+            <div style="font-size:.92rem;color:#92400e;line-height:1.6;margin-bottom:1.1rem">
                 The carrier on this order is <strong><?= e($order['ship_via_name'] ?? 'Freight') ?></strong>,
-                so there is no FedEx label to make. Book it with Keubix, print the packing
-                slip above for the pallet, and put the PRO number on the invoice once you
-                have it.
+                so there is no FedEx label to make. Book it with Keubix and print the
+                packing slip above for the pallet, then record what took it below.
             </div>
+
+            <?php if (empty($invoice)): ?>
+                <div style="font-size:.9rem;color:#92400e">
+                    Invoice it first — the PRO number is recorded against the invoice.
+                </div>
+            <?php else: ?>
+                <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/freight"
+                      style="display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;background:#fff;
+                             border:1px solid #fde68a;border-radius:8px;padding:1rem">
+                    <?= csrf_field() ?>
+                    <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
+                                  letter-spacing:.05em;color:#6b7280">
+                        Carrier
+                        <input type="text" name="carrier_name" placeholder="e.g. Old Dominion"
+                               style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
+                                      border-radius:6px;font:inherit;font-size:.92rem;min-width:14rem">
+                    </label>
+                    <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
+                                  letter-spacing:.05em;color:#6b7280">
+                        Number
+                        <select name="tracking_type"
+                                style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
+                                       border-radius:6px;font:inherit;font-size:.92rem">
+                            <option value="pro">PRO</option>
+                            <option value="bol">BOL</option>
+                        </select>
+                    </label>
+                    <label style="font-size:.78rem;font-weight:700;text-transform:uppercase;
+                                  letter-spacing:.05em;color:#6b7280;flex:1;min-width:16rem">
+                        PRO / BOL number
+                        <input type="text" name="tracking_number" required
+                               placeholder="Several can be pasted at once"
+                               style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
+                                      border-radius:6px;font:inherit;font-size:.92rem;width:100%;box-sizing:border-box">
+                    </label>
+                    <button type="submit" class="btn btn--primary" style="padding:.55rem 1.2rem">Record</button>
+                </form>
+            <?php endif; ?>
         </div>
     <?php else: ?>
     <div style="<?= $lblCard ?>">
@@ -483,7 +520,7 @@ $suggestedPackages = max(1, count($packages));
         ?>
         <div style="<?= $lblCard ?>">
             <div style="<?= $lblHead ?>;display:flex;justify-content:space-between;align-items:center;gap:1rem">
-                <span>Labels on this shipment</span>
+                <span><?= $isFreightOrder ? 'Tracking on this shipment' : 'Labels on this shipment' ?></span>
                 <?php if (count($printable) > 1): ?>
                     <a href="/shipping/<?= (int)$order['id'] ?>/labels.pdf" target="_blank" rel="noopener"
                        class="btn btn--primary btn--sm" style="text-transform:none;letter-spacing:0">
@@ -495,7 +532,12 @@ $suggestedPackages = max(1, count($packages));
                 <?php foreach ($existing as $trk): ?>
                     <tr style="border-bottom:1px solid #f3f4f6">
                         <td style="padding:.55rem 0;font-family:monospace"><?= e($trk['tracking_number'] ?? '') ?></td>
-                        <td style="padding:.55rem;color:#6b7280"><?= e($trk['tracking_type'] ?? '') ?></td>
+                        <td style="padding:.55rem;color:#6b7280">
+                            <?= e(strtoupper((string)($trk['tracking_type'] ?? ''))) ?>
+                            <?php if (!empty($trk['carrier_name'])): ?>
+                                · <?= e($trk['carrier_name']) ?>
+                            <?php endif; ?>
+                        </td>
                         <td style="padding:.55rem;color:#6b7280"><?= e((string)($trk['created_at'] ?? '')) ?></td>
                         <td style="padding:.55rem 0;text-align:right">
                             <?php if (!empty($trk['label_path'])): ?>

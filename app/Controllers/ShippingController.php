@@ -615,6 +615,55 @@ class ShippingController extends Controller
         exit;
     }
 
+    /**
+     * Record a freight shipment: the carrier that took it and the PRO or BOL number.
+     *
+     * Nothing to buy and nothing to print — the booking happens at Keubix. This is the
+     * record of what left and on whose truck, which is what somebody needs when the
+     * customer rings asking where the pallet is.
+     */
+    public function recordFreight(Request $request, Response $response, string $id = '0'): Response
+    {
+        $invoice = Database::selectOne(
+            'SELECT id FROM invoices WHERE sales_order_id = ? ORDER BY id DESC LIMIT 1',
+            [(int)$id]
+        );
+
+        if ($invoice === false) {
+            Session::flash('error', 'Invoice the order first — the tracking belongs on the invoice.');
+
+            return $response->redirect('/shipping/' . (int)$id . '/label');
+        }
+
+        $numbers = trim((string)($_POST['tracking_number'] ?? ''));
+        $carrier = trim((string)($_POST['carrier_name'] ?? ''));
+        $type    = in_array($_POST['tracking_type'] ?? '', ['pro', 'bol'], true) ? $_POST['tracking_type'] : 'pro';
+
+        if ($numbers === '') {
+            Session::flash('error', 'Enter the PRO or BOL number.');
+
+            return $response->redirect('/shipping/' . (int)$id . '/label');
+        }
+
+        $stored = (new \App\Services\ShipmentNotificationService())->addTracking(
+            (int)$invoice['id'],
+            $numbers,
+            null,
+            (string)$type,
+            $carrier !== '' ? $carrier : null
+        );
+
+        Session::flash(
+            $stored === [] ? 'error' : 'success',
+            $stored === []
+                ? 'Nothing recorded — those numbers are already on this shipment.'
+                : count($stored) . ' ' . strtoupper((string)$type) . ' number(s) recorded'
+                  . ($carrier !== '' ? ' against ' . $carrier : '') . '.'
+        );
+
+        return $response->redirect('/shipping/' . (int)$id . '/label');
+    }
+
     public function createLabel(Request $request, Response $response, string $id = '0'): Response
     {
         if (\App\Repositories\FulfillmentRepository::orderIsManaged((int)$id)) {

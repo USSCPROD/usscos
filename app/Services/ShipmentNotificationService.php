@@ -52,8 +52,13 @@ class ShipmentNotificationService
      *
      * @return list<string> the numbers actually stored
      */
-    public function addTracking(int $invoiceId, string $raw, ?int $shipViaId, string $type = 'parcel'): array
-    {
+    public function addTracking(
+        int $invoiceId,
+        string $raw,
+        ?int $shipViaId,
+        string $type = 'parcel',
+        ?string $carrierName = null
+    ): array {
         $numbers = preg_split('/[\s,;]+/', trim($raw)) ?: [];
         $stored  = [];
 
@@ -69,6 +74,9 @@ class ShipmentNotificationService
                 'ship_via_id'     => $shipViaId,
                 'tracking_number' => $number,
                 'tracking_type'   => $type,
+                // The LTL carrier that actually moved it. ship_via says 'Freight';
+                // this says Old Dominion.
+                'carrier_name'    => $carrierName,
                 'created_by'      => Auth::id(),
             ]);
 
