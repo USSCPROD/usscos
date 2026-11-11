@@ -126,10 +126,28 @@ Two things follow, and the second matters more than the first:
   correct and then rots one product at a time as orders ship.
 - **The code should refuse to silently destroy a count.** When a product has a non-zero
   count and no location rows, seeding the default location with that quantity before
-  consuming would preserve it and make the first movement behave. Not done yet — it
-  changes inventory behaviour and that is Chip's call.
+  consuming would preserve it and make the first movement behave.
 
 *The DSY count was restored to 387 by hand after the test.*
+
+**Decided 2026-11-11 (Chip):** at cutover there will be **real counted inventory
+numbers**, not the spreadsheet figures sitting in the test data. That settles it — there
+is no need to preserve the current counts, and no need for the "assumed, not counted"
+flag that was being considered. The current 284 products are disposable along with the
+rest of the test data.
+
+What remains is one hard requirement and one cheap safety net:
+
+1. **The real import must write `product_stock` rows, not just `products.qty_on_hand`.**
+   This is the whole fix. A count written only onto the product is not a count the system
+   can keep — it is a number with nothing behind it, and the first movement replaces it
+   with the sum of the locations, which is zero. Every imported product needs a row at a
+   location, even if that location is just the default warehouse on day one.
+2. **A guard in `StockRepository::consume()`**, so this can never happen silently again:
+   if a product has a non-zero `qty_on_hand` and no `product_stock` rows, seed the
+   default warehouse with that quantity before consuming. Cheap, and it means a future
+   import that gets this wrong degrades into a wrong location rather than a destroyed
+   count. Not a substitute for (1).
 
 ### Other
 
