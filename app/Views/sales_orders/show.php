@@ -792,6 +792,19 @@ var EXISTING_LINES = <?= json_encode($soGoodsLines, JSON_HEX_TAG) ?>;
     });
     document.getElementById('addLineBtn').addEventListener('click',()=>addLine());
 
+    /*
+     * Typing a freight figure has to move the total.
+     *
+     * The total already added the field in, but nothing told it to recalculate when
+     * the field changed — so the number sat there while the figure above it did not,
+     * which reads as the order refusing the amount rather than the screen not having
+     * noticed.
+     */
+    (function(){
+        const ship=document.getElementById('fShipAmount');
+        if(ship) ship.addEventListener('input',recalcAll);
+    }());
+
     const sameCb=document.getElementById('sameAsBilling');
     sameCb.addEventListener('change',function(){
         document.getElementById('shipEditBox').style.display=this.checked?'none':'block';
