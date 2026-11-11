@@ -556,6 +556,39 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
                             <td style="padding:.4rem .75rem;text-align:right;font-family:monospace;color:#ef4444" id="fDiscount"></td>
                             <td></td>
                         </tr>
+                        <?php
+                        /*
+                         * Shipping belongs on the screen people actually use.
+                         *
+                         * This page is where an order is edited once it exists — the
+                         * line rows are editable right here — so putting the shipping
+                         * field only on create and edit meant there was nowhere to add
+                         * freight to an order already placed, which is exactly when
+                         * the carrier's price becomes known.
+                         */
+                        $soShipAmount = null;
+
+                        foreach ($line_items as $li) {
+                            if (($li['product_id'] ?? null) === null
+                                && preg_match('~^\s*(shipping|handling|freight)~i', (string)($li['description'] ?? ''))) {
+                                $soShipAmount = (float)($li['line_total'] ?? $li['unit_price'] ?? 0);
+                                break;
+                            }
+                        }
+                        ?>
+                        <tr>
+                            <td colspan="7" style="padding:.5rem .75rem;text-align:right;color:#6b7280;font-size:.9rem">
+                                Shipping &amp; handling
+                            </td>
+                            <td style="padding:.5rem .75rem;text-align:right">
+                                <input type="number" name="shipping_amount" id="fShipAmount"
+                                       step="0.01" min="0" placeholder="0.00"
+                                       value="<?= $soShipAmount !== null ? number_format($soShipAmount, 2, '.', '') : '' ?>"
+                                       style="width:100%;max-width:7.5rem;padding:.35rem .5rem;border:1px solid #d1d5db;
+                                              border-radius:6px;font-family:monospace;text-align:right;font-size:.9rem">
+                            </td>
+                            <td></td>
+                        </tr>
                         <tr>
                             <td colspan="7" style="padding:.7rem .75rem;text-align:right">
                                 <label style="display:inline-flex;align-items:center;gap:.6rem;font-weight:600;color:#374151">
@@ -633,7 +666,19 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
 </form>
 
 <script>
-var EXISTING_LINES = <?= json_encode(array_values($line_items), JSON_HEX_TAG) ?>;
+<?php
+/*
+ * The shipping line is edited in its own field, not as a row.
+ *
+ * Shown as both, it would be billed twice on save — once from the row and once from
+ * the field, because the service replaces the shipping line from the field.
+ */
+$soGoodsLines = array_values(array_filter($line_items, fn (array $li) => !(
+    ($li['product_id'] ?? null) === null
+    && preg_match('~^\s*(shipping|handling|freight)~i', (string)($li['description'] ?? ''))
+)));
+?>
+var EXISTING_LINES = <?= json_encode($soGoodsLines, JSON_HEX_TAG) ?>;
 </script>
 
 <script>
@@ -690,7 +735,9 @@ var EXISTING_LINES = <?= json_encode(array_values($line_items), JSON_HEX_TAG) ?>
         dr.style.display=disc>0?'':'none';
         if(disc>0) document.getElementById('fDiscount').textContent='−'+fmt(disc);
         document.getElementById('fTax').textContent=fmt(taxAmt);
-        const total=sub-disc+taxAmt;
+        const shipEl=document.getElementById('fShipAmount');
+        const ship=shipEl?(parseFloat(shipEl.value)||0):0;
+        const total=sub-disc+taxAmt+ship;
         document.getElementById('fTotal').textContent=fmt(total);
         document.getElementById('kpiTotal').textContent=fmt(total);
     }
