@@ -621,6 +621,25 @@ class ShippingController extends Controller
             Session::flash('error','Use the fulfillment record. The legacy label action is invoice-based.');
             return $response->redirect('/shipping/fulfillments/order/' . (int)$id);
         }
+        /*
+         * Freight orders cannot buy a parcel label, whatever is posted.
+         *
+         * The form is gone from the screen, but a screen is not a lock: a stale tab, a
+         * bookmark or a back button all still reach this. SO #15 collected nine FedEx
+         * labels on a freight order exactly this way, before the form was taken away.
+         */
+        $mode = Database::selectOne(
+            'SELECT COALESCE(v.ship_mode, \'other\') m FROM sales_orders s
+             LEFT JOIN ship_via v ON v.id = s.ship_via_id WHERE s.id = ?',
+            [(int)$id]
+        )['m'] ?? 'other';
+
+        if (in_array($mode, ['freight', 'pickup', 'delivery'], true)) {
+            Session::flash('error', 'This order is not going by parcel — there is no FedEx label to make.');
+
+            return $response->redirect('/shipping/' . (int)$id . '/label');
+        }
+
         $invoiceId = (int)($_POST['invoice_id'] ?? 0);
 
         /*
