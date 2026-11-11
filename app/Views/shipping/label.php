@@ -25,7 +25,14 @@ $suggestedPackages = max(1, count($packages));
     </div>
 </div>
 
-<a href="/shipping/<?= (int)$order['id'] ?>/pack" style="font-size:.85rem;color:#0A3D91;text-decoration:none">&larr; Back to packing</a>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+    <a href="/shipping/<?= (int)$order['id'] ?>/pack" style="font-size:.85rem;color:#0A3D91;text-decoration:none">&larr; Back to packing</a>
+
+    <?php /* The slip goes in the box, and the box is being made on this screen —
+             having to go back to the queue for it is a trip nobody should make. */ ?>
+    <a href="/sales-orders/<?= (int)$order['id'] ?>/packing-slip" target="_blank" rel="noopener"
+       class="btn btn--secondary btn--sm">Print packing slip</a>
+</div>
 
 <?php if ($sandbox): ?>
     <div class="alert" style="background:#fffbeb;border:1px solid #fcd34d;color:#92400e;margin-top:1rem">
