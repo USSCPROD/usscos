@@ -120,10 +120,23 @@ $pdo = Database::connection();
 $pdo->beginTransaction();
 
 try {
+    // Columns copied from create_warehouse_user.php rather than guessed: the password
+    // column is `password`, not `password_hash`, and company_id is NOT NULL.
+    $companyId = (int)(Database::selectOne('SELECT company_id FROM users ORDER BY id LIMIT 1')['company_id'] ?? 1);
+
     $pdo->prepare("
-        INSERT INTO users (first_name, last_name, email, password_hash, role, is_active, created_at)
-        VALUES (?, ?, ?, ?, 'rep', 1, NOW())
-    ")->execute([$opt['first'], $opt['last'], $opt['email'], password_hash($password, PASSWORD_DEFAULT)]);
+        INSERT INTO users (company_id, first_name, last_name, email, username, password, role, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, 'rep', 1)
+    ")->execute([
+        $companyId,
+        $opt['first'],
+        $opt['last'],
+        $opt['email'],
+        // Reps sign in with their email; username is NOT NULL and unique, so it is set
+        // to the same thing rather than left for somebody to wonder about.
+        $opt['email'],
+        password_hash($password, PASSWORD_DEFAULT),
+    ]);
 
     $userId = (int)$pdo->lastInsertId();
 
