@@ -115,7 +115,28 @@ table.lines tr:nth-child(even) td { background: #f9fafb; }
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($line_items as $li): ?>
+            <?php
+            /*
+             * The slip describes THIS box.
+             *
+             * The Shipped column repeated the ordered quantity, so a slip said the whole
+             * order was in the box whatever was really going. On a part shipment it also
+             * listed lines that went weeks ago, which is the one thing a customer uses
+             * the slip to check.
+             *
+             * When anything has shipped before, only what is going now is listed. When
+             * nothing has, every line is — that slip is printed ahead of picking and is
+             * a checklist rather than a record.
+             */
+            $slipPrior  = array_sum(array_map(fn ($l) => (float)($l['qty_shipped'] ?? 0), $line_items));
+            $slipGoing  = fn (array $l) => max(0.0, (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0));
+            $slipLines  = $line_items;
+
+            if ($slipPrior > 0) {
+                $slipLines = array_values(array_filter($line_items, fn ($l) => $slipGoing($l) > 0));
+            }
+            ?>
+            <?php foreach ($slipLines as $li): ?>
             <?php
                 $mainDesc = trim($li['product_name'] ?? $li['description'] ?? '');
                 $subDesc  = trim($li['description'] ?? '');
@@ -129,13 +150,33 @@ table.lines tr:nth-child(even) td { background: #f9fafb; }
                         <div style="font-size:9pt;color:#666;margin-top:2px"><?= e($subDesc) ?></div>
                     <?php endif; ?>
                 </td>
+                <?php
+                // Going in this box: what has been picked and not yet sent. Before
+                // anything is picked that is nothing, and the slip is a checklist — so
+                // it falls back to the ordered quantity rather than printing zeros.
+                $slipQty = $slipGoing($li);
+
+                if ($slipPrior <= 0 && $slipQty <= 0) {
+                    $slipQty = (float)($li['qty_ordered'] ?? $li['qty'] ?? 0);
+                }
+                ?>
                 <td class="r"><?= number_format((float)($li['qty_ordered'] ?? $li['qty'] ?? 0), 2) ?> <?= e($li['uom_code'] ?? '') ?></td>
-                <td class="r"><?= number_format((float)($li['qty_ordered'] ?? $li['qty'] ?? 0), 2) ?> <?= e($li['uom_code'] ?? '') ?></td>
+                <td class="r"><?= number_format($slipQty, 2) ?> <?= e($li['uom_code'] ?? '') ?></td>
                 <td class="r"><span class="qty-check"></span></td>
             </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
+
+    <?php if ($slipPrior > 0): ?>
+        <?php /* Said on the slip, because a customer counting boxes against an order
+                 needs to know the rest is not missing. */ ?>
+        <div style="font-size:10pt;color:#555;margin-bottom:16px">
+            This is part of order #<?= e($so['so_number']) ?>.
+            <?= number_format($slipPrior, 2) ?> already went on an earlier shipment and
+            <?= count($line_items) - count($slipLines) ?> line(s) are complete.
+        </div>
+    <?php endif; ?>
 
     <?php if ($so['notes'] ?? ''): ?>
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:4px;padding:10px 14px;font-size:10pt;margin-bottom:20px">
