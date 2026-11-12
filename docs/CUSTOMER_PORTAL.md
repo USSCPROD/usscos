@@ -104,10 +104,30 @@ on the grounds that the website is already the storefront and the portal would d
 it; he chose one route for everyone instead, which also removes the oddity of a customer
 who can repeat an order but not place one.
 
-Scope assumed unless corrected: **search over product name and SKU**, showing the website
-name, image and that customer's price — not category browsing, related products or
-landing pages. Enough for somebody who knows roughly what they want, without rebuilding
-the storefront inside the portal.
+**Search, not browsing.** Confirmed by Chip 12 Nov 2026: *"from portal, no they just
+search for the product."* A search box over product name and SKU, showing the website
+name, image and that customer's own price. **No category trees, no related products, no
+landing pages** — that is what the website is for, and duplicating it here would be the
+expensive half of a storefront built twice.
+
+Only products with `publish_to_website` set should be findable, so the portal and the
+site offer the same range rather than exposing items nobody meant to sell online. That is
+**1,931 of 2,095** products today.
+
+**The website fields those results would show are almost entirely empty**, checked
+12 Nov 2026:
+
+| | Published products lacking it |
+|---|---|
+| `website_name` | 1,901 of 1,931 |
+| `website_image_url` | 1,909 of 1,931 |
+| any row in `product_images` | 1,927 of 1,931 |
+
+So a search built on the website fields would return a page of blanks. It has to fall
+back to `products.name` — and there is effectively **no product imagery at all**: four
+products have an image. Results will be text for the foreseeable future, which is
+workable for a distributor typing a SKU and poor for a retail customer who came to look
+at paint. Worth knowing before anyone judges the search by how it feels.
 
 **Everything lands in the same sales order queue and goes through both gates.** A portal
 order is a sales order like any other: it waits for approval before the warehouse sees it.
