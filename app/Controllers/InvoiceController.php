@@ -158,6 +158,36 @@ class InvoiceController extends Controller
         return $response->redirect($back);
     }
 
+    /**
+     * Send the shipment email now, after approval already tried and could not.
+     *
+     * Approval sends it once. When it cannot go at that moment - no tracking recorded
+     * yet, no address on the customer - the invoice is still approved and leaves the
+     * review queue, and nothing ever brings it back. Six invoices were in that state
+     * when this was written: approved, and the customer never told.
+     *
+     * Forced, because the service refuses a second send on its own. That is the right
+     * default for an automatic trigger and the wrong one for somebody pressing a button
+     * that says send it.
+     */
+    public function sendShipmentEmail(Request $request, Response $response, string $id = '0'): Response
+    {
+        try {
+            $result = (new \App\Services\ShipmentNotificationService())->notify((int)$id, true);
+        } catch (\PDOException $e) { throw $e;
+        } catch (\RuntimeException $e) {
+            Session::flash('error', $e->getMessage());
+            return $response->redirect('/invoices/' . (int)$id);
+        }
+
+        Session::flash(
+            in_array($result['status'], ['sent', 'suppressed'], true) ? 'success' : 'error',
+            $result['message']
+        );
+
+        return $response->redirect('/invoices/' . (int)$id);
+    }
+
     /** Add a tracking number to an invoice after the fact — a second carton, or a correction. */
     public function addTracking(Request $request, Response $response, string $id = '0'): Response
     {

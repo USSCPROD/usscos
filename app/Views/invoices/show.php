@@ -595,7 +595,32 @@ $emailState = $inv['shipment_email_status'] ?? null;
                 Not emailed — shipment emails are off
             </span>
         <?php elseif ($emailState !== null && $emailState !== 'sent'): ?>
-            <span style="font-size:.78rem;color:#b91c1c">Not emailed — <?= e($emailState) ?></span>
+            <?php
+            /*
+             * Why it did not go, in words, and the button to try again.
+             *
+             * The raw status was being printed - "Not emailed - no_tracking" - which
+             * names a variable rather than a situation, and offered nothing to do about
+             * it. Approval sends this email once; an invoice that could not be emailed
+             * then is approved anyway and gone from the review queue, so without a
+             * button here the customer is simply never told.
+             */
+            $why = [
+                'no_tracking' => 'there was no tracking number on it at the time',
+                'no_address'  => 'the customer has no valid email address',
+                'failed'      => 'the send failed',
+            ][$emailState] ?? $emailState;
+            ?>
+            <span style="font-size:.78rem;color:#b91c1c;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+                <span>Customer not emailed — <?= e($why) ?>.</span>
+                <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/shipment-email" style="margin:0">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn--secondary btn--sm"
+                            onclick="return confirm('Email the shipment details to <?= e(addslashes($inv['company_name'])) ?> now?')">
+                        Send it now
+                    </button>
+                </form>
+            </span>
         <?php endif; ?>
     </div>
 
