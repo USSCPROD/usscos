@@ -218,6 +218,26 @@ before rebuilding against the wrong source.**
 4. **It has no payments step at all** — nothing writes to the `payments` table.
 5. **Part-paid invoices import as smaller invoices.** Its source is the open A/R aging
    report, so it sets `total_amount` and `balance_due` to the same outstanding figure.
+6. **Tracking has two homes, and the import feeds the wrong one.** Found 2026-11-12.
+
+   | | What it holds | Who writes it |
+   |---|---|---|
+   | `shipment_tracking` rows | The real record — carrier, tracking type, label path, and as many numbers as a shipment needs | The bench, the FedEx label run, the freight PRO form |
+   | `invoices.tracking_number` | One string, nothing else | The Tracking # field on the invoice form, and the import |
+
+   Invoice 292157 read **None yet** on Awaiting Review while its own page showed
+   `794905225741`: the list judged emptiness from the row count and then printed the
+   column. Both screens were internally consistent and disagreed with each other. Patched
+   so a value in either counts, but **the duplication is the defect** and it will keep
+   producing this shape of bug.
+
+   A single column cannot hold a shipment that went out in five boxes, which is the
+   normal case here, so `shipment_tracking` is the one to keep. Collapsing them means:
+   the import writes rows rather than the column; the invoice form's Tracking # field
+   goes, leaving the Shipment Tracking panel as the only way in; the shipment email
+   (`InvoiceController.php:338`) reads rows; then the column is dropped by migration.
+   **38 references across `app/` mention it**, with 5 writers, so this is a deliberate
+   job rather than a tidy-up — and it is far cheaper during the reimport than after.
 
 #### What it needs to become
 
