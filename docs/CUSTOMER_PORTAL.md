@@ -89,6 +89,32 @@ children.** What remains is narrower:
 - **Nothing else.** No portal tables, no customer authentication, no public session
   handling.
 
+## Who can do what — decided 12 Nov 2026
+
+| | Sees | Pays | Orders |
+|---|---|---|---|
+| **Parent of a group** (Sports Inc) | Its own orders and **every sub-company's** | **All of them**, one payment applied across invoices | Yes |
+| **Sub-company** (Johnson-Lambe) | **Only its own** orders | No — the parent settles | Yes |
+| **Distributor / stocking distributor** | Own account | Yes | Yes |
+| **Retail** | Own account | Yes, unless opted out | Yes |
+
+**Every customer can place a new order, not only repeat one.** Chip's decision. I had
+argued for sending retail to the website and keeping portal ordering for distributors,
+on the grounds that the website is already the storefront and the portal would duplicate
+it; he chose one route for everyone instead, which also removes the oddity of a customer
+who can repeat an order but not place one.
+
+Scope assumed unless corrected: **search over product name and SKU**, showing the website
+name, image and that customer's price — not category browsing, related products or
+landing pages. Enough for somebody who knows roughly what they want, without rebuilding
+the storefront inside the portal.
+
+**Everything lands in the same sales order queue and goes through both gates.** A portal
+order is a sales order like any other: it waits for approval before the warehouse sees it.
+`sales_orders.channel` already distinguishes where an order came from (`direct`, `amazon`,
+`website`, `pickup`, `edi`, `other`), which is what will later answer what the portal is
+actually selling.
+
 ## Traps worth naming now
 
 **Reorder must re-price, not repeat the price.** A past order carries what was charged
@@ -117,8 +143,16 @@ So the remaining work is not the allocation arithmetic. It is the customer-facin
 Square itself, and making a payment that arrives by webhook land on those same
 `payment_applications` rows exactly once when the event is delivered twice or late.
 
-**Sub-customers exist** — 69 of them. If a parent logs in, do they see their children's
-orders? Probably yes, and it needs saying rather than assuming.
+**Do customers see stock on hand?** I would show nothing until there has been a real
+count. A quantity shown from a number nobody trusts is worse than no quantity, and it is
+the sort of thing that gets believed by a customer long after we have stopped believing
+it. See the stock findings in [TESTING_LOG.md](TESTING_LOG.md).
+
+**A portal order needs a price the customer has already seen.** Ordering through the
+portal means the price is quoted at the moment they add the line, from `CustomerPricing`.
+If anything re-prices between adding and submitting — a tier change, a price list update —
+the customer has agreed to one number and the order carries another. Decide whether the
+quoted price is held on the order or recalculated at approval.
 
 ## Not started
 
