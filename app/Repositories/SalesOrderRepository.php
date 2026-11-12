@@ -205,7 +205,11 @@ class SalesOrderRepository
         ':channel_reference'         => null,
         ':marketplace_tax_collected' => 0,
         ':marketplace_fee'           => 0,
-        ':marketplace_fee_source'    => null,
+        // Six of these columns are NOT NULL with a database default, so binding null
+        // fails outright rather than falling back - the trap CLAUDE.md warns about.
+        // These values are the table's own defaults, restated because a bound
+        // parameter overrides the default rather than deferring to it.
+        ':marketplace_fee_source'    => 'none',
     ];
 
     public function create(array $data): int
