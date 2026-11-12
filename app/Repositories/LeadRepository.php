@@ -109,11 +109,54 @@ class LeadRepository
         $stmt->execute($data);
     }
 
+    /**
+     * Mark a lead converted, and bring what it was carrying across with it.
+     *
+     * A lead can hold quotes and opportunities — quoting an enquiry before they are a
+     * customer is the normal way round. Converting used to stamp the lead alone, so
+     * those quotes stayed pointed at a lead with no customer on them: a sales order
+     * needs a customer, so an accepted quote became a dead end the moment its lead
+     * was converted, with nothing saying why.
+     *
+     * Found 12 Nov 2026 walking lead to sales order for the first time. The whole
+     * thing runs in one transaction, because a lead marked converted whose quotes did
+     * not follow is exactly the state this is fixing.
+     */
     public function convert(int $id, int $customerId): void
     {
-        Database::connection()->prepare("
-            UPDATE leads SET status = 'converted', customer_id = :cid WHERE id = :id
-        ")->execute([':cid' => $customerId, ':id' => $id]);
+        $pdo = Database::connection();
+        $own = !$pdo->inTransaction();
+
+        if ($own) {
+            $pdo->beginTransaction();
+        }
+
+        try {
+            $pdo->prepare("
+                UPDATE leads SET status = 'converted', customer_id = :cid WHERE id = :id
+            ")->execute([':cid' => $customerId, ':id' => $id]);
+
+            // Quotes raised against the lead now belong to the customer it became.
+            // lead_id stays, so where the quote came from is still on the record.
+            $pdo->prepare("
+                UPDATE quotes SET customer_id = :cid
+                 WHERE lead_id = :id AND customer_id IS NULL
+            ")->execute([':cid' => $customerId, ':id' => $id]);
+
+            $pdo->prepare("
+                UPDATE opportunities SET customer_id = :cid
+                 WHERE lead_id = :id AND customer_id IS NULL
+            ")->execute([':cid' => $customerId, ':id' => $id]);
+
+            if ($own) {
+                $pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($own && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public function getOpportunities(int $leadId): array
