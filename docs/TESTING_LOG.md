@@ -187,6 +187,38 @@ What remains is one hard requirement and one cheap safety net:
    import that gets this wrong degrades into a wrong location rather than a destroyed
    count. Not a substitute for (1).
 
+### A customer holds only one person — no contacts table
+
+**Found 12 November 2026, working out how a website checkout should match a buyer to a
+customer.**
+
+`customers` carries exactly one set of person fields: `first_name`, `last_name`, `email`,
+`cc_email`, `phone`, `work_phone`, `mobile`. There is no `contacts` table of any kind.
+
+That is wrong for how this trade actually works. A school or a club has several people
+who order — Chip's words, *"a school or company may have more than 1 person ordering"* —
+and the customer is the institution. So when a second coach orders for Thacher School,
+the order correctly attaches to Thacher School and **the coach has nowhere to be
+recorded.** He overwrites the first one or is lost.
+
+It matters most for the reason the website decision was made at all: keeping customer
+information *"for future things like marketing"*. As it stands that keeps the institution
+and discards the people, and the people are who marketing is addressed to.
+
+**What is needed:** a `customer_contacts` table — `customer_id`, name, email, phone, role,
+marketing consent, last ordered. It closes four open questions at once:
+
+| | Why it needs contacts |
+|---|---|
+| **Website checkout matching** | Match on the contact's email, attach the order to their company, and keep the person. See [CUSTOMER_PORTAL.md](CUSTOMER_PORTAL.md) |
+| **Portal logins** | A login is per person, not per company. A school with three coaches needs three logins against one customer |
+| **Who to email** | A shipment notification or invoice should reach whoever ordered, not whichever single address is on the account |
+| **Buying groups** | Sports Inc's AP inbox is a contact of the parent, while each member has its own buyer. One address currently sits on 117 customer records because there is nowhere else for it to live |
+
+**Not needed to run the warehouse.** Needed before the portal, before any marketing use of
+this data, and worth deciding before the import runs — contacts are far cheaper to
+populate from the QuickBooks extract than to collect afterwards.
+
 ### Other
 
 | What | Notes |
@@ -337,6 +369,12 @@ before rebuilding against the wrong source.**
    extract arrives, the payment records are what will show whether they settle per invoice,
    per statement or per month, and that shapes the portal screen. Worth asking for
    deliberately rather than hoping it turns up.
+
+8. **Contacts have nowhere to go.** `customers` holds one person, and there is no
+   contacts table — logged in full under **Open — code**. Whatever the import's source
+   turns out to be, the people on each account are far cheaper to capture while it runs
+   than to collect afterwards, so the table needs deciding before the importer is
+   rebuilt rather than after.
 
 #### What it needs to become
 
