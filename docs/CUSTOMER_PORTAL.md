@@ -135,6 +135,52 @@ order is a sales order like any other: it waits for approval before the warehous
 `website`, `pickup`, `edi`, `other`), which is what will later answer what the portal is
 actually selling.
 
+## The third audience: people who buy on the website and never log in
+
+Plenty of customers will order from usscproducts.com and never open a portal account.
+They still have to become something in USSCOS.
+
+**They become real customers, one record each. Decided by Chip 12 Nov 2026** — *"we don't
+want website to be the customer. We want the actual customer's info for future things
+like marketing."*
+
+That overturns how it works today. Website orders currently land on a **single catch-all
+customer** — `WEBSITE`, id 32561, carrying an internal address — the way QuickBooks
+handles anonymous sales. A buyer lumped in there has no history, nothing to reorder, and
+no account anyone could later give them.
+
+### Which makes duplicate prevention the central problem
+
+Every guest checkout is a chance to create a second record for somebody who already
+exists. Unlike the 9,665 duplicate pairs already in the data, **these would keep arriving
+after cutover** — a defect that generates itself.
+
+`CustomerService::possibleDuplicates()` already does this matching for reps adding
+customers, and should be reused. But a checkout is not a rep, and the difference matters:
+
+- **A rep can be shown the matches and asked.** A customer cannot. Showing a guest
+  "did you mean one of these three companies?" discloses other customers' names to a
+  stranger. The method already redacts per match for restricted users; at checkout the
+  right answer is to **show nothing at all**.
+- So the matching has to be **silent**: an exact email match attaches the order to the
+  existing customer, and anything less certain creates a new record and **queues the
+  near-match for somebody here to merge**. Guessing wrong in public is worse than a
+  duplicate somebody resolves internally.
+- Merging two customers is not yet a thing USSCOS can do. If near-matches are to be
+  queued, something has to be able to act on the queue.
+
+### Other consequences of a guest order
+
+- **It arrives already paid.** Square takes the money at checkout, so the order lands with
+  payment attached rather than waiting for it. Both gates still apply — paid is not
+  picked.
+- **It is retail priced by definition.** Nobody gets a tier without being identified,
+  which is its own argument for a distributor logging in rather than checking out as a
+  guest.
+- **Marketing consent belongs at checkout.** If the reason for keeping the record is
+  future marketing, whether they agreed to be marketed to is part of the record, captured
+  then — not assumed afterwards from the fact that they bought something.
+
 ## Traps worth naming now
 
 **Reorder must re-price, not repeat the price.** A past order carries what was charged
