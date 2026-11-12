@@ -138,9 +138,28 @@ class InvoiceController extends Controller
          * invoice to look it over wants to see the result on the invoice - particularly
          * when approval triggers the customer email and the message says whether it went.
          */
-        $back = $request->post('return') === 'invoice'
-            ? '/invoices/' . (int)$id
-            : '/invoices/review';
+        /*
+         * Where to land after approving.
+         *
+         *   next     - the following invoice still awaiting review, for working a batch
+         *   invoice  - stay here, to read whether the customer email went
+         *   anything else - the queue, which is what approving from the list wants
+         *
+         * The next one is worked out BEFORE approving, while this invoice is still in
+         * the queue, so the ordering question is asked of a list that has not moved
+         * underneath it.
+         */
+        $want = (string)$request->post('return');
+        $next = $want === 'next'
+            ? (new \App\Repositories\InvoiceRepository())->nextAwaitingReview((int)$id)
+            : null;
+
+        $back = match (true) {
+            $want === 'next' && $next !== null => '/invoices/' . $next,
+            $want === 'next'                   => '/invoices/review',
+            $want === 'invoice'                => '/invoices/' . (int)$id,
+            default                            => '/invoices/review',
+        };
 
         try {
             $result = $this->service->approve((int)$id, Auth::id());
@@ -150,9 +169,13 @@ class InvoiceController extends Controller
             return $response->redirect($back);
         }
 
+        $tail = ($want === 'next' && $next === null)
+            ? ' That was the last one awaiting review.'
+            : '';
+
         Session::flash(
             in_array($result['status'], ['sent', 'suppressed'], true) ? 'success' : 'error',
-            'Approved. ' . $result['message']
+            'Approved. ' . $result['message'] . $tail
         );
 
         return $response->redirect($back);

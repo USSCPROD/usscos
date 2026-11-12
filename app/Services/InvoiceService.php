@@ -674,6 +674,9 @@ class InvoiceService extends Service
             'line_items'       => $lineItems,
             'payments'         => $this->paymentRepo->getByInvoice((int)$id),
             'ship_via_options' => $this->invoices->getShipViaOptions(),
+            // How many are still waiting, so the page can say so and decide whether
+            // Approve & next has anywhere to go.
+            'awaiting_review_count' => $this->invoices->countAwaitingReview(),
             // Ship Via says how it went - FedEx, Freight. On an LTL shipment that is
             // not the carrier: the carrier is Old Dominion or TForce, and when somebody
             // books a pallet by phone this is the only place that name gets recorded.

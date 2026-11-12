@@ -253,6 +253,46 @@ class InvoiceRepository
         ");
     }
 
+    /**
+     * The next invoice still awaiting review, for Approve & next.
+     *
+     * Ordered exactly as the queue is - ship date, then id - so working through with
+     * the button visits them in the same sequence as working through the list. The
+     * invoice just approved is excluded by its own status rather than by id, so a
+     * failed approval does not skip it.
+     */
+    public function nextAwaitingReview(int $afterId): ?int
+    {
+        $row = Database::selectOne(
+            "SELECT i.id
+               FROM invoices i
+               JOIN invoices cur ON cur.id = :cur
+              WHERE i.review_status = 'pending'
+                AND i.status <> 'void'
+                AND i.id <> :cur2
+                AND (i.ship_date > cur.ship_date
+                     OR (i.ship_date <=> cur.ship_date AND i.id > :cur3))
+              ORDER BY i.ship_date, i.id
+              LIMIT 1",
+            [':cur' => $afterId, ':cur2' => $afterId, ':cur3' => $afterId]
+        );
+
+        if ($row !== false) {
+            return (int)$row['id'];
+        }
+
+        // Nothing after it in the order; wrap to the first one still pending, so a
+        // reviewer who started halfway down the list still finishes the list.
+        $first = Database::selectOne(
+            "SELECT id FROM invoices
+              WHERE review_status = 'pending' AND status <> 'void' AND id <> ?
+              ORDER BY ship_date, id LIMIT 1",
+            [$afterId]
+        );
+
+        return $first === false ? null : (int)$first['id'];
+    }
+
     public function countAwaitingReview(): int
     {
         $row = Database::selectOne(

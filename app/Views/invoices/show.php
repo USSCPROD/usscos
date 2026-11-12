@@ -89,13 +89,31 @@ function invReadBox(): string {
              * it. The list keeps its button for approving without opening; this is for
              * when you have opened it.
              */ ?>
-            <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/approve" style="margin:0">
+            <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/approve" style="margin:0;display:flex;gap:.5rem">
                 <?= csrf_field() ?>
-                <input type="hidden" name="return" value="invoice">
-                <button type="submit" class="btn btn--primary"
+                <?php /*
+                 * Two ways out of an approval, because there are two jobs.
+                 *
+                 * Approve stays here: approval is what sends the customer email, and
+                 * the message says whether it went, which is worth reading on the
+                 * invoice you were looking at.
+                 *
+                 * Approve & next goes straight to the following one still awaiting
+                 * review, for working through a batch without returning to the list
+                 * between each. It is the secondary button because stopping to read
+                 * the result is the safer habit of the two.
+                 */ ?>
+                <button type="submit" name="return" value="invoice" class="btn btn--primary"
                         onclick="return confirm('Approve invoice #<?= e($inv['invoice_number']) ?> for <?= e(addslashes($inv['company_name'])) ?>?')">
                     Approve
                 </button>
+                <?php if (($awaiting_review_count ?? 0) > 1): ?>
+                    <button type="submit" name="return" value="next" class="btn btn--secondary"
+                            title="Approve this one and open the next invoice awaiting review"
+                            onclick="return confirm('Approve #<?= e($inv['invoice_number']) ?> and open the next one awaiting review?')">
+                        Approve &amp; next
+                    </button>
+                <?php endif; ?>
             </form>
         <?php endif; ?>
         <?php if ((float)$inv['balance_due'] > 0): ?>
@@ -115,7 +133,11 @@ function invReadBox(): string {
             Check it over, then approve — the customer has not been told about this one yet.
         </div>
         <a href="/invoices/review" style="font-size:.85rem;color:#92400e;font-weight:600;white-space:nowrap">
-            All awaiting review &rsaquo;
+            <?php /* The count explains why Approve & next is on the screen, and how
+                     much is left if you use it. */ ?>
+            <?= (int)($awaiting_review_count ?? 0) > 1
+                ? (int)$awaiting_review_count . ' awaiting review'
+                : 'All awaiting review' ?> &rsaquo;
         </a>
     </div>
 <?php endif; ?>
