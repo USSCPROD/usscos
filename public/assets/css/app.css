@@ -2051,3 +2051,115 @@ textarea.so-inp { resize:vertical; min-height:80px; }
 .autocomplete-item { padding:.5rem .75rem; font-size:.875rem; cursor:pointer; }
 .autocomplete-item:hover { background:var(--color-surface-raised); }
 .selected-customer { display:flex; align-items:center; justify-content:space-between; padding:.5rem .75rem; background:var(--color-surface-raised); border:1px solid var(--color-border); border-radius:var(--radius); font-size:.875rem; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Shipping queue on a tablet
+   ──────────────────────────────────────────────────────────────────────────
+   The queue is how shipping picks the next order, and it is worked on a
+   tablet. As a table it needs 1521px: at 768px every action button sat off
+   the right-hand edge, reachable only by dragging the table sideways with
+   nothing on screen suggesting that was possible.
+
+   Below 1024px each row becomes a card. Same markup and the same PHP decides
+   the same buttons - only the display changes, so there is no second layout
+   to keep in step with this one.
+
+   Not flex or grid: display:block only, which is what the convention in
+   CLAUDE.md is cautious about. */
+@media (max-width: 1024px) {
+    .queue-table thead { display: none; }
+
+    .queue-table,
+    .queue-table tbody,
+    .queue-table tr,
+    .queue-table td { display: block; width: 100%; }
+
+    .queue-table tr {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        margin: .75rem;
+        width: auto;
+        padding: .35rem 0 .6rem;
+        background: #fff;
+    }
+
+    .queue-table td {
+        padding: .4rem .95rem !important;
+        white-space: normal !important;
+        text-align: left !important;
+        border: 0;
+    }
+
+    /* The column heading travels with the value, since the header row is gone. */
+    .queue-table td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: .65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #6b7280;
+        margin-bottom: .1rem;
+    }
+
+    /* An em dash under its own heading is noise on a small screen. */
+    .queue-table td[data-label="PO #"]:has(span[style*="d1d5db"]),
+    .queue-table td[data-label="Ship by"]:has(span[style*="d1d5db"]),
+    .queue-table td[data-label="Ship to"]:has(span[style*="d1d5db"]),
+    .queue-table td[data-label="Carrier"]:has(span[style*="d1d5db"]) { display: none; }
+
+    /* SO number and customer lead the card. */
+    .queue-table td[data-label="SO #"] { padding-bottom: 0 !important; }
+    .queue-table td[data-label="SO #"] span { font-size: 1.35rem; }
+    .queue-table td[data-label="Customer"]::before { display: none; }
+    .queue-table td[data-label="Customer"] div:first-child { font-size: 1.05rem; }
+
+    /* Buttons: full width, thumb height, stacked with room between them. */
+    .queue-table td.queue-actions {
+        padding: .7rem .95rem .2rem !important;
+        border-top: 1px solid #f3f4f6;
+        margin-top: .35rem;
+    }
+    .queue-table td.queue-actions a,
+    .queue-table td.queue-actions button,
+    .queue-table td.queue-actions > span {
+        display: block !important;
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 46px;
+        line-height: 1.2;
+        margin: 0 0 .5rem !important;
+        padding: .8rem 1rem !important;
+        font-size: .95rem !important;
+        text-align: center;
+    }
+    .queue-table td.queue-actions form { display: block !important; margin: 0 !important; }
+    .queue-table td.queue-actions form button { margin-bottom: .5rem !important; }
+
+    /* The pick/pack tags keep their badge, and gain the sentence the title
+       attribute carries - a tablet has no hover, so that text is otherwise
+       unreachable on the screen it was written for. */
+    .queue-table td.queue-actions .queue-tag {
+        display: inline-block !important;
+        width: auto;
+        min-height: 0;
+        margin: 0 0 .15rem !important;
+        padding: .25rem .55rem !important;
+        font-size: .8rem !important;
+    }
+    .queue-table .queue-tag-why {
+        display: block;
+        width: 100%;
+        min-height: 0;
+        margin: 0 0 .6rem !important;
+        padding: 0 !important;
+        font-size: .8rem;
+        line-height: 1.4;
+        color: #6b7280;
+        text-align: left;
+    }
+}
+
+/* On a desktop the tag explanation stays in the title attribute, where hover
+   works and the extra sentence would only crowd the row. */
+.queue-tag-why { display: none; }

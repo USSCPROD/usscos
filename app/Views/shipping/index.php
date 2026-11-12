@@ -124,7 +124,7 @@ if ($activeTab === 'all') {
 <?php else: ?>
     <div style="background:#fff;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden">
         <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;font-size:.925rem">
+            <table class="queue-table" style="width:100%;border-collapse:collapse;font-size:.925rem">
                 <thead>
                     <tr style="background:#f8f9fb;border-bottom:2px solid #d1d5db">
                         <th style="padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;white-space:nowrap">SO #</th>
@@ -154,15 +154,15 @@ if ($activeTab === 'all') {
                         ])));
                     ?>
                     <tr style="border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="window.location='/sales-orders/<?= (int)$o['id'] ?>'" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
-                        <td style="padding:.75rem 1rem;white-space:nowrap">
+                        <td data-label="SO #" style="padding:.75rem 1rem;white-space:nowrap">
                             <span style="font-weight:700;color:#0A3D91;font-family:monospace"><?= e($o['so_number']) ?></span>
                         </td>
-                        <td style="padding:.75rem 1rem">
+                        <td data-label="Customer" style="padding:.75rem 1rem">
                             <div style="font-weight:600;color:#111"><?= e($o['company_name']) ?></div>
                             <?php if ($o['phone']): ?><div style="font-size:.8rem;color:#6b7280"><?= e($o['phone']) ?></div><?php endif; ?>
                         </td>
-                        <td style="padding:.75rem 1rem;color:#374151;white-space:nowrap"><?= $o['po_number'] ? e($o['po_number']) : '<span style="color:#d1d5db">—</span>' ?></td>
-                        <td style="padding:.75rem 1rem;white-space:nowrap">
+                        <td data-label="PO #" style="padding:.75rem 1rem;color:#374151;white-space:nowrap"><?= $o['po_number'] ? e($o['po_number']) : '<span style="color:#d1d5db">—</span>' ?></td>
+                        <td data-label="Ship by" style="padding:.75rem 1rem;white-space:nowrap">
                             <?php if ($shipDate): ?>
                                 <?php if ($isOverdue): ?>
                                     <span style="color:#dc2626;font-weight:700">⚠ <?= date('M j', strtotime($shipDate)) ?><span style="font-size:.75rem;font-weight:400;display:block">Overdue</span></span>
@@ -177,9 +177,9 @@ if ($activeTab === 'all') {
                                 <span style="color:#d1d5db">—</span>
                             <?php endif; ?>
                         </td>
-                        <td style="padding:.75rem 1rem;font-size:.875rem;color:#374151"><?= $shipAddr ? e($shipAddr) : '<span style="color:#d1d5db">—</span>' ?></td>
+                        <td data-label="Ship to" style="padding:.75rem 1rem;font-size:.875rem;color:#374151"><?= $shipAddr ? e($shipAddr) : '<span style="color:#d1d5db">—</span>' ?></td>
                         <?php if ($activeTab === 'all' || $activeTab === 'none'): ?>
-                        <td style="padding:.75rem 1rem;white-space:nowrap">
+                        <td data-label="Carrier" style="padding:.75rem 1rem;white-space:nowrap">
                             <?php if ($o['ship_via_name']): ?>
                                 <span style="background:#f0f4ff;color:#0A3D91;padding:.2rem .6rem;border-radius:4px;font-size:.8rem;font-weight:600"><?= e($o['ship_via_name']) ?></span>
                             <?php else: ?>
@@ -187,11 +187,11 @@ if ($activeTab === 'all') {
                             <?php endif; ?>
                         </td>
                         <?php endif; ?>
-                        <td style="padding:.75rem 1rem">
+                        <td data-label="Status" style="padding:.75rem 1rem">
                             <span class="badge <?= $statusBadge[$o['status']] ?? 'badge--neutral' ?>"><?= $statusLabel[$o['status']] ?? e($o['status']) ?></span>
                         </td>
-                        <td style="padding:.75rem 1rem;text-align:right;font-family:monospace;font-weight:600;color:#111">$<?= number_format((float)$o['total_amount'], 2) ?></td>
-                        <td style="padding:.75rem 1rem;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
+                        <td data-label="Total" style="padding:.75rem 1rem;text-align:right;font-family:monospace;font-weight:600;color:#111">$<?= number_format((float)$o['total_amount'], 2) ?></td>
+                        <td class="queue-actions" style="padding:.75rem 1rem;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
                             <?php
                             // Pick state, so the floor can see at a glance what's underway
                             // and what someone has already flagged as short.
@@ -226,18 +226,26 @@ if ($activeTab === 'all') {
                             ][$packState] ?? null;
                             ?>
                             <?php if ($pickBadge): ?>
-                                <span title="<?= e($pickBadge[4]) ?>"
+                                <span class="queue-tag" title="<?= e($pickBadge[4]) ?>"
                                       style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;cursor:help;
                                              background:<?= $pickBadge[0] ?>;border:1px solid <?= $pickBadge[1] ?>;color:<?= $pickBadge[2] ?>">
                                     <?= $pickBadge[3] ?>
                                 </span>
+                                <?php /* The same sentence the title carries. There is no hover on the
+                                         bench tablet, so on a touch screen the title is simply not
+                                         there; CSS shows this copy only in card mode. */ ?>
+                                <span class="queue-tag-why"><?= e($pickBadge[4]) ?></span>
                             <?php endif; ?>
                             <?php if ($packBadge): ?>
-                                <span title="<?= e($packBadge[4]) ?>"
+                                <span class="queue-tag" title="<?= e($packBadge[4]) ?>"
                                       style="font-size:.75rem;padding:.25rem .55rem;border-radius:4px;margin-right:.4rem;cursor:help;
                                              background:<?= $packBadge[0] ?>;border:1px solid <?= $packBadge[1] ?>;color:<?= $packBadge[2] ?>">
                                     <?= $packBadge[3] ?>
                                 </span>
+                                <?php /* The same sentence the title carries. There is no hover on the
+                                         bench tablet, so on a touch screen the title is simply not
+                                         there; CSS shows this copy only in card mode. */ ?>
+                                <span class="queue-tag-why"><?= e($packBadge[4]) ?></span>
                             <?php endif; ?>
                             <?php
                             /*
