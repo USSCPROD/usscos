@@ -593,6 +593,34 @@ $emailState = $inv['shipment_email_status'] ?? null;
                 </tr>
             <?php endforeach; ?>
         </table>
+    <?php elseif (trim((string)($inv['tracking_number'] ?? '')) !== ''): ?>
+        <?php /*
+         * The invoice carries a number in its own tracking_number column but has no
+         * shipment_tracking row. Saying "no tracking numbers yet" directly below a
+         * Tracking # field showing one is how this panel came to contradict the form
+         * above it, and the Awaiting Review list to say None yet about an invoice
+         * that plainly had a number on it.
+         *
+         * Two places hold tracking: these rows, which are the real record and carry
+         * the carrier, the type and the label, and that older column, still written
+         * by the form above and by the import. Showing it here, said for what it is,
+         * at least stops the screen arguing with itself. Collapsing the two is cutover
+         * work - see docs/TESTING_LOG.md.
+         */ ?>
+        <table style="width:100%;border-collapse:collapse">
+            <tr>
+                <td style="padding:.55rem 1rem;font-size:.8rem;color:#6b7280;width:11rem">
+                    On the invoice record
+                </td>
+                <td style="padding:.55rem 1rem;font-family:monospace;font-size:.92rem">
+                    <?= e($inv['tracking_number']) ?>
+                </td>
+            </tr>
+        </table>
+        <div style="padding:.3rem 1rem 1rem;color:#9ca3af;font-size:.82rem">
+            Typed into the Tracking # field on this invoice rather than recorded at the
+            bench, so there is no carrier or label behind it.
+        </div>
     <?php else: ?>
         <div style="padding:1.1rem 1rem;color:#9ca3af;font-size:.88rem">
             No tracking numbers yet. They are normally entered at the bench when the order

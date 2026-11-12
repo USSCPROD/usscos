@@ -232,7 +232,19 @@ class InvoiceRepository
                    i.subtotal, i.total_amount, i.tracking_number, i.shipment_email_status,
                    c.company_name, c.email AS customer_email,
                    so.so_number, {$methods} AS fulfillment_methods,
-                   (SELECT COUNT(*) FROM shipment_tracking t WHERE t.invoice_id = i.id) AS tracking_count
+                   (SELECT COUNT(*) FROM shipment_tracking t WHERE t.invoice_id = i.id) AS tracking_count,
+                   -- Tracking lives in two places: shipment_tracking rows, which are
+                   -- the real record and carry the carrier, type and label, and the
+                   -- older invoices.tracking_number column, still written by the
+                   -- invoice form and the import. This list judged emptiness from the
+                   -- row count alone, so invoice 292157 read None yet on this screen
+                   -- while the invoice itself showed 794905225741. Rows win; the
+                   -- column is the fallback.
+                   COALESCE(
+                       (SELECT t2.tracking_number FROM shipment_tracking t2
+                         WHERE t2.invoice_id = i.id ORDER BY t2.id LIMIT 1),
+                       NULLIF(i.tracking_number, '')
+                   ) AS tracking_display
             FROM invoices i
             JOIN customers c ON c.id = i.customer_id
             LEFT JOIN sales_orders so ON so.id = i.sales_order_id

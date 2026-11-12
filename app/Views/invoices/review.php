@@ -52,7 +52,10 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
             <?php foreach ($invoices as $i): ?>
                 <?php
                 $noEmail = trim((string)($i['customer_email'] ?? '')) === '';
-                $noTrack = (int)$i['tracking_count'] === 0;
+                // Empty only when BOTH sources are empty. Reading the row count alone
+                // made this column say "None yet" over an invoice that was showing a
+                // tracking number on its own page.
+                $noTrack = trim((string)($i['tracking_display'] ?? '')) === '';
                 ?>
                 <tr style="border-bottom:1px solid #f3f4f6">
                     <td style="<?= $td ?>">
@@ -81,7 +84,7 @@ $waiting = array_sum(array_map(fn($i) => (float)$i['total_amount'], $invoices));
                         <?php elseif ($noTrack): ?>
                             <span style="color:#b45309;font-family:inherit">None yet</span>
                         <?php else: ?>
-                            <?= e($i['tracking_number']) ?>
+                            <?= e($i['tracking_display']) ?>
                             <?php if ((int)$i['tracking_count'] > 1): ?>
                                 <div class="text-xs text-muted" style="font-family:inherit">
                                     +<?= (int)$i['tracking_count'] - 1 ?> more
