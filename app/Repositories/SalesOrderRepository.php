@@ -36,7 +36,10 @@ class SalesOrderRepository
         }
 
         if ($status === 'open') {
-            $where[] = "so.status NOT IN ('invoiced', 'cancelled')";
+            // Drafts come out here too. The header counts open orders and this
+            // lists them; if the two disagree, one of them is lying. A draft is
+            // reachable through its own tab and through the Drafts card.
+            $where[] = "so.status NOT IN ('draft', 'invoiced', 'cancelled')";
         } elseif ($status !== 'all') {
             $where[]           = 'so.status = :status';
             $params[':status'] = $status;
@@ -1256,8 +1259,13 @@ class SalesOrderRepository
         $stmt = $this->pdo->query("
             SELECT
                 COUNT(*) AS total_orders,
-                SUM(CASE WHEN status IN ('draft','confirmed','processing','partially_shipped','paid') THEN 1 ELSE 0 END) AS open_count,
-                SUM(CASE WHEN status IN ('draft','confirmed','processing','partially_shipped','paid') THEN total_amount ELSE 0 END) AS open_value,
+                -- Drafts are not open orders. They were counted here, so the list
+                -- header claimed 27 open orders worth 31,724 dollars while the Drafts card beside
+                -- it said two of those were not visible to shipping. An order nobody
+                -- downstream can act on is not open, and money nothing will collect
+                -- does not belong in a value total. Drafts keep their own count.
+                SUM(CASE WHEN status IN ('confirmed','processing','partially_shipped','paid') THEN 1 ELSE 0 END) AS open_count,
+                SUM(CASE WHEN status IN ('confirmed','processing','partially_shipped','paid') THEN total_amount ELSE 0 END) AS open_value,
                 SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) AS draft_count,
                 SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paid_count
             FROM sales_orders

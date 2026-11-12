@@ -167,6 +167,26 @@ class StockRepository
         }
 
         try {
+            /*
+             * A count with nowhere to live is destroyed by its own first shipment.
+             *
+             * products.qty_on_hand is not stored - it is recomputed as the sum of this
+             * product's product_stock rows after every movement. A product that was
+             * imported with a count but never placed at a location has no rows, so the
+             * recompute replaces the real number with the sum of nothing. DSY read 391,
+             * shipped 4, and came out at -4. Not 387: the 391 was gone, not reduced.
+             *
+             * Seeding the default warehouse with the count before consuming turns that
+             * into ordinary arithmetic. The number may be in the wrong place, which is
+             * visible and fixable by counting; a destroyed count is neither.
+             *
+             * This is a safety net, not the fix. The fix is that the import writes
+             * product_stock rows - see docs/TESTING_LOG.md. It is here because an
+             * import that gets it wrong should degrade into a wrong location rather
+             * than a silent loss, and because 284 products are in this state today.
+             */
+            $this->seedUnplacedStock($productId);
+
             $holdings = Database::select("
                 SELECT ps.location_id, ps.qty_on_hand
                 FROM product_stock ps
@@ -342,6 +362,61 @@ class StockRepository
     }
 
     /** The warehouse to fall back on when a product is recorded at no location at all. */
+    /**
+     * Give a product with a count but no location rows somewhere to hold it.
+     *
+     * Does nothing - and must do nothing - unless BOTH are true: the product claims
+     * stock, and no row exists for it anywhere. A product legitimately at zero across
+     * its locations has rows and is left alone, and a product genuinely holding
+     * nothing has nothing to preserve.
+     *
+     * Writes an inventory transaction so the seeding is on the record rather than
+     * stock appearing from nowhere. Someone reading the history later needs to see
+     * that this quantity was assumed from the import, not counted by a person.
+     */
+    private function seedUnplacedStock(int $productId): void
+    {
+        $row = Database::selectOne(
+            "SELECT p.qty_on_hand,
+                    (SELECT COUNT(*) FROM product_stock ps WHERE ps.product_id = p.id) AS rows_held
+               FROM products p WHERE p.id = ?",
+            [$productId]
+        );
+
+        if ($row === false) {
+            return;
+        }
+
+        $claimed = (float)($row['qty_on_hand'] ?? 0);
+
+        if ($claimed <= 0 || (int)$row['rows_held'] > 0) {
+            return;
+        }
+
+        $location = $this->defaultWarehouseId();
+
+        if ($location === null) {
+            // Nothing to seed into. consume() raises its own error a moment later
+            // and says what to do about it; two messages for one cause is worse.
+            return;
+        }
+
+        $this->applyMovement([
+            'product_id'       => $productId,
+            'qty'              => $claimed,
+            'type'             => 'adjustment',
+            // 'other' because reason_code is an enum and none of its values mean
+            // "placed where the import failed to put it". The note carries the
+            // meaning; inventing an enum value here would simply be rejected.
+            'reason_code'      => 'other',
+            'to_location_id'   => $location,
+            'notes'            => 'Count carried from the import with no location on it. '
+                                . 'Placed here so the first shipment reduces it instead of '
+                                . 'replacing it. Assumed, not counted - verify on the next '
+                                . 'cycle count.',
+        ]);
+    }
+
     public function defaultWarehouseId(): ?int
     {
         $row = Database::selectOne("
