@@ -44,6 +44,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="<?= asset('js/app.js') ?>"></script>
+<?php /* Keeps the screen awake on the bench pages only; it decides for itself
+         which those are, and says on screen whether it worked. */ ?>
+<script src="<?= asset('js/wakelock.js') ?>?v=<?= time() ?>"></script>
 <?php if (isset($scripts)): ?>
     <?= $scripts ?>
 <?php endif; ?>
