@@ -179,12 +179,59 @@ list price in production.
 Deferred by Chip on 2026-10-29: *"let's worry about the import when we get closer."*
 Nothing here is urgent, and all of it is needed before the real cutover.
 
-- **`database/import_quickbooks.php` is not ready.** Three faults: it writes
-  `status = 'sent'`, which a later migration renamed to `pending`; it has **no payments
-  step at all** (nothing writes to the `payments` table); and because its source is the
-  open A/R aging report it sets both `total_amount` and `balance_due` to the outstanding
-  balance, so a part-paid invoice imports as a smaller invoice. Fixing it needs sample
-  exports of the files that will actually be used.
+### The importer rework
+
+**`database/import_quickbooks.php` is a prototype that got test data in. It is not what
+you cut over with.** Logged in full 2026-11-12.
+
+First, the thing it is easy to get wrong: *"connecting to QuickBooks"* means two different
+jobs.
+
+| | What it is | State |
+|---|---|---|
+| **Ongoing sync** | QODBC bridge on the Windows box pulls from `/api/qb/pending`, writes to QuickBooks, acks. Pushes **out**; brings nothing in. For daily operation after go-live. | Built — `routes/web.php:425-427`, documented in [QUICKBOOKS_SYNC.md](QUICKBOOKS_SYNC.md) |
+| **Cutover import** | One-time load of customers, products, open invoices, balances and stock. Currently reads **Excel exports**, not the API or QODBC. | Prototype, not ready |
+
+**The source has not been decided, and it should be decided deliberately rather than by
+default.** Spreadsheet exports need no Windows setup but are a snapshot somebody has to
+produce correctly. The QODBC bridge already exists and could pull master data directly —
+more moving parts, no manual export, no stale snapshot. Chip has said *"IT will bring
+everything if possible"*, which may settle it. **Confirm what IT can actually extract
+before rebuilding against the wrong source.**
+
+#### Faults to fix, whatever the source
+
+1. **It does not place stock.** `importProducts()` writes `products.qty_on_hand` from the
+   *Qty On Hand* column (line ~430) and never writes a `product_stock` row. Since
+   `qty_on_hand` is recomputed as the sum of the location rows on every movement, an
+   imported count with no row behind it is replaced by the sum of nothing on the first
+   shipment — DSY read 391, shipped 4, came out at −4. **284 products are in that state.**
+   This is the one fault that corrupts real inventory, and the importer is its cause.
+   `StockRepository::consume()` now seeds the default warehouse as a safety net, but the
+   import must do it properly: every imported count gets a location row.
+2. **Stock can also diverge the other way.** 14 products have `product_stock` rows that
+   disagree with `products.qty_on_hand` — SOTDG says 166 with 4 at locations;
+   TTP115FI-WT-5G says 0 with 160. The product page shows a number the system overwrites
+   the moment anything moves. Same root cause, opposite direction: there are **two** ways
+   the import can produce a count that will not survive.
+3. **It writes `status = 'sent'`**, which a later migration renamed to `pending`.
+4. **It has no payments step at all** — nothing writes to the `payments` table.
+5. **Part-paid invoices import as smaller invoices.** Its source is the open A/R aging
+   report, so it sets `total_amount` and `balance_due` to the same outstanding figure.
+
+#### What it needs to become
+
+The rules in [CLAUDE.md](../CLAUDE.md) for scripts that change data in bulk apply and
+currently are not met: dry run by default, explicit `--commit`, one transaction, roll back
+on any error. `database/import_products.php` is the reference implementation.
+
+Add to that a **reconciliation report** at the end — counts in versus rows written, totals
+in versus totals stored, and anything skipped with the reason. A silent import that
+finishes is indistinguishable from one that dropped half the file, and this one runs once
+against real data with the old system being deleted.
+
+Fixing any of this needs **sample exports of the files that will actually be used**.
+
 - **`ar_opening_date` must be set at cutover**, and there is no screen for it. It is the
   date USSCOS takes over its own receivables, and it does not exist yet. Until it is set,
   `ArPeriod` fences nothing off and imported history counts as USSCOS receivables.
