@@ -243,10 +243,52 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
                 $freightReady += (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0);
             }
             ?>
-            <div style="font-size:.92rem;color:#92400e;line-height:1.6;margin-bottom:1.1rem">
-                This order goes on <strong><?= e($order['ship_via_name'] ?? 'Freight') ?></strong>.
-                Book it with Keubix and print the packing slip for the pallet.
-            </div>
+            <?php
+            /*
+             * Is there anything left to do on this order?
+             *
+             * A freight shipment finishes quietly: it is invoiced, a PRO goes in,
+             * and then every button correctly disappears - which from the bench
+             * looks identical to being stuck. SO #11 was fully shipped, invoiced
+             * and carrying PRO 45566677, and the screen said nothing at all about
+             * being finished. The last state needs to announce itself as loudly as
+             * the ones in the middle.
+             */
+            $freightDone = $freightReady <= 0.0001
+                        && !empty($invoice)
+                        && !empty(array_filter(
+                               $existing ?? [],
+                               fn ($t) => trim((string)($t['tracking_number'] ?? '')) !== ''
+                           ));
+            ?>
+            <?php if ($freightDone): ?>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem 1.15rem;margin-bottom:1.1rem">
+                    <div style="font-size:1rem;font-weight:700;color:#166534;margin-bottom:.3rem">
+                        This one is done — nothing left to do here.
+                    </div>
+                    <div style="font-size:.9rem;color:#166534;line-height:1.6">
+                        Everything picked has shipped, it is invoiced<?php
+                            if (!empty($invoice['invoice_number'])): ?> as
+                            <strong><?= e($invoice['invoice_number']) ?></strong><?php
+                            endif; ?>, and the PRO number is recorded against it.
+                        The carrier has the pallet; the system has nothing further to add.
+                    </div>
+                    <div style="margin-top:.85rem">
+                        <?php if (!empty($invoice['id'])): ?>
+                            <a href="/invoices/<?= (int)$invoice['id'] ?>" class="btn btn--secondary btn--sm"
+                               style="margin-right:.5rem">Open the invoice</a>
+                        <?php endif; ?>
+                        <a href="/sales-orders/<?= (int)$order['id'] ?>/packing-slip" target="_blank"
+                           class="btn btn--secondary btn--sm" style="margin-right:.5rem">Packing slip</a>
+                        <a href="/shipping" class="btn btn--primary btn--sm">Back to the queue</a>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div style="font-size:.92rem;color:#92400e;line-height:1.6;margin-bottom:1.1rem">
+                    This order goes on <strong><?= e($order['ship_via_name'] ?? 'Freight') ?></strong>.
+                    Book it with Kuebix and print the packing slip for the pallet.
+                </div>
+            <?php endif; ?>
 
             <?php if (empty($invoice)): ?>
                 <?php /* The missing step, offered rather than described. The record form
@@ -272,6 +314,15 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
                     <?php endif; ?>
                 </div>
             <?php else: ?>
+                <?php /* Once the order is finished the form is still useful - a second
+                         PRO, a correction - but it should not be the thing on screen
+                         asking to be filled in. Folded shut, the same way the label
+                         form folds after a successful run. */ ?>
+                <?php if ($freightDone): ?><details style="margin-top:.2rem">
+                    <summary style="cursor:pointer;font-size:.88rem;color:#92400e;padding:.4rem 0">
+                        Record another PRO number on this shipment
+                    </summary>
+                <?php endif; ?>
                 <form method="POST" action="/shipping/<?= (int)$order['id'] ?>/freight"
                       style="display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;background:#fff;
                              border:1px solid #fde68a;border-radius:8px;padding:1rem">
@@ -330,6 +381,7 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
                     });
                 }());
                 </script>
+                <?php if ($freightDone): ?></details><?php endif; ?>
             <?php endif; ?>
         </div>
     <?php else: ?>
