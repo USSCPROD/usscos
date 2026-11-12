@@ -239,6 +239,42 @@ before rebuilding against the wrong source.**
    **38 references across `app/` mention it**, with 5 writers, so this is a deliberate
    job rather than a tidy-up — and it is far cheaper during the reimport than after.
 
+7. **Buying groups import half-parented.** Found 2026-11-12, looking at what a customer
+   portal would stand on.
+
+   A buying group is a real structure, not a data mess. **Sports Inc** is a group whose
+   members are their own companies — Johnson-Lambe, Academy Sports, Albert Sporting Goods
+   — and Sports Inc pays their bills, which is why one AP address
+   (`importinvoice@hq.sportsinc.com`) sits on 117 customer records.
+
+   QuickBooks models this with job-style names and USSCOS carries it as `parent_id`:
+
+   ```
+   SPORTS INC                 id 28622   parent NULL
+   SPORTS INC:JOHNSON-LAMBE   id 28656   parent 28622   correct
+   SPORTS INC:JOHNSON-LAMBE   id 123357  parent NULL    duplicate, orphaned
+   ```
+
+   **Exactly half the hierarchy is missing.** 138 customers are named like children
+   (`PARENT:CHILD`) and only 69 have a `parent_id`; the other 69 are orphans from a
+   second import pass, 62 of them in Sports Inc alone. So every group member exists twice
+   — once correctly parented, once loose.
+
+   This is the most concrete cost of the duplicate-customer problem. A customer portal
+   answers *who may this login see?* with the parent/child link, so a Sports Inc login
+   built on today's data would show about half its members and silently miss the rest.
+   See [CUSTOMER_PORTAL.md](CUSTOMER_PORTAL.md).
+
+   The import must therefore produce **one correctly parented record per member**:
+   recognise `PARENT:CHILD` naming, create or find the parent, and set `parent_id` — on
+   every pass, not just the first. Re-running it must not create a second orphaned copy,
+   which is what idempotency was supposed to mean.
+
+   One case to settle with Chip rather than assume: **`JOHNSON - LAMBE` also exists
+   independently** (id 16730) with its own contacts and no parent, alongside the two group
+   records. If members sometimes buy direct and pay for themselves, both records are real
+   and the portal has to know which one a login is for. If it is import noise, it merges.
+
 #### What it needs to become
 
 The rules in [CLAUDE.md](../CLAUDE.md) for scripts that change data in bulk apply and

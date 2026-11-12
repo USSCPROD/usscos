@@ -48,18 +48,33 @@ Those are buying groups and chains whose branches each exist as their own custom
 billing to one AP inbox. So "log in with your email and see your orders" has no answer to
 *which* of 95 customers you are.
 
-That is a design question, not a data cleanup — the records are legitimately separate.
-Some possible shapes, none chosen:
+**Most of that is already modelled, and I was wrong to call it purely a design question.**
+Chip explained the structure on 12 Nov 2026: **Sports Inc is a buying group.** Its members
+— Johnson-Lambe, Academy Sports and the rest — are their own companies, and Sports Inc
+pays their bills. One AP inbox, many real customers.
 
-- A login is its own record, linked to **one or many** customers, with a chooser when it
-  has several. Fits the buying-group case honestly.
-- A login belongs to one customer, and shared addresses simply cannot self-register —
-  those accounts are created by hand.
-- Logins are invited per customer rather than claimed by email, so the link is always
-  deliberate.
+QuickBooks models it with job-style names, and USSCOS already carries it as `parent_id`:
 
-Whichever it is, it has to be decided before the sign-in screen is written, because it
-determines what a session even means.
+```
+SPORTS INC                 id 28622   parent NULL
+SPORTS INC:JOHNSON-LAMBE   id 28656   parent 28622
+SPORTS INC:ACADEMY SPORTS  id 28623   parent 28622
+```
+
+So *who may this login see?* has an answer in the data: **a login on the parent sees its
+children.** What remains is narrower:
+
+- **The hierarchy is half built.** 138 customers are named `PARENT:CHILD` and only 69 have
+  a `parent_id` — the rest are orphaned duplicates from a second import pass, 62 of them
+  in Sports Inc alone. A portal on today's data would show Sports Inc about half its
+  members and miss the rest silently. Fixing this is importer work, logged in
+  [TESTING_LOG.md](TESTING_LOG.md).
+- **A member may also exist on its own.** `JOHNSON - LAMBE` (id 16730) has its own
+  contacts and no parent, alongside the two group records. If members sometimes buy direct
+  and pay for themselves, both are real and a login has to be for one of them. Needs
+  Chip's answer, not a guess.
+- **Does a child get its own login?** A member seeing its own orders without seeing the
+  group's, while the parent pays, is plausible and unconfirmed.
 
 ## What already exists
 
