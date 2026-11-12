@@ -29,6 +29,56 @@ Open decisions for the boss/accountant:
 
 Preserve the option for USSCOS operations plus Square payments plus optional QuickBooks accounting. No duplicate invoices, customer emails, or collections. This note records intent, not an implemented integration.
 
+### Why Square, and what the emailed invoice should do — 12 Nov 2026
+
+**Square is not an alternative to QuickBooks Payments. It is the replacement for the one
+thing QuickBooks Payments did that nothing else does.** USSC's customers are not
+QuickBooks users, so the customer-facing payment link is the part that cannot carry over.
+QuickBooks itself stays as the ledger; see [QUICKBOOKS_SYNC.md](QUICKBOOKS_SYNC.md).
+
+That means Square is the **only** route for a customer to pay online, not a convenience
+alongside another. It also removes the worst risk: with one processor there is no way for
+the same invoice to be collected twice through two systems.
+
+#### What QuickBooks does today, which is the bar to match
+
+Emailing an invoice attaches the PDF with default covering text. The invoice says **paid**
+or **waiting for payment**, and when it is waiting there is a link to pay online. The link
+can be switched off per customer for those who do not want to pay that way.
+
+#### The shape intended for USSCOS
+
+| Customer | How they pay online |
+|---|---|
+| **Non-distributor** | Pay link on the emailed invoice, plus a link to that invoice they can open later — people lose emails and then ring up asking how to pay |
+| **Distributor** | A login. Distributors settle many invoices at once, so the unit is the account, not the invoice: they sign in, see what is and is not paid, and pay a batch |
+
+**The distributor case is not the same feature with a different door on it.** One payment
+against many invoices means applying an amount across them, part-paying some, and holding
+the result consistent when a webhook arrives late or twice. A single-invoice pay link does
+none of that. Treat them as two pieces of work and expect the batch one to be the larger.
+
+#### Which email carries the link
+
+The **invoice email** — sent deliberately, by a person, to somebody who owes money. Not the
+shipment notification: that one is automatic on approval and is about tracking, so a
+payment request on it would reach customers on terms who do not owe anything yet.
+
+#### Still to settle
+
+- **Opting out per customer.** QuickBooks allows it and the same is wanted here. There is
+  no column for it: `customers.preferred_payment_method` is an enum of
+  `cash`/`check`/`credit_card` and says nothing about online payment. Needs its own field,
+  and a decision on what the default is for a customer nobody has set.
+- **Customer type is effectively unpopulated** — 41,229 blank against 3 Retail and 1
+  Distributor. Whatever rule keys off distributor-or-not will key off a column that is
+  empty for almost every customer today. The import has to populate it, or the rule needs
+  a different basis. See the importer rework in [TESTING_LOG.md](TESTING_LOG.md).
+- **There is no customer login of any kind yet** — no portal tables, no customer
+  authentication. The distributor route starts from nothing.
+- Terms payments and link payments arrive by different routes and must land on the same
+  invoice without double-applying.
+
 ## Implementation audit, October 30
 
 Repository: /Users/artdeptmac/Projects/BusinessOS. This is the internal USSCOS application, separate from the SpecialtyCoatings public website.
