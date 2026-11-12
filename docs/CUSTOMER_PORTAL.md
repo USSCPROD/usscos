@@ -5,6 +5,22 @@
 Chip's intent, in his words: *"allow customers to have a login so they can view their past
 orders, have the ability to pay online and also order again from a past order."*
 
+## Two audiences, and only one of them is new
+
+These get confused because both end in "they log in and see less than we do". They are
+different people with different relationships to the money.
+
+| | Who | Relationship | State |
+|---|---|---|---|
+| **Sales reps** | Chris Danis, Jack Curlings, William Leavell | **We bill their customers directly; the rep earns commission.** They are employees with an internal login | **Built.** `users.role = 'rep'`, scoped by `AccessScope` through `sales_reps.user_id` to `customers.sales_rep_id`. They see their own customers and are kept out of shipping, the pull list and receiving |
+| **Distributors and stocking distributors** | Customers who buy to resell | **They pay us.** They see their own invoices and settle them | **Not built.** This is the portal |
+
+A rep sees *a set of customers*. A distributor sees *their own account*. Nothing about
+the rep scope carries over except the shape of the idea — scope in the route and the
+repository, fail closed.
+
+---
+
 Three things behind one login:
 
 | | What it does | Why it exists |
@@ -74,9 +90,16 @@ internet, which changes what a weak password, an enumerable id or a missing scop
 costs. `AccessScope` fails closed on purpose; a customer scope must do the same, in the
 route and the repository, not in the view.
 
-**One payment against many invoices** is genuinely different machinery from a
-single-invoice pay link: applying an amount across invoices, part-paying some, staying
-consistent when a webhook arrives twice or late. Expect it to be the larger half.
+**One payment against many invoices is mostly already built**, internally. Receive
+Payment takes an amount, offers **Apply Oldest First**, and lets a person set *Amount to
+Apply* per invoice; the allocation is stored as `payment_applications` rows, which is
+exactly the model a distributor paying a batch needs. Chip's description of what the
+portal should do — *"enter an amount and click a button as to how much to apply to each
+invoice just like we can do already"* — is that screen, facing outwards.
+
+So the remaining work is not the allocation arithmetic. It is the customer-facing wrapper,
+Square itself, and making a payment that arrives by webhook land on those same
+`payment_applications` rows exactly once when the event is delivered twice or late.
 
 **Sub-customers exist** — 69 of them. If a parent logs in, do they see their children's
 orders? Probably yes, and it needs saying rather than assuming.
