@@ -419,7 +419,7 @@ count and BOL. The API makes it quicker to fill in; it is not what makes it valu
 | **Kuebix automation** | Manual PRO and carrier entry works today. Endpoints captured; waiting on credentials. |
 | **Job Binder** (production, QA, photos) | Artwork is live; the rest is additive. |
 | **Dashboard** | Cosmetic. Currently shows zeros, which is worse than nothing, but breaks nothing. |
-| **Portals, tiered pricing** | Neither is needed to run the warehouse. |
+| **Portals, tiered pricing** | Neither is needed to run the warehouse. Tiered pricing is now built; a customer portal is decided in principle and specified in [CUSTOMER_PORTAL.md](CUSTOMER_PORTAL.md), still not started. |
 | **Entity scoping (TCC/USSC)** | Only if TCC people use USSCOS on day one. If go-live is USSC-only, this can follow — **but it is far cheaper during the reimport**, so decide deliberately rather than by default. |
 
 **Yes — enter bills in QuickBooks and get that information later.** That is exactly what
