@@ -259,6 +259,34 @@ foreach ($line_items as $li) {
                             <?= (int)($so['ship_via_id'] ?? 0) === (int)$sv['id'] ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
+                <?php /*
+                 * Who is taking the pallet.
+                 *
+                 * Ship Via above answers how it goes and stops at "Freight" - a method,
+                 * not a carrier. When somebody rings round for a price and books by
+                 * phone, this is where that name is recorded, at the point the decision
+                 * is made rather than when a PRO turns up at the bench afterwards.
+                 *
+                 * Shown only for freight, driven by the data-mode already on each Ship
+                 * Via option.
+                 */ ?>
+                <div id="freightCarrierWrap" style="display:none;margin-top:.5rem">
+                    <div style="<?= soInpStyle2('lbl') ?>">Freight carrier</div>
+                    <?php if (!empty($freight_carriers)): ?>
+                        <select name="freight_carrier_id" style="<?= soInpStyle2('inp') ?>">
+                            <option value="">— Not chosen yet —</option>
+                            <?php foreach ($freight_carriers as $fc): ?>
+                                <option value="<?= (int)$fc['id'] ?>"
+                                    <?= (int)($so['freight_carrier_id'] ?? 0) === (int)$fc['id'] ? 'selected' : '' ?>><?= e($fc['name']) ?><?php
+                                    if (!empty($fc['scac'])): ?> (<?= e($fc['scac']) ?>)<?php endif; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php else: ?>
+                        <div style="font-size:.78rem;color:#b45309">
+                            No carriers yet — <a href="/admin/freight-carriers" style="color:#0A3D91">add them under Admin</a>.
+                        </div>
+                    <?php endif; ?>
+                </div>
             </td>
         </tr>
     </table>
@@ -763,6 +791,22 @@ function soInpStyle2(string $type): string {
     }
     recalcAll();
 })();
+</script>
+
+<script>
+/* Show the freight carrier only when the order is going freight. The ship mode is
+   already on each Ship Via option as data-mode, so nothing new has to be looked up. */
+(function () {
+    var via  = document.querySelector('select[name="ship_via_id"]');
+    var wrap = document.getElementById('freightCarrierWrap');
+    if (!via || !wrap) { return; }
+    function sync() {
+        var opt = via.options[via.selectedIndex];
+        wrap.style.display = (opt && opt.getAttribute('data-mode') === 'freight') ? '' : 'none';
+    }
+    via.addEventListener('change', sync);
+    sync();
+}());
 </script>
 
 <?php

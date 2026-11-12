@@ -460,14 +460,53 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:25%">
                 <div style="<?= soLbl() ?>">Ship Via</div>
                 <?php if (!$isLocked): ?>
+                    <?php /* data-mode carries the ship mode so the freight carrier
+                             field below can show itself. The edit form already did
+                             this; this page did not, which is the third time a field
+                             has been added to create and edit and forgotten here. */ ?>
                     <select name="ship_via_id" style="<?= soInp() ?>">
-                        <option value="">— Select —</option>
+                        <option value="" data-mode="">— Select —</option>
                         <?php foreach ($ship_via_options as $sv): ?>
-                            <option value="<?= (int)$sv['id'] ?>" <?= (string)($so['ship_via_id'] ?? '') === (string)$sv['id'] ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
+                            <option value="<?= (int)$sv['id'] ?>" data-mode="<?= e($sv['ship_mode'] ?? 'other') ?>"
+                                <?= (string)($so['ship_via_id'] ?? '') === (string)$sv['id'] ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 <?php else: ?>
                     <div style="<?= soRO() ?>"><?= e($so['ship_via_name'] ?? '—') ?></div>
+                <?php endif; ?>
+
+                <?php
+                /*
+                 * Who is taking the pallet. Ship Via above stops at "Freight", which is
+                 * a method rather than a carrier - the carrier is Old Dominion. When a
+                 * price is got by phone, this is where that name goes.
+                 */
+                $soFreightName = $so['freight_carrier_name'] ?? null;
+                $soIsFreight   = ($so['ship_mode'] ?? '') === 'freight';
+                ?>
+                <?php if (!$isLocked): ?>
+                    <div id="freightCarrierWrap" style="display:none;margin-top:.6rem">
+                        <div style="<?= soLbl() ?>">Freight carrier</div>
+                        <?php if (!empty($freight_carriers)): ?>
+                            <select name="freight_carrier_id" style="<?= soInp() ?>">
+                                <option value="">— Not chosen yet —</option>
+                                <?php foreach ($freight_carriers as $fc): ?>
+                                    <option value="<?= (int)$fc['id'] ?>"
+                                        <?= (int)($so['freight_carrier_id'] ?? 0) === (int)$fc['id'] ? 'selected' : '' ?>><?= e($fc['name']) ?><?php
+                                        if (!empty($fc['scac'])): ?> (<?= e($fc['scac']) ?>)<?php endif; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else: ?>
+                            <div style="font-size:.78rem;color:#b45309">
+                                No carriers yet — <a href="/admin/freight-carriers" style="color:#0A3D91">add them under Admin</a>.
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php elseif ($soIsFreight): ?>
+                    <div style="margin-top:.6rem">
+                        <div style="<?= soLbl() ?>">Freight carrier</div>
+                        <div style="<?= soRO() ?>"><?= e($soFreightName ?? '—') ?></div>
+                    </div>
                 <?php endif; ?>
             </td>
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:25%">
@@ -1389,6 +1428,22 @@ $jbInp = 'width:100%;padding:.5rem .65rem;font-size:.9rem;font-family:inherit;bo
         </div>
     </div>
 </div>
+
+<script>
+/* Show the freight carrier only when the order is going freight, from the data-mode
+   on each Ship Via option. */
+(function () {
+    var via  = document.querySelector('select[name="ship_via_id"]');
+    var wrap = document.getElementById('freightCarrierWrap');
+    if (!via || !wrap) { return; }
+    function sync() {
+        var opt = via.options[via.selectedIndex];
+        wrap.style.display = (opt && opt.getAttribute('data-mode') === 'freight') ? '' : 'none';
+    }
+    via.addEventListener('change', sync);
+    sync();
+}());
+</script>
 
 <?php
 $content = ob_get_clean();

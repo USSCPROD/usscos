@@ -100,6 +100,10 @@ class SalesOrderRepository
                    c.company_name, c.email, c.phone,
                    c.bill_address_1, c.bill_city, c.bill_state, c.bill_zip,
                    sv.name AS ship_via_name,
+                   -- The order page needs the mode to decide whether a freight carrier
+                   -- is even a question, and the carrier's name to show once locked.
+                   COALESCE(sv.ship_mode, 'other') AS ship_mode,
+                   fc.name AS freight_carrier_name,
                    tr.name AS tax_rate_name, tr.rate AS tax_rate_pct,
                    cm.message AS customer_message,
                    u.first_name AS rep_first, u.last_name AS rep_last,
@@ -108,6 +112,7 @@ class SalesOrderRepository
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
             LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
+            LEFT JOIN freight_carriers fc ON fc.id = so.freight_carrier_id
             LEFT JOIN tax_rates tr ON tr.id = so.tax_rate_id
             LEFT JOIN customer_messages cm ON cm.id = so.customer_message_id
             LEFT JOIN users u ON u.id = so.rep_id
@@ -166,7 +171,7 @@ class SalesOrderRepository
         $stmt = $this->pdo->prepare("
             INSERT INTO sales_orders
                 (so_number, customer_id, created_by, rep_id, status, order_date,
-                 requested_ship_date, po_number, ship_via_id, tax_rate_id,
+                 requested_ship_date, po_number, ship_via_id, freight_carrier_id, tax_rate_id,
                  customer_message_id, ship_name, ship_address_1, ship_address_2,
                  ship_city, ship_state, ship_zip, ship_phone,
                  subtotal, discount_amount, tax_amount, total_amount,
@@ -175,7 +180,7 @@ class SalesOrderRepository
                  marketplace_fee, marketplace_fee_source)
             VALUES
                 (:so_number, :customer_id, :created_by, :rep_id, :status, :order_date,
-                 :requested_ship_date, :po_number, :ship_via_id, :tax_rate_id,
+                 :requested_ship_date, :po_number, :ship_via_id, :freight_carrier_id, :tax_rate_id,
                  :customer_message_id, :ship_name, :ship_address_1, :ship_address_2,
                  :ship_city, :ship_state, :ship_zip, :ship_phone,
                  :subtotal, :discount_amount, :tax_amount, :total_amount,
@@ -198,6 +203,7 @@ class SalesOrderRepository
                 po_number           = :po_number,
                 rep_id              = :rep_id,
                 ship_via_id         = :ship_via_id,
+                freight_carrier_id  = :freight_carrier_id,
                 tax_rate_id         = :tax_rate_id,
                 customer_message_id = :customer_message_id,
                 ship_name           = :ship_name,

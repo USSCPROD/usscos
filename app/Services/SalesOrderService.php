@@ -42,6 +42,8 @@ class SalesOrderService
             'so'                  => $so,
             'line_items'          => $this->repo->getLineItems($id),
             'ship_via_options'    => $this->repo->getShipViaOptions(),
+            // The LTL carriers from Admin, for the freight field on the order.
+            'freight_carriers'    => (new \App\Repositories\AdminRepository())->activeFreightCarriers(),
             'tax_rates'           => $this->repo->getTaxRates(),
             'customer_messages'   => $this->repo->getCustomerMessages(),
             'reps'                => $this->repo->getReps(),
@@ -55,6 +57,7 @@ class SalesOrderService
         $company = Database::selectOne('SELECT default_tax_rate_id, default_payment_term_id, default_ship_via_id FROM companies WHERE id = 1');
         return [
             'ship_via_options'  => $this->repo->getShipViaOptions(),
+            'freight_carriers'  => (new \App\Repositories\AdminRepository())->activeFreightCarriers(),
             'tax_rates'         => $this->repo->getTaxRates(),
             'customer_messages' => $this->repo->getCustomerMessages(),
             'reps'              => $this->repo->getReps(),
@@ -132,6 +135,9 @@ class SalesOrderService
             ':requested_ship_date'=> ($post['requested_ship_date'] ?? '') ?: null,
             ':po_number'          => ($post['po_number'] ?? '') ?: null,
             ':ship_via_id'        => ($post['ship_via_id'] ?? '') !== '' ? (int)$post['ship_via_id'] : null,
+            // Who is taking the pallet, when somebody has already rung round for a
+            // price. Ship Via stops at 'Freight'; this is the carrier's name.
+            ':freight_carrier_id' => ($post['freight_carrier_id'] ?? '') !== '' ? (int)$post['freight_carrier_id'] : null,
             ':tax_rate_id'        => ($post['tax_rate_id'] ?? '') !== '' ? (int)$post['tax_rate_id'] : null,
             ':customer_message_id'=> ($post['customer_message_id'] ?? '') !== '' ? (int)$post['customer_message_id'] : null,
             ':ship_name'          => ($post['ship_name'] ?? '') ?: null,
@@ -164,6 +170,8 @@ class SalesOrderService
             'so'                  => $so,
             'line_items'          => $this->repo->getLineItems($id),
             'ship_via_options'    => $this->repo->getShipViaOptions(),
+            // The LTL carriers from Admin, for the freight field on the order.
+            'freight_carriers'    => (new \App\Repositories\AdminRepository())->activeFreightCarriers(),
             'tax_rates'           => $this->repo->getTaxRates(),
             'customer_messages'   => $this->repo->getCustomerMessages(),
             'reps'                => $this->repo->getReps(),
@@ -214,6 +222,9 @@ class SalesOrderService
             ':po_number'          => ($post['po_number'] ?? '') ?: null,
             ':rep_id'             => ($post['rep_id'] ?? '') !== '' ? (int)$post['rep_id'] : null,
             ':ship_via_id'        => ($post['ship_via_id'] ?? '') !== '' ? (int)$post['ship_via_id'] : null,
+            // Who is taking the pallet, when somebody has already rung round for a
+            // price. Ship Via stops at 'Freight'; this is the carrier's name.
+            ':freight_carrier_id' => ($post['freight_carrier_id'] ?? '') !== '' ? (int)$post['freight_carrier_id'] : null,
             ':tax_rate_id'        => ($post['tax_rate_id'] ?? '') !== '' ? (int)$post['tax_rate_id'] : null,
             ':customer_message_id'=> ($post['customer_message_id'] ?? '') !== '' ? (int)$post['customer_message_id'] : null,
             ':ship_name'          => ($post['ship_name'] ?? '') ?: null,

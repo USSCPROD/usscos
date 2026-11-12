@@ -348,8 +348,13 @@ foreach (($lines ?? []) as $lbLine) {
                                     style="display:block;margin-top:.3rem;padding:.5rem .6rem;border:1px solid #d1d5db;
                                            border-radius:6px;font:inherit;font-size:.92rem;min-width:14rem">
                                 <option value="">— Choose —</option>
+                                <?php /* Pre-selected from the order when somebody already
+                                         booked it. The carrier was chosen when the price
+                                         was got; making the bench pick it again is how
+                                         the two come to disagree. */ ?>
                                 <?php foreach ($freightCarriers as $fc): ?>
-                                    <option value="<?= (int)$fc['id'] ?>"><?= e($fc['name']) ?><?php
+                                    <option value="<?= (int)$fc['id'] ?>"
+                                        <?= (int)($order['freight_carrier_id'] ?? 0) === (int)$fc['id'] ? 'selected' : '' ?>><?= e($fc['name']) ?><?php
                                         if (!empty($fc['scac'])): ?> (<?= e($fc['scac']) ?>)<?php endif; ?></option>
                                 <?php endforeach; ?>
                                 <option value="other">Someone else — type it</option>
