@@ -18,6 +18,14 @@ $statusLabel = [
 ];
 $isExpired = $q['status'] === 'sent' && !empty($q['expiry_date']) && $q['expiry_date'] < date('Y-m-d');
 $canConvert = in_array($q['status'], ['accepted', 'sent']) && empty($q['sales_order_id']);
+
+/*
+ * A quote raised against a lead has no customer, and a sales order needs one.
+ * Offering Convert to SO anyway meant pressing it failed on a foreign key and
+ * printed the raw SQL. The lead has to become a customer first — which is one
+ * button on the lead, so say that instead of refusing.
+ */
+$quoteOnLead = (int)($q['customer_id'] ?? 0) === 0 && !empty($q['lead_id']);
 $showEmail  = in_array($q['status'], ['draft', 'sent']);
 ?>
 
@@ -75,7 +83,12 @@ $showEmail  = in_array($q['status'], ['draft', 'sent']);
                 <button type="submit" class="btn btn--secondary">Mark Declined</button>
             </form>
         <?php endif; ?>
-        <?php if ($canConvert): ?>
+        <?php if ($canConvert && $quoteOnLead): ?>
+            <a href="/leads/<?= (int)$q['lead_id'] ?>" class="btn btn--primary"
+               title="A sales order needs a customer, and this quote is still on a lead">
+                Convert the lead to a customer first
+            </a>
+        <?php elseif ($canConvert): ?>
             <form method="post" action="/quotes/<?= (int)$q['id'] ?>/convert" style="display:inline" onsubmit="return confirm('Convert this quote to a Sales Order?')">
             <?= csrf_field() ?>
                 <button type="submit" class="btn btn--primary">Convert to SO</button>

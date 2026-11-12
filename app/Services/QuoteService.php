@@ -168,6 +168,28 @@ class QuoteService
         $quote     = $this->quotes->findWithDetails($quoteId);
         if (!$quote) throw new \RuntimeException('Quote not found.');
 
+        /*
+         * A quote can be raised against a lead. A sales order cannot.
+         *
+         * Quoting a lead is the normal way round — somebody enquires, you price it,
+         * and they become a customer when they say yes. But a sales order needs a
+         * customer, so the lead has to be converted first, and nothing on the quote
+         * said so. Pressing Convert to SO on a lead's quote failed on the customer
+         * foreign key and showed the raw SQL to whoever pressed it.
+         *
+         * Found 12 Nov 2026 walking lead to sales order for the first time.
+         */
+        if ((int)($quote['customer_id'] ?? 0) === 0) {
+            throw new \RuntimeException(
+                $quote['lead_id']
+                    ? 'This quote is for a lead, and a sales order needs a customer. '
+                      . 'Open the lead and press "Convert to Customer" first — the quote '
+                      . 'stays attached and can be converted straight afterwards.'
+                    : 'This quote has no customer on it, so there is nothing to raise a '
+                      . 'sales order against.'
+            );
+        }
+
         $lineItems = $this->quotes->getLineItems($quoteId);
 
         $soId = $this->soRepo->create([
