@@ -397,6 +397,37 @@ Fixing any of this needs **sample exports of the files that will actually be use
 
 ## Fixed
 
+### 2026-11-12 — walking lead to sales order for the first time
+
+Everything tested until now started at the sales order. Walking the front half — lead,
+quote, convert — found **five faults, four of them fatal to the path.** None would have
+surfaced by reading the code: each half looks right on its own.
+
+Lead 123 (Cherokee County Parks, 20 cases white and 10 yellow, FedEx) through Q-00005.
+
+| | What happened |
+|---|---|
+| **1. Blank quote line saved** | The form keeps a spare row at the bottom; it was stored as a real line, qty 1 at $0.00, and carried onto the order. The same bug fixed for sales orders on 10 Nov, still live on quotes |
+| **2. Convert to SO failed outright** | `SQLSTATE[HY093] Invalid parameter number`. `QuoteService::convertToSO` supplies 23 parameters to an insert binding 30 — `channel` and the marketplace fields were added and the quote path never updated. **Pre-existing**; adding `freight_carrier_id` that morning made it seven missing instead of six |
+| **3. Then a NOT NULL violation** | `marketplace_fee_source cannot be null`. Six of those columns are NOT NULL with a database default, and a bound parameter overrides a default rather than deferring to it — the trap CLAUDE.md warns about |
+| **4. Then a foreign key violation** | The quote was raised against a **lead**, which has no customer, and a sales order needs one. Quoting a lead is the normal way round, but nothing said the lead had to be converted first — the button simply failed and printed the raw SQL |
+| **5. Converting the lead stranded the quote** | The lead became customer 255052 and **the quote stayed pointed at the lead**. An accepted quote became a permanent dead end, with the screen still saying convert the lead first |
+| **6. Quantities were lost in conversion** | The worst one. `replaceLineItems()` reads `qty_ordered` and `taxable`; quote lines carry `qty` and `is_taxable`, so the `?? 1` fallback made **every line quantity 1** while keeping the quote's `line_total`. A $1,730 quote for 30 cases became an order to pick **one** case of each, and the stored header total still said $1,730 while the page recalculated $116. **The warehouse ships one, the customer is billed for twenty, and nothing disagrees out loud** |
+
+All fixed and verified by converting a cloned quote inside a transaction: 20 and 10 carry
+across, the totals match at $1,730, the blank line is dropped.
+
+Two of these are worth remembering beyond their fix:
+
+- **`create()` now merges a defaults table** rather than requiring every caller to know
+  every column, because (2) is what happens when it does not — and it failed silently for
+  everyone converting a quote until somebody walked the path.
+- **Faults 4 and 5 are the familiar shape**: correct logic, no explanation. The quote now
+  offers *"Convert the lead to a customer first"* linking to the lead, and converting a
+  lead brings its quotes and opportunities with it.
+
+
+
 ### 2026-11-12 — the shipping queue on the bench tablet
 
 The queue is how shipping picks the next order and it is worked on a Fire tablet. As a
