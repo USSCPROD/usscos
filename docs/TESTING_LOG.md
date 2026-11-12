@@ -287,14 +287,18 @@ before rebuilding against the wrong source.**
    testing; it is not a second trading relationship.
 
    **The group has 397 invoices and zero payments recorded against any of them**, parent
-   or child. Chip has just confirmed Sports Inc pays them all, so that is fault 4 above
-   — no payments step — showing its cost: this group's entire A/R is fictional, and every
-   one of those invoices reads unpaid.
+   or child, while Chip has confirmed Sports Inc pays them all. Two explanations, and the
+   evidence here does not separate them: the importer has no payments step at all (fault 4
+   above), and **what is loaded is only a small slice of the real history** — payments may
+   simply not have been in the extract, so an absence here is not evidence of absence in
+   QuickBooks. Either way the conclusion for testing is the same: **A/R on this data means nothing**, and every one of
+   those invoices reads unpaid because nothing has ever written a payment.
 
    It also means **there is no example in the data of how a buying group actually pays** —
-   one payment across many invoices is exactly the distributor-portal case, and the
-   imported payment records are what will show whether they settle per invoice, per
-   statement or per month.
+   one payment across many invoices is exactly the distributor-portal case. When a real
+   extract arrives, the payment records are what will show whether they settle per invoice,
+   per statement or per month, and that shapes the portal screen. Worth asking for
+   deliberately rather than hoping it turns up.
 
 #### What it needs to become
 
