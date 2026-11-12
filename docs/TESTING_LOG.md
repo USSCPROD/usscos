@@ -270,10 +270,31 @@ before rebuilding against the wrong source.**
    every pass, not just the first. Re-running it must not create a second orphaned copy,
    which is what idempotency was supposed to mean.
 
-   One case to settle with Chip rather than assume: **`JOHNSON - LAMBE` also exists
-   independently** (id 16730) with its own contacts and no parent, alongside the two group
-   records. If members sometimes buy direct and pay for themselves, both records are real
-   and the portal has to know which one a login is for. If it is import noise, it merges.
+   **Settled 2026-11-12, verified by Chip in QuickBooks: Sports Inc pays every member's
+   invoices.** Members never settle their own. So a login belongs on the parent, and the
+   earlier worry about a member paying directly does not arise.
+
+   The data agrees about which records are real:
+
+   | Record | Invoices | Payments |
+   |---|---|---|
+   | `SPORTS INC:JOHNSON-LAMBE` id 28656, parented | **120, $133,417.77** | 0 |
+   | `SPORTS INC:JOHNSON-LAMBE` id 123357, orphan | 0 | 0 |
+   | `JOHNSON - LAMBE` id 16730, independent | 1, $1,227.85 | 1 |
+
+   The orphan is **empty** — import noise, and merging it loses nothing. The independent
+   record holds exactly one invoice, 292161, which is a test invoice created during this
+   testing; it is not a second trading relationship.
+
+   **The group has 397 invoices and zero payments recorded against any of them**, parent
+   or child. Chip has just confirmed Sports Inc pays them all, so that is fault 4 above
+   — no payments step — showing its cost: this group's entire A/R is fictional, and every
+   one of those invoices reads unpaid.
+
+   It also means **there is no example in the data of how a buying group actually pays** —
+   one payment across many invoices is exactly the distributor-portal case, and the
+   imported payment records are what will show whether they settle per invoice, per
+   statement or per month.
 
 #### What it needs to become
 

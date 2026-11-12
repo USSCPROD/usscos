@@ -69,12 +69,13 @@ children.** What remains is narrower:
   in Sports Inc alone. A portal on today's data would show Sports Inc about half its
   members and miss the rest silently. Fixing this is importer work, logged in
   [TESTING_LOG.md](TESTING_LOG.md).
-- **A member may also exist on its own.** `JOHNSON - LAMBE` (id 16730) has its own
-  contacts and no parent, alongside the two group records. If members sometimes buy direct
-  and pay for themselves, both are real and a login has to be for one of them. Needs
-  Chip's answer, not a guess.
+- **Who pays is settled.** Chip verified in QuickBooks on 12 Nov 2026 that **Sports Inc
+  pays every member's invoices**; members never settle their own. The paying login belongs
+  on the parent. The independent `JOHNSON - LAMBE` record (id 16730) turned out to hold a
+  single test invoice from this testing, not a second trading relationship.
 - **Does a child get its own login?** A member seeing its own orders without seeing the
-  group's, while the parent pays, is plausible and unconfirmed.
+  group's, while the parent pays, is plausible and unconfirmed. It is a view question
+  only — payment stays with the parent.
 
 ## What already exists
 
