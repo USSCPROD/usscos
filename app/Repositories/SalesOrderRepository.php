@@ -166,8 +166,52 @@ class SalesOrderRepository
         return (string)($max + 1);
     }
 
+    /**
+     * Every column this insert binds, with what it means when a caller says nothing.
+     *
+     * Named parameters have to be supplied in full — PDO rejects the whole statement
+     * with "Invalid parameter number" if one is missing, which is a confusing way to be
+     * told that somebody added a column. That is exactly what happened: `channel` and
+     * the marketplace fields went into the insert and `QuoteService::convertToSO` was
+     * never updated, so converting an accepted quote into a sales order failed for
+     * everyone until it was walked through on 12 Nov 2026. Adding
+     * `freight_carrier_id` the same day made it seven missing instead of six.
+     *
+     * Defaulting here means a caller supplies what it knows about, a new column does
+     * not break the callers that do not care about it, and the fallback for each one is
+     * written down where the insert is rather than copied into every caller.
+     */
+    private const CREATE_DEFAULTS = [
+        ':rep_id'                    => null,
+        ':requested_ship_date'       => null,
+        ':po_number'                 => null,
+        ':ship_via_id'               => null,
+        ':freight_carrier_id'        => null,
+        ':tax_rate_id'               => null,
+        ':customer_message_id'       => null,
+        ':ship_name'                 => null,
+        ':ship_address_1'            => null,
+        ':ship_address_2'            => null,
+        ':ship_city'                 => null,
+        ':ship_state'                => null,
+        ':ship_zip'                  => null,
+        ':ship_phone'                => null,
+        ':discount_amount'           => 0,
+        ':tax_amount'                => 0,
+        ':memo'                      => null,
+        ':internal_notes'            => null,
+        // An order with no stated channel came in the ordinary way: somebody keyed it.
+        ':channel'                   => 'direct',
+        ':channel_reference'         => null,
+        ':marketplace_tax_collected' => 0,
+        ':marketplace_fee'           => 0,
+        ':marketplace_fee_source'    => null,
+    ];
+
     public function create(array $data): int
     {
+        $data = array_merge(self::CREATE_DEFAULTS, $data);
+
         $stmt = $this->pdo->prepare("
             INSERT INTO sales_orders
                 (so_number, customer_id, created_by, rep_id, status, order_date,
