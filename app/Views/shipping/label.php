@@ -50,6 +50,17 @@ $suggestedPackages = max(1, count($packages));
  * it — printed directly above a card saying there was no label to create.
  */
 $isFreightOrder = ($shipMode ?? 'other') === 'freight';
+
+/*
+ * What has been picked and not yet shipped, for the same reason: three places
+ * were each working it out, and the freight card and the parcel card disagreeing
+ * about whether an order was finished is exactly how a done order came to look
+ * stuck.
+ */
+$pickedUnshipped = 0.0;
+foreach (($lines ?? []) as $lbLine) {
+    $pickedUnshipped += (float)($lbLine['qty_picked'] ?? 0) - (float)($lbLine['qty_shipped'] ?? 0);
+}
 ?>
 
 <?php if (!$configured && !$isFreightOrder): ?>
@@ -63,10 +74,7 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
     <?php
         // How much is ready to go. An order that has been picked does not need sending
         // away to find a different screen - the missing step can be taken from here.
-        $readyQty = 0.0;
-        foreach (($lines ?? []) as $l) {
-            $readyQty += (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0);
-        }
+        $readyQty = $pickedUnshipped;
     ?>
     <?php if ($readyQty > 0): ?>
         <!--
@@ -238,10 +246,7 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
         <div style="<?= $lblCard ?>;background:#fffbeb;border-color:#fcd34d">
             <div style="<?= $lblHead ?>;color:#92400e">This one goes freight</div>
             <?php
-            $freightReady = 0.0;
-            foreach (($lines ?? []) as $l) {
-                $freightReady += (float)($l['qty_picked'] ?? 0) - (float)($l['qty_shipped'] ?? 0);
-            }
+            $freightReady = $pickedUnshipped;
             ?>
             <?php
             /*
@@ -385,6 +390,42 @@ $isFreightOrder = ($shipMode ?? 'other') === 'freight';
             <?php endif; ?>
         </div>
     <?php else: ?>
+    <?php
+    /*
+     * The parcel equivalent of the freight done state.
+     *
+     * Same silence, one branch over: SO #36 had shipped everything, invoiced as
+     * 292165 and printed five labels, and the page offered only a collapsed
+     * "another label" summary. Nothing said it was finished and there was no way
+     * back to the queue.
+     */
+    $parcelDone = $pickedUnshipped <= 0.0001 && !empty($invoice) && $alreadyLabelled;
+    ?>
+    <?php if ($parcelDone): ?>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem 1.15rem;margin-bottom:1rem">
+            <div style="font-size:1rem;font-weight:700;color:#166534;margin-bottom:.3rem">
+                This one is done — nothing left to do here.
+            </div>
+            <div style="font-size:.9rem;color:#166534;line-height:1.6">
+                Everything picked has shipped, it is invoiced<?php
+                    if (!empty($invoice['invoice_number'])): ?> as
+                    <strong><?= e($invoice['invoice_number']) ?></strong><?php
+                    endif; ?>, and <strong><?= count($existing) ?></strong>
+                label<?= count($existing) === 1 ? ' is' : 's are' ?> on the shipment.
+                Only make another if a box is going out that has no label on it yet —
+                each one is a shipment FedEx can bill for.
+            </div>
+            <div style="margin-top:.85rem">
+                <?php if (!empty($invoice['id'])): ?>
+                    <a href="/invoices/<?= (int)$invoice['id'] ?>" class="btn btn--secondary btn--sm"
+                       style="margin-right:.5rem">Open the invoice</a>
+                <?php endif; ?>
+                <a href="/sales-orders/<?= (int)$order['id'] ?>/packing-slip" target="_blank"
+                   class="btn btn--secondary btn--sm" style="margin-right:.5rem">Packing slip</a>
+                <a href="/shipping" class="btn btn--primary btn--sm">Back to the queue</a>
+            </div>
+        </div>
+    <?php endif; ?>
     <div style="<?= $lblCard ?>">
         <?php if ($alreadyLabelled): ?>
             <details>
