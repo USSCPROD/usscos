@@ -130,12 +130,24 @@ class InvoiceController extends Controller
      */
     public function approve(Request $request, Response $response, string $id = '0'): Response
     {
+        /*
+         * Approving from the invoice itself should not dump you on a list.
+         *
+         * The button used to exist only on the review queue, so one destination was
+         * right for everybody. Now it is on the invoice too, and somebody who opened an
+         * invoice to look it over wants to see the result on the invoice - particularly
+         * when approval triggers the customer email and the message says whether it went.
+         */
+        $back = $request->post('return') === 'invoice'
+            ? '/invoices/' . (int)$id
+            : '/invoices/review';
+
         try {
             $result = $this->service->approve((int)$id, Auth::id());
         } catch (\PDOException $e) { throw $e;
         } catch (\RuntimeException $e) {
             Session::flash('error',$e->getMessage());
-            return $response->redirect('/invoices/review');
+            return $response->redirect($back);
         }
 
         Session::flash(
@@ -143,7 +155,7 @@ class InvoiceController extends Controller
             'Approved. ' . $result['message']
         );
 
-        return $response->redirect('/invoices/review');
+        return $response->redirect($back);
     }
 
     /** Add a tracking number to an invoice after the fact — a second carton, or a correction. */

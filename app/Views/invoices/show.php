@@ -79,6 +79,25 @@ function invReadBox(): string {
         <?php if ($isPaid && $isPrivileged): ?>
             <span class="text-muted text-sm">Paid — line items locked</span>
         <?php endif; ?>
+        <?php if (($inv['review_status'] ?? '') === 'pending' && ($inv['status'] ?? '') !== 'void'): ?>
+            <?php /*
+             * Approve where the reviewing happens.
+             *
+             * This lived only on the Awaiting Review list. Checking an invoice means
+             * opening it, so the one action the reviewer came to take was on the screen
+             * they had just left - look it over, press Back, find the row again, approve
+             * it. The list keeps its button for approving without opening; this is for
+             * when you have opened it.
+             */ ?>
+            <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/approve" style="margin:0">
+                <?= csrf_field() ?>
+                <input type="hidden" name="return" value="invoice">
+                <button type="submit" class="btn btn--primary"
+                        onclick="return confirm('Approve invoice #<?= e($inv['invoice_number']) ?> for <?= e(addslashes($inv['company_name'])) ?>?')">
+                    Approve
+                </button>
+            </form>
+        <?php endif; ?>
         <?php if ((float)$inv['balance_due'] > 0): ?>
             <a href="/customers/<?= (int)$inv['customer_id'] ?>/payment?invoice=<?= (int)$inv['id'] ?>" class="btn btn--primary">Receive Payment</a>
         <?php endif; ?>
@@ -87,6 +106,19 @@ function invReadBox(): string {
         <button class="btn btn--secondary" onclick="document.getElementById('emailModal').style.display='flex'">Email</button>
     </div>
 </div>
+
+<?php if (($inv['review_status'] ?? '') === 'pending' && ($inv['status'] ?? '') !== 'void'): ?>
+    <div style="border:1px solid #fcd34d;background:#fffbeb;border-radius:8px;padding:.85rem 1.1rem;margin-bottom:1.25rem;
+                display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div style="font-size:.9rem;color:#78350f;line-height:1.5">
+            <strong>Waiting for review.</strong>
+            Check it over, then approve — the customer has not been told about this one yet.
+        </div>
+        <a href="/invoices/review" style="font-size:.85rem;color:#92400e;font-weight:600;white-space:nowrap">
+            All awaiting review &rsaquo;
+        </a>
+    </div>
+<?php endif; ?>
 
 <!-- Email Modal -->
 <?php $emailUser = \App\Core\Auth::user(); ?>
