@@ -31,7 +31,21 @@ class TrackingRepository
         return (int)Database::connection()->lastInsertId();
     }
 
-    /** Every number on an invoice, with its carrier and a ready-made link. */
+    /**
+     * Every tracking number on an invoice, from wherever it is actually stored.
+     *
+     * Tracking has two homes. These rows are the real record - carrier, type, label -
+     * and `invoices.tracking_number` is an older single column still written by the
+     * Tracking # field on the invoice form and by the import.
+     *
+     * Asking only the rows made three screens disagree with the invoice in front of
+     * them: Awaiting Review said None yet, the tracking panel said there were none,
+     * and approving said `no_tracking` and sent the customer nothing - all while the
+     * invoice displayed 794905225741. The fallback lives here, in the one method they
+     * all call, rather than in each of them.
+     *
+     * Collapsing the two stores into one is cutover work; see docs/TESTING_LOG.md.
+     */
     public function forInvoice(int $invoiceId): array
     {
         $rows = Database::select("
@@ -45,8 +59,38 @@ class TrackingRepository
         foreach ($rows as &$r) {
             $r['url'] = $this->url($r['tracking_url_template'] ?? null, (string)$r['tracking_number']);
         }
+        unset($r);
 
-        return $rows;
+        if ($rows !== []) {
+            return $rows;
+        }
+
+        // Nothing at the bench. Fall back to the invoice's own column, shaped like a
+        // row so callers need no special case. It carries no ship_via, so there is no
+        // carrier and no tracking URL - which is the truth about a number somebody
+        // typed onto an invoice.
+        $legacy = Database::selectOne(
+            'SELECT tracking_number FROM invoices WHERE id = ?',
+            [$invoiceId]
+        );
+
+        $number = $legacy === false ? '' : trim((string)($legacy['tracking_number'] ?? ''));
+
+        if ($number === '') {
+            return [];
+        }
+
+        return [[
+            'id'              => null,
+            'invoice_id'      => $invoiceId,
+            'tracking_number' => $number,
+            'tracking_type'   => 'parcel',
+            'ship_via_id'     => null,
+            'carrier'         => null,
+            'label_path'      => null,
+            'url'             => null,
+            'from_invoice'    => true,
+        ]];
     }
 
     public function exists(int $invoiceId, string $number): bool

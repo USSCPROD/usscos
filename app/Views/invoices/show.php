@@ -604,8 +604,13 @@ $emailState = $inv['shipment_email_status'] ?? null;
             <?php foreach ($tracking as $t): ?>
                 <tr style="border-bottom:1px solid #f3f4f6">
                     <td style="padding:.55rem 1rem;font-size:.8rem;color:#6b7280;width:11rem">
-                        <?= e($trackLabel[$t['tracking_type']] ?? 'Tracking') ?>
-                        <?= $t['carrier'] ? ' · ' . e($t['carrier']) : '' ?>
+                        <?php if (!empty($t['from_invoice'])): ?>
+                            On the invoice record
+                            <div style="font-size:.75rem;color:#9ca3af">Typed here, not scanned at the bench</div>
+                        <?php else: ?>
+                            <?= e($trackLabel[$t['tracking_type']] ?? 'Tracking') ?>
+                            <?= $t['carrier'] ? ' · ' . e($t['carrier']) : '' ?>
+                        <?php endif; ?>
                     </td>
                     <td style="padding:.55rem 1rem;font-family:monospace;font-size:.92rem">
                         <?php if (!empty($t['url'])): ?>
@@ -616,43 +621,22 @@ $emailState = $inv['shipment_email_status'] ?? null;
                         <?php endif; ?>
                     </td>
                     <td style="padding:.55rem 1rem;text-align:right;width:5rem">
-                        <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/tracking/<?= (int)$t['id'] ?>/remove" style="margin:0">
-                            <?= csrf_field() ?>
-                            <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;
-                                                         color:#9ca3af;font-size:.75rem;text-decoration:underline">Remove</button>
-                        </form>
+                        <?php if (!empty($t['from_invoice'])): ?>
+                            <?php /* This one is the invoice's own tracking_number column
+                                     rather than a shipment_tracking row, so there is no
+                                     row to remove - clearing it is done in the Tracking #
+                                     field above. */ ?>
+                        <?php else: ?>
+                            <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/tracking/<?= (int)$t['id'] ?>/remove" style="margin:0">
+                                <?= csrf_field() ?>
+                                <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;
+                                                             color:#9ca3af;font-size:.75rem;text-decoration:underline">Remove</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
         </table>
-    <?php elseif (trim((string)($inv['tracking_number'] ?? '')) !== ''): ?>
-        <?php /*
-         * The invoice carries a number in its own tracking_number column but has no
-         * shipment_tracking row. Saying "no tracking numbers yet" directly below a
-         * Tracking # field showing one is how this panel came to contradict the form
-         * above it, and the Awaiting Review list to say None yet about an invoice
-         * that plainly had a number on it.
-         *
-         * Two places hold tracking: these rows, which are the real record and carry
-         * the carrier, the type and the label, and that older column, still written
-         * by the form above and by the import. Showing it here, said for what it is,
-         * at least stops the screen arguing with itself. Collapsing the two is cutover
-         * work - see docs/TESTING_LOG.md.
-         */ ?>
-        <table style="width:100%;border-collapse:collapse">
-            <tr>
-                <td style="padding:.55rem 1rem;font-size:.8rem;color:#6b7280;width:11rem">
-                    On the invoice record
-                </td>
-                <td style="padding:.55rem 1rem;font-family:monospace;font-size:.92rem">
-                    <?= e($inv['tracking_number']) ?>
-                </td>
-            </tr>
-        </table>
-        <div style="padding:.3rem 1rem 1rem;color:#9ca3af;font-size:.82rem">
-            Typed into the Tracking # field on this invoice rather than recorded at the
-            bench, so there is no carrier or label behind it.
-        </div>
     <?php else: ?>
         <div style="padding:1.1rem 1rem;color:#9ca3af;font-size:.88rem">
             No tracking numbers yet. They are normally entered at the bench when the order
