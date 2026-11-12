@@ -162,12 +162,59 @@ customers, and should be reused. But a checkout is not a rep, and the difference
   "did you mean one of these three companies?" discloses other customers' names to a
   stranger. The method already redacts per match for restricted users; at checkout the
   right answer is to **show nothing at all**.
-- So the matching has to be **silent**: an exact email match attaches the order to the
-  existing customer, and anything less certain creates a new record and **queues the
-  near-match for somebody here to merge**. Guessing wrong in public is worse than a
-  duplicate somebody resolves internally.
+- So the matching has to be **silent**: nothing about other customers is ever shown at
+  checkout. Guessing wrong in public is worse than a duplicate somebody resolves
+  internally.
 - Merging two customers is not yet a thing USSCOS can do. If near-matches are to be
   queued, something has to be able to act on the queue.
+
+### The matching order — Chip, 12 Nov 2026
+
+**Email first, then company name**, *"as a school or company may have more than 1 person
+ordering."*
+
+That is the right order for this trade: the customer is the institution, not the
+individual. Two coaches buying for the same school are one customer, not two.
+
+1. **Exact email match** → attach to that customer.
+2. **No email match, company name matches** → attach to that company.
+3. **Neither** → create a new customer.
+
+Two things make step 2 harder than it reads:
+
+- **Company names are not unique.** 9,665 company names are currently held by more than
+  one record. That is the duplicate problem again, so a clean import fixes most of it —
+  but the rule still needs an answer for *matched more than one*, and the answer cannot
+  be to ask the customer. Attach to none, create the record, and queue it.
+- **Fuzzy matching cuts both ways.** "Thacher School" against "The Thacher School" should
+  match; "Carolina Sports Inc." against "Carolina Sports" probably should; two different
+  Midfield High Schools in different states should not. Exact-match-after-normalising is
+  the safe starting point, with anything looser queued rather than acted on.
+
+### The gap this exposes: a customer holds only one person
+
+**There is no contacts table.** `customers` carries one set of person fields —
+`first_name`, `last_name`, `email`, `cc_email` and phones. So the rule above correctly
+attaches Coach Jones's order to Thacher School, and then **has nowhere to put Coach
+Jones.** He either overwrites Coach Smith or is lost.
+
+For the stated reason behind all of this — *"we want the actual customer's info for future
+things like marketing"* — that is the wrong way round: it keeps the institution and
+discards the people, and the people are who marketing is addressed to.
+
+A `customer_contacts` table (customer_id, name, email, phone, role, marketing consent,
+last ordered) would close it, and would also serve:
+
+- **Who to email** a shipment notification or invoice, when the person who ordered is not
+  the address on the account.
+- **Portal logins**, which are per-person, not per-company — a school with three coaches
+  needs three logins against one customer. That question is already open above under
+  identity; this is the same answer approached from a different direction.
+- **Sports Inc**, where the AP inbox is a contact of the parent while each member has its
+  own buyer.
+
+Not needed to run the warehouse. Needed before the portal or any marketing use of this
+data.
 
 ### Other consequences of a guest order
 
