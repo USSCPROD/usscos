@@ -340,19 +340,23 @@ if ($activeTab === 'all') {
                                     </button>
                                 </form>
                             <?php endif; ?>
-                            <?php if (($o['ship_mode'] ?? '') === 'freight'): ?>
-                                <?php /* FedEx is not the carrier. Offering its label
-                                         screen on an LTL order is an invitation to buy
-                                         a parcel label for a pallet. */ ?>
-                                <span style="<?= $quiet ?>;border-style:dashed">No FedEx label</span>
-                            <?php elseif (($o['ship_mode'] ?? '') === 'pickup'): ?>
-                                <?php /* Nothing to label: the customer is coming for it.
-                                         Offering a FedEx label here is an invitation to
-                                         buy one by mistake. */ ?>
-                                <span title="The customer collects this one — no carrier label"
-                                      style="font-size:.8rem;padding:.3rem .7rem;border:1px dashed #cbd5e1;border-radius:5px;color:#94a3b8;margin-right:.4rem">
-                                    No label
-                                </span>
+                            <?php if (($o['ship_mode'] ?? '') === 'freight' || ($o['ship_mode'] ?? '') === 'pickup'): ?>
+                                <?php /*
+                                 * Nothing here, deliberately.
+                                 *
+                                 * FedEx is not the carrier on an LTL order and nobody
+                                 * labels a collection, so the button is correctly absent
+                                 * - but these rows used to carry a dashed "No FedEx
+                                 * label" pill saying so. That existed to stop a freight
+                                 * row going quiet once picked and packed, back when
+                                 * removing the button left it with no action at all.
+                                 * Invoice leads these rows now, so the hole it filled is
+                                 * gone and all it does is explain an absence on every
+                                 * freight order for ever. The Carrier column already
+                                 * says Freight, which is the actual explanation, and the
+                                 * label screen says it properly to anyone who goes there
+                                 * looking for a label.
+                                 */ ?>
                             <?php else: ?>
                                 <?php /* The lead once the box is checked: the label
                                          screen invoices the order in the same press. */ ?>
