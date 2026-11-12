@@ -2120,27 +2120,49 @@ textarea.so-inp { resize:vertical; min-height:80px; }
     .queue-table td[data-label="Customer"]::before { display: none; }
     .queue-table td[data-label="Customer"] div:first-child { font-size: 1.05rem; }
 
-    /* Buttons: full width, thumb height, stacked with room between them. */
+    /* Buttons sit side by side and wrap, rather than one per line. Stacking
+       them full width turned four short words into four full-width bars and
+       pushed the next order off the screen - the card got taller than the
+       row it replaced. They stay 44px tall, which is the part that matters
+       for a thumb; they do not need to be 670px wide to be hittable. */
     .queue-table td.queue-actions {
-        padding: .7rem .95rem .2rem !important;
+        padding: .7rem .95rem .3rem !important;
         border-top: 1px solid #f3f4f6;
         margin-top: .35rem;
+        text-align: left !important;
     }
     .queue-table td.queue-actions a,
-    .queue-table td.queue-actions button,
-    .queue-table td.queue-actions > span {
-        display: block !important;
-        width: 100%;
+    .queue-table td.queue-actions button {
+        display: inline-block !important;
+        width: auto;
         box-sizing: border-box;
-        min-height: 46px;
-        line-height: 1.2;
-        margin: 0 0 .5rem !important;
-        padding: .8rem 1rem !important;
-        font-size: .95rem !important;
+        min-height: 44px;
+        min-width: 5.5rem;
+        line-height: 1.3;
+        margin: 0 .4rem .4rem 0 !important;
+        padding: .65rem 1.1rem !important;
+        font-size: .9rem !important;
         text-align: center;
+        vertical-align: top;
     }
-    .queue-table td.queue-actions form { display: block !important; margin: 0 !important; }
-    .queue-table td.queue-actions form button { margin-bottom: .5rem !important; }
+    .queue-table td.queue-actions form { display: inline-block !important; margin: 0 !important; }
+
+    /* The dashed placeholders - "No FedEx label", a greyed Invoice - are not
+       things to press. Saying them in plain text stops the eye counting them
+       as actions and hunting for the one that works. */
+    .queue-table td.queue-actions > span:not(.queue-tag):not(.queue-tag-why) {
+        display: inline-block !important;
+        width: auto;
+        min-height: 0 !important;
+        margin: 0 .5rem .4rem 0 !important;
+        padding: .3rem 0 !important;
+        border: 0 !important;
+        font-size: .82rem !important;
+        font-style: italic;
+        color: #9ca3af !important;
+        background: none !important;
+        vertical-align: middle;
+    }
 
     /* The pick/pack tags keep their badge, and gain the sentence the title
        attribute carries - a tablet has no hover, so that text is otherwise
