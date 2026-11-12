@@ -193,6 +193,63 @@ Nothing here is urgent, and all of it is needed before the real cutover.
 
 ## Fixed
 
+### 2026-11-12 — the shipping queue on the bench tablet
+
+The queue is how shipping picks the next order and it is worked on a Fire tablet. As a
+table it needed **1521px**. Every action button — Pick, Pack, Label, Packing Slip — sat
+off the right edge, reachable only by dragging the table sideways with nothing on screen
+suggesting that was possible.
+
+Below 1399px each row is now a card: headings travel with their values, empty fields drop
+out, carrier/status/total share a line, and the buttons are 44px tall and sit in a
+wrapping row. Done in CSS against the same markup, so the PHP deciding which button leads
+stays the single source of truth.
+
+**The breakpoint was wrong first time.** It was set at 1024px because the first test was
+at 768. A Fire HD reports **1280 CSS pixels** in landscape, so the bench still got the
+table. *A tablet is not 768 wide — match what the device reports.* At 1400–1600 the
+buttons wrap instead, because the table overflowed a 1440 laptop too.
+
+Also fixed on that screen: the pick/pack tags carried their meaning in `title=`
+attributes, and there is no hover on a tablet, so on the one screen those sentences were
+written for they could not be read. Card mode prints them under the badge.
+
+### 2026-11-12 — a finished order looked stuck
+
+SO #11 was fully shipped, invoiced as 292166 and carrying PRO 45566677, and every button
+had correctly disappeared — which from the bench is indistinguishable from being broken.
+Seven parcel orders were in the same state one branch over, including SO #36 with five
+labels printed and nothing saying so.
+
+Both the freight and parcel cards now lead with a green *"This one is done — nothing left
+to do here"* box naming the invoice and the tracking, and offering the invoice, the
+packing slip and the way back to the queue. The record/label forms fold shut.
+
+Picked-minus-shipped was being calculated in three places on that page and is now one
+value. Those three disagreeing is what produced the earlier bug where a freight order was
+told "creating the label will invoice it" directly above a card saying there was no label
+to create.
+
+**This is the third instance of one pattern**, after the draft trap and the approval gate:
+correct logic that says nothing reads as a fault. Every blocked or finished state needs to
+name itself where the buttons would be.
+
+### 2026-11-12 — the tablet slept mid-pick
+
+Fire OS caps the screen timeout at 30 minutes and hides "stay awake while charging" behind
+Developer Options, which Amazon has been removing — tapping the serial number seven times
+did nothing on this device.
+
+`public/assets/js/wakelock.js` takes a **screen wake lock** on the queue, pull list, pick,
+pack, label and receiving pages. Nothing to configure on the device and a factory update
+cannot undo it. It re-takes the lock when the tab becomes visible, since browsers drop it
+whenever the page is hidden.
+
+A badge bottom-right says whether the lock is actually held, because a refused wake lock
+looks exactly like a working one until the screen goes dark with someone's hands full.
+**Confirmed green on the real Fire tablet.**
+
+
 ### 2026-11-11 — a draft could be created in silence
 
 A new sales order saves as a draft, and a draft never reaches the shipping queue.
