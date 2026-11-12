@@ -2064,9 +2064,15 @@ textarea.so-inp { resize:vertical; min-height:80px; }
    the same buttons - only the display changes, so there is no second layout
    to keep in step with this one.
 
+   The breakpoint is 1399px, not 1024px. A tablet is not 768 wide: the Fire HD
+   reports 1280 CSS pixels in landscape, an iPad Pro 12.9 reports 1366, and at
+   1024 the bench still got the table and still had to drag it sideways. The
+   number to match is what the device reports, not what a phone-sized guess
+   suggests.
+
    Not flex or grid: display:block only, which is what the convention in
    CLAUDE.md is cautious about. */
-@media (max-width: 1024px) {
+@media (max-width: 1399px) {
     .queue-table thead { display: none; }
 
     .queue-table,
@@ -2163,3 +2169,13 @@ textarea.so-inp { resize:vertical; min-height:80px; }
 /* On a desktop the tag explanation stays in the title attribute, where hover
    works and the extra sentence would only crowd the row. */
 .queue-tag-why { display: none; }
+
+/* Between the card breakpoint and a wide monitor the table is still 1521px
+   natural width, so a 1440 laptop scrolled sideways too - less obviously,
+   which is worse. Letting the action buttons wrap onto a second line pulls
+   the table back inside the window. */
+@media (min-width: 1400px) and (max-width: 1600px) {
+    .queue-table td.queue-actions { white-space: normal !important; text-align: right; }
+    .queue-table td.queue-actions a,
+    .queue-table td.queue-actions button { margin-bottom: .25rem; }
+}
