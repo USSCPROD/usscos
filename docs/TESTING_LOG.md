@@ -94,6 +94,44 @@ Nothing moves on these until a decision or a file arrives.
 | Inventory counting policy | The inventory module is built; what remains is people and decisions, not code |
 | Which `shipping_boxes` row a rolled stencil goes into | Stencils roll into much smaller boxes than their flat size suggests; the cartonizer has no rule for them |
 
+### Product content — names, descriptions and photographs
+
+**Not code. This is somebody writing and somebody photographing, and it gates how useful
+the customer portal is to a retail customer.** Measured 12 November 2026:
+
+| | Published products lacking it |
+|---|---|
+| `website_name` | **1,901** of 1,931 |
+| `website_short_description` / `website_description` | effectively all |
+| `website_image_url` | **1,909** of 1,931 |
+| any row in `product_images` | **1,927** of 1,931 |
+
+**Four products in the whole system have an image.**
+
+1,931 products are flagged `publish_to_website` out of 2,095, so the *range* is decided —
+what is missing is what each one says and looks like.
+
+Consequences, in the order they will be felt:
+
+- **Portal search returns text.** It has to fall back to `products.name`, because
+  `website_name` is empty for 98% of them. Workable for a distributor typing a SKU, poor
+  for the retail customer who came to look at paint — and retail ordering through the
+  portal is a decision already taken. See [CUSTOMER_PORTAL.md](CUSTOMER_PORTAL.md).
+- **The website has the same gap**, since USSCOS is its product source. Whatever is
+  written here serves both, which is the argument for doing it once and properly.
+- **`products.name` is an internal name.** "T-Tip — White, Case (12 × 18 oz)" is right for
+  a pull list and wrong for a customer deciding what to buy.
+
+Worth sizing before committing to it: 1,931 products is a lot of writing, but the variant
+grouping already built means colours of one product share copy — the real number of
+*distinct things to describe* is far smaller than the row count, and the shared-description
+work done on listings is the model. Photography is the longer pole: a case of aerosols
+photographs once, but the colour variants each need their own, which is exactly the
+listing-photo-versus-colour-photo distinction already handled on the product page.
+
+No code is blocked by this. The portal can be built and will work; it will simply look
+like a spreadsheet until this is done.
+
 ## Open — needs testing on real hardware
 
 | What | Notes |
