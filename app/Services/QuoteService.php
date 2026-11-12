@@ -219,18 +219,46 @@ class QuoteService
             ':internal_notes'     => $quote['internal_notes'],
         ]);
 
-        // Copy line items to SO
-        $soLines = array_map(fn($li) => [
-            'product_id'      => $li['product_id'],
-            'quickbooks_item' => $li['quickbooks_item'],
-            'description'     => $li['description'],
-            'qty'             => $li['qty'],
-            'uom_id'          => $li['uom_id'],
-            'unit_price'      => $li['unit_price'],
-            'discount_pct'    => $li['discount_pct'],
-            'is_taxable'      => $li['is_taxable'],
-            'line_total'      => $li['line_total'],
-        ], $lineItems);
+        /*
+         * Copy the lines, under the names the sales order uses.
+         *
+         * Quote lines call it `qty` and `is_taxable`; sales order lines call it
+         * `qty_ordered` and `taxable`. This map passed the quote's names straight
+         * through, and `replaceLineItems()` falls back to `?? 1` and `?? 0` when a key
+         * is missing — so **every converted line became quantity 1 and not taxable**,
+         * while keeping the quote's line_total.
+         *
+         * A quote for 20 cases became a sales order for one, worth the price of twenty:
+         * the warehouse picks one and the customer is billed for the lot, with nothing
+         * anywhere disagreeing out loud. Found 12 Nov 2026 on SO #37, where $1,730
+         * arrived as $116.
+         *
+         * Blank rows are dropped here too. The quote form keeps a spare line at the
+         * bottom, and an empty one was being carried onto the order as a zero-priced
+         * line nobody can pick.
+         */
+        $soLines = [];
+
+        foreach ($lineItems as $li) {
+            $qty  = (float)($li['qty'] ?? 0);
+            $desc = trim((string)($li['description'] ?? ''));
+
+            if ($qty <= 0 || ($desc === '' && empty($li['product_id']))) {
+                continue;
+            }
+
+            $soLines[] = [
+                'product_id'      => $li['product_id'],
+                'quickbooks_item' => $li['quickbooks_item'],
+                'description'     => $li['description'],
+                'qty_ordered'     => $qty,
+                'uom_id'          => $li['uom_id'],
+                'unit_price'      => $li['unit_price'],
+                'discount_pct'    => $li['discount_pct'],
+                'taxable'         => $li['is_taxable'],
+                'line_total'      => $li['line_total'],
+            ];
+        }
 
         $this->soRepo->replaceLineItems($soId, $soLines);
         $this->quotes->setSalesOrder($quoteId, $soId);
