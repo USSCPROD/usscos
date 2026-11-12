@@ -2120,6 +2120,24 @@ textarea.so-inp { resize:vertical; min-height:80px; }
     .queue-table td[data-label="Customer"]::before { display: none; }
     .queue-table td[data-label="Customer"] div:first-child { font-size: 1.05rem; }
 
+    /* Carrier, status and total read as one line of facts about the order,
+       not as three stacked rows. Each keeps its own small heading above the
+       value, so they work as three short columns. Roughly 100px off the
+       height of every card, which is the difference between seeing one order
+       at a time and seeing two. */
+    .queue-table td[data-label="Carrier"],
+    .queue-table td[data-label="Status"],
+    .queue-table td[data-label="Total"] {
+        display: inline-block;
+        width: auto;
+        min-width: 6rem;
+        padding: .4rem 1.4rem .4rem .95rem !important;
+        vertical-align: top;
+    }
+    /* Carrier is the only one of the three that can be absent, and the rule
+       above would otherwise leave its empty box holding the line open. */
+    .queue-table td[data-label="Carrier"] + td[data-label="Status"] { padding-left: 0 !important; }
+
     /* Buttons sit side by side and wrap, rather than one per line. Stacking
        them full width turned four short words into four full-width bars and
        pushed the next order off the screen - the card got taller than the
