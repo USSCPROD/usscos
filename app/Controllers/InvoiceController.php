@@ -201,7 +201,33 @@ class InvoiceController extends Controller
         }
 
         $viaId = ($request->post('ship_via_id', '') !== '') ? (int)$request->post('ship_via_id') : null;
-        $added = $notify->addTracking((int)$id, $raw, $viaId, (string)$request->post('tracking_type', 'parcel'));
+
+        /*
+         * Who actually moved it.
+         *
+         * Ship Via answers how it went and tops out at "Freight". When a pallet is
+         * booked by phone, the carrier's name is the thing somebody will need months
+         * later to chase it, and there was nowhere on the invoice to put it. The list
+         * comes from Admin > Freight Carriers; "other" lets a one-off be typed.
+         */
+        $freightCarrierId = null;
+        $carrierName      = null;
+        $picked           = (string)$request->post('freight_carrier_id', '');
+
+        if ($picked === 'other') {
+            $carrierName = trim((string)$request->post('carrier_name', '')) ?: null;
+        } elseif ($picked !== '') {
+            $freightCarrierId = (int)$picked;
+        }
+
+        $added = $notify->addTracking(
+            (int)$id,
+            $raw,
+            $viaId,
+            (string)$request->post('tracking_type', 'parcel'),
+            $carrierName,
+            $freightCarrierId
+        );
 
         Session::flash($added === [] ? 'error' : 'success', $added === []
             ? 'Nothing added — those numbers are already on this invoice.'

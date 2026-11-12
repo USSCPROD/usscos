@@ -49,9 +49,11 @@ class TrackingRepository
     public function forInvoice(int $invoiceId): array
     {
         $rows = Database::select("
-            SELECT t.*, sv.name AS carrier, sv.tracking_url_template
+            SELECT t.*, sv.name AS carrier, sv.tracking_url_template,
+                   fc.name AS freight_carrier_name
             FROM shipment_tracking t
             LEFT JOIN ship_via sv ON sv.id = t.ship_via_id
+            LEFT JOIN freight_carriers fc ON fc.id = t.freight_carrier_id
             WHERE t.invoice_id = ?
             ORDER BY t.id
         ", [$invoiceId]);

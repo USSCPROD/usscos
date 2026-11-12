@@ -674,6 +674,10 @@ class InvoiceService extends Service
             'line_items'       => $lineItems,
             'payments'         => $this->paymentRepo->getByInvoice((int)$id),
             'ship_via_options' => $this->invoices->getShipViaOptions(),
+            // Ship Via says how it went - FedEx, Freight. On an LTL shipment that is
+            // not the carrier: the carrier is Old Dominion or TForce, and when somebody
+            // books a pallet by phone this is the only place that name gets recorded.
+            'freight_carriers' => (new \App\Repositories\AdminRepository())->activeFreightCarriers(),
             'tax_rates'        => $this->invoices->getTaxRates(),
             'reps'             => $this->invoices->getReps(),
             'payment_terms'    => $this->customers->getAllPaymentTerms(),

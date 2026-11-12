@@ -634,7 +634,14 @@ $emailState = $inv['shipment_email_status'] ?? null;
                             <div style="font-size:.75rem;color:#9ca3af">Typed here, not scanned at the bench</div>
                         <?php else: ?>
                             <?= e($trackLabel[$t['tracking_type']] ?? 'Tracking') ?>
-                            <?= $t['carrier'] ? ' · ' . e($t['carrier']) : '' ?>
+                            <?php
+                            // The LTL carrier if one was recorded, otherwise the ship
+                            // via. Naming the real carrier beats repeating "Freight".
+                            $shownCarrier = $t['freight_carrier_name'] ?? null;
+                            $shownCarrier = $shownCarrier ?: ($t['carrier_name'] ?? null);
+                            $shownCarrier = $shownCarrier ?: ($t['carrier'] ?? null);
+                            ?>
+                            <?= $shownCarrier ? ' · ' . e($shownCarrier) : '' ?>
                         <?php endif; ?>
                     </td>
                     <td style="padding:.55rem 1rem;font-family:monospace;font-size:.92rem">
@@ -704,8 +711,74 @@ $emailState = $inv['shipment_email_status'] ?? null;
                         <button type="submit" class="btn btn--secondary btn--sm" style="width:100%">Add</button>
                     </td>
                 </tr>
+                <?php /*
+                 * Who actually moved it, for freight.
+                 *
+                 * Ship Via above answers how it went and stops at "Freight". That is
+                 * not a carrier - Old Dominion is - and when somebody rings round for a
+                 * price and books a pallet by phone, this row is the only place that
+                 * name is ever written down. Hidden until the type says freight,
+                 * because a FedEx parcel already names its carrier.
+                 */ ?>
+                <tr id="invFreightRow" style="display:none">
+                    <td colspan="4" style="padding-top:.5rem">
+                        <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;
+                                      letter-spacing:.05em;color:#6b7280">
+                            Freight carrier
+                        </label>
+                        <div style="margin-top:.3rem">
+                            <?php if (!empty($freight_carriers)): ?>
+                                <select name="freight_carrier_id" id="invFreightCarrier"
+                                        style="padding:.5rem .65rem;font-size:.9rem;border:1px solid #d1d5db;
+                                               border-radius:6px;min-width:14rem">
+                                    <option value="">— Choose —</option>
+                                    <?php foreach ($freight_carriers as $fc): ?>
+                                        <option value="<?= (int)$fc['id'] ?>"><?= e($fc['name']) ?><?php
+                                            if (!empty($fc['scac'])): ?> (<?= e($fc['scac']) ?>)<?php endif; ?></option>
+                                    <?php endforeach; ?>
+                                    <option value="other">Someone else — type it</option>
+                                </select>
+                            <?php else: ?>
+                                <div style="font-size:.8rem;color:#b45309;margin-bottom:.3rem">
+                                    No carriers set up yet —
+                                    <a href="/admin/freight-carriers" style="color:#0A3D91">add them under Admin</a>,
+                                    or type one in.
+                                </div>
+                            <?php endif; ?>
+                            <input type="text" name="carrier_name" id="invCarrierOther"
+                                   placeholder="e.g. Old Dominion"
+                                   style="<?= !empty($freight_carriers) ? 'display:none;' : '' ?>padding:.5rem .65rem;
+                                          font-size:.9rem;border:1px solid #d1d5db;border-radius:6px;min-width:14rem;
+                                          margin-left:.4rem">
+                        </div>
+                    </td>
+                </tr>
             </table>
         </form>
+        <script>
+        (function () {
+            var type = document.querySelector('select[name="tracking_type"]');
+            var row  = document.getElementById('invFreightRow');
+            var sel  = document.getElementById('invFreightCarrier');
+            var txt  = document.getElementById('invCarrierOther');
+            if (!type || !row) { return; }
+
+            function sync() {
+                // PRO and BOL are the freight ones. Parcel carries its own carrier.
+                row.style.display = (type.value === 'pro' || type.value === 'bol') ? '' : 'none';
+            }
+            type.addEventListener('change', sync);
+            sync();
+
+            if (sel && txt) {
+                sel.addEventListener('change', function () {
+                    var other = this.value === 'other';
+                    txt.style.display = other ? '' : 'none';
+                    if (other) { txt.focus(); } else { txt.value = ''; }
+                });
+            }
+        }());
+        </script>
         <?php if (!empty($tracking)): ?>
             <form method="POST" action="/invoices/<?= (int)$inv['id'] ?>/tracking/send" style="margin-top:.6rem">
                 <?= csrf_field() ?>
