@@ -554,8 +554,6 @@ sel.innerHTML='<option value="">— None —</option>';
             }).catch(()=>{sel.innerHTML='<option value="">— None —</option>';sel.disabled=false;});
     })();
     <?php endif; ?>
-})();
-
     /*
      * Shipping on the quote: price it, or type it.
      *
@@ -641,6 +639,9 @@ sel.innerHTML='<option value="">— None —</option>';
         const amt=document.getElementById('fShipAmount');
         if(amt) amt.addEventListener('input', recalcAll);
     }());
+})();
+
+
 
 </script>
 

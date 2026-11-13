@@ -448,8 +448,6 @@ function qThStyleE(): string {
     }
     sameCb.addEventListener('change',toggleShip);
     toggleShip();
-})();
-
     /*
      * Shipping on the quote: price it, or type it.
      *
@@ -535,6 +533,9 @@ function qThStyleE(): string {
         const amt=document.getElementById('fShipAmount');
         if(amt) amt.addEventListener('input', recalcAll);
     }());
+})();
+
+
 
 </script>
 
