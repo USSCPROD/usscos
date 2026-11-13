@@ -267,6 +267,23 @@ foreach ($line_items as $li) {
                  * taking the order, and an Amazon order arrives urgent on its own:
                  * a marketplace deadline is not ours to negotiate.
                  */ ?>
+                <?php $isMarketplace = ($so['channel'] ?? 'direct') === 'amazon'; ?>
+                <?php if ($isMarketplace): ?>
+                    <?php /* Not a choice. An Amazon order ships immediately, so the
+                             priority is what the channel means rather than something
+                             somebody sets — showing a dropdown would invite it to be
+                             changed and the repository would only put it back. */ ?>
+                    <div style="margin-top:.6rem">
+                        <div style="<?= soInpStyle2('lbl') ?>">Priority</div>
+                        <div style="padding:.5rem .65rem;background:#fef2f2;border:1px solid #fca5a5;
+                                    border-radius:6px;color:#b91c1c;font-weight:700;font-size:.9rem">
+                            Urgent
+                        </div>
+                        <div style="font-size:.75rem;color:#6b7280;margin-top:.25rem">
+                            Amazon orders ship immediately — always urgent.
+                        </div>
+                    </div>
+                <?php else: ?>
                 <div style="margin-top:.6rem">
                     <div style="<?= soInpStyle2('lbl') ?>">Priority</div>
                     <select name="priority" style="<?= soInpStyle2('inp') ?>">
@@ -275,6 +292,7 @@ foreach ($line_items as $li) {
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php endif; ?>
                 <?php /*
                  * Who is taking the pallet.
                  *

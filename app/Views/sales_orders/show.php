@@ -61,6 +61,27 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
         <div style="display:flex;align-items:center;gap:.75rem;margin-top:.25rem">
             <h1 class="page-title">SO #<?= e($so['so_number']) ?></h1>
             <span class="badge <?= $statusBadge[$so['status']] ?? 'badge--neutral' ?>"><?= $statusLabel[$so['status']] ?? ucfirst($so['status']) ?></span>
+            <?php
+            /*
+             * Where it came from, when that changes how it is treated. An Amazon order
+             * ships immediately and is always urgent, so the tag has to be on the order
+             * itself and not only in the queue — whoever opens it should not have to
+             * infer that from a priority field.
+             */
+            $soChan = [
+                'amazon'  => ['#fff7ed', '#fdba74', '#9a3412', 'AMAZON'],
+                'website' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'WEBSITE'],
+                'edi'     => ['#f5f3ff', '#ddd6fe', '#5b21b6', 'EDI'],
+            ][$so['channel'] ?? 'direct'] ?? null;
+            ?>
+            <?php if ($soChan): ?>
+                <span style="font-size:.7rem;font-weight:700;letter-spacing:.04em;padding:.2rem .5rem;
+                             border-radius:4px;background:<?= $soChan[0] ?>;border:1px solid <?= $soChan[1] ?>;
+                             color:<?= $soChan[2] ?>"><?= $soChan[3] ?></span>
+                <?php if (!empty($so['channel_reference'])): ?>
+                    <span style="font-size:.75rem;color:#9ca3af;font-family:monospace"><?= e($so['channel_reference']) ?></span>
+                <?php endif; ?>
+            <?php endif; ?>
         </div>
         <p class="page-subtitle"><a href="/customers/<?= (int)$so['customer_id'] ?>" class="link"><?= e($so['company_name']) ?></a></p>
     </div>
@@ -489,6 +510,23 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
                  * taking the order, and an Amazon order arrives urgent on its own:
                  * a marketplace deadline is not ours to negotiate.
                  */ ?>
+                <?php $isMarketplace = ($so['channel'] ?? 'direct') === 'amazon'; ?>
+                <?php if ($isMarketplace): ?>
+                    <?php /* Not a choice. An Amazon order ships immediately, so the
+                             priority is what the channel means rather than something
+                             somebody sets — showing a dropdown would invite it to be
+                             changed and the repository would only put it back. */ ?>
+                    <div style="margin-top:.6rem">
+                        <div style="<?= soLbl() ?>">Priority</div>
+                        <div style="padding:.5rem .65rem;background:#fef2f2;border:1px solid #fca5a5;
+                                    border-radius:6px;color:#b91c1c;font-weight:700;font-size:.9rem">
+                            Urgent
+                        </div>
+                        <div style="font-size:.75rem;color:#6b7280;margin-top:.25rem">
+                            Amazon orders ship immediately — always urgent.
+                        </div>
+                    </div>
+                <?php else: ?>
                 <div style="margin-top:.6rem">
                     <div style="<?= soLbl() ?>">Priority</div>
                     <select name="priority" style="<?= soInp() ?>">
@@ -497,6 +535,7 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php endif; ?>
                 <?php endif; ?>
                 <?php
                 /*

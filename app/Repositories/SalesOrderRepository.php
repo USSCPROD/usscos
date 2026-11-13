@@ -213,26 +213,35 @@ class SalesOrderRepository
         ':marketplace_fee_source'    => 'none',
     ];
 
+    /**
+     * The priority an order must carry, given where it came from.
+     *
+     * **An Amazon order is always urgent.** Chip's rule, 13 Nov 2026: they have to
+     * ship immediately, so it is not a default somebody may think better of — it is
+     * what the channel means. Amazon's deadline is not ours to negotiate, and missing
+     * it costs the account rather than annoying one customer.
+     *
+     * Enforced on the way in and on every update, so editing an order cannot quietly
+     * take it off the top of the queue. Nothing was setting it before: SO #10 arrived
+     * through Amazon and sat at normal while SO #14 was urgent.
+     */
+    public static function priorityFor(string $channel, string $asked = 'normal'): string
+    {
+        if ($channel === 'amazon') {
+            return 'urgent';
+        }
+
+        return in_array($asked, ['normal', 'high', 'urgent'], true) ? $asked : 'normal';
+    }
+
     public function create(array $data): int
     {
         $data = array_merge(self::CREATE_DEFAULTS, $data);
 
-        /*
-         * An Amazon order is urgent by default, because Amazon says so.
-         *
-         * Marketplace orders carry a shipping deadline that is not ours to negotiate,
-         * and missing it costs the account rather than annoying one customer. So they
-         * go to the top of the queue on arrival instead of waiting for somebody to
-         * notice and mark them — nobody was marking them: SO #10 came in through
-         * Amazon and sat at normal priority.
-         *
-         * Only when the caller has not said otherwise, so this sets a default rather
-         * than overriding a decision.
-         */
-        if (($data[':channel'] ?? '') === 'amazon'
-            && ($data[':priority'] ?? 'normal') === 'normal') {
-            $data[':priority'] = 'urgent';
-        }
+        $data[':priority'] = self::priorityFor(
+            (string)($data[':channel'] ?? 'direct'),
+            (string)($data[':priority'] ?? 'normal')
+        );
 
         $stmt = $this->pdo->prepare("
             INSERT INTO sales_orders
@@ -260,6 +269,17 @@ class SalesOrderRepository
 
     public function update(int|string $id, array $data): int
     {
+        // An Amazon order is always urgent, so editing one cannot take it off the top
+        // of the queue. Looked up here because this is the layer that can see what
+        // channel the order already belongs to.
+        if (array_key_exists(':priority', $data)) {
+            $row = Database::selectOne('SELECT channel FROM sales_orders WHERE id = ?', [(int)$id]);
+            $data[':priority'] = self::priorityFor(
+                (string)($row['channel'] ?? 'direct'),
+                (string)$data[':priority']
+            );
+        }
+
         $stmt = $this->pdo->prepare("
             UPDATE sales_orders SET
                 status              = :status,
@@ -882,6 +902,11 @@ class SalesOrderRepository
         if (!in_array($priority, ['normal', 'high', 'urgent'], true)) {
             return false;
         }
+
+        // An Amazon order is urgent whatever the dropdown says. Taking it off the top
+        // of the queue is not a decision anybody at the bench gets to make.
+        $row = Database::selectOne('SELECT channel FROM sales_orders WHERE id = ?', [$soId]);
+        $priority = self::priorityFor((string)($row['channel'] ?? 'direct'), $priority);
 
         $stmt = $this->pdo->prepare('UPDATE sales_orders SET priority = ? WHERE id = ?');
         $stmt->execute([$priority, $soId]);
