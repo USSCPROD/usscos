@@ -40,7 +40,15 @@ what makes it safe to put on a live site before you have finished testing the ot
    server-side code, which is why the forms are not already connected.
 
 3. **Paste [`ussc-lead-webhook.php`](ussc-lead-webhook.php)** as a PHP snippet, set to
-   run everywhere. Put the secret in `USSCOS_LEAD_SECRET`.
+   run everywhere. Put the secret in `USSCOS_LEAD_SECRET`, keeping the quotes.
+
+   **Start the paste below the `<?php` line.** Code Snippets supplies the opening tag
+   itself — it is greyed out above line 1 of its editor. Paste `<?php` as well and PHP
+   receives two opening tags, which is a parse error: the snippet refuses to save and
+   never appears in the list, with nothing obvious to say why. This cost an attempt on
+   13 Nov 2026.
+
+   **Give it a title**, or saving pops a *Snippet incomplete* dialog and stops.
 
 4. **The form ids and field names are already filled in**, read off the live forms on
    13 Nov 2026:

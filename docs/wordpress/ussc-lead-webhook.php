@@ -1,6 +1,18 @@
 <?php
 /**
  * USSCOS lead forwarding — usscproducts.com
+ *
+ * ############################################################################
+ * #  PASTING THIS INTO CODE SNIPPETS: START FROM THE LINE BELOW THIS BLOCK,  #
+ * #  NOT FROM THE <?php ABOVE IT.                                            #
+ * #                                                                          #
+ * #  Code Snippets supplies the opening tag itself — you can see it greyed   #
+ * #  out above line 1 of its editor. Paste <?php as well and PHP gets two     #
+ * #  opening tags, which is a parse error, so the snippet silently refuses    #
+ * #  to save and never appears in the list.                                   #
+ * #                                                                          #
+ * #  Give it a title too, or saving pops "Snippet incomplete" and stops.      #
+ * ############################################################################
  * -----------------------------------------------------------------------------
  * Paste into Code Snippets as a PHP snippet, "Run everywhere", then Activate.
  *
@@ -24,7 +36,7 @@
 
 // -----------------------------------------------------------------------------
 
-define( 'USSCOS_LEAD_SECRET', 'PASTE_THE_SECRET_HERE' );
+define( 'USSCOS_LEAD_SECRET', 'JWzkto5wyiiQuRDa1gF2KVpCScRQhGAyw4wzp1I4 );
 define( 'USSCOS_LEAD_URL', 'https://os.usscos.com/webhook/lead' );
 
 /**
