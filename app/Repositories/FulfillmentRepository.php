@@ -140,9 +140,27 @@ class FulfillmentRepository
         $this->run('UPDATE sales_order_line_items SET qty_shipped = qty_shipped + ? WHERE id = ?', [$qty,$lineId]);
     }
 
+    /**
+     * How much of an order is still to go out — goods only.
+     *
+     * A charge line is ordered and never picked, so counting it left every order
+     * carrying shipping with one unit permanently outstanding: completion checks that
+     * wait for remaining to reach zero would have waited for ever, and once the charge
+     * is billed the arithmetic goes the other way and understates instead.
+     *
+     * This module is off (FULFILLMENT_V2_ENABLED), so it had not bitten anybody yet.
+     * Found 13 Nov 2026 going looking after the same fault turned up in invoicing,
+     * approval and the shipping queue.
+     */
     public function remaining(int $orderId): float
     {
-        $r = $this->rows('SELECT SUM(qty_ordered - qty_shipped) AS qty FROM sales_order_line_items WHERE sales_order_id = ?', [$orderId]);
+        $r = $this->rows(
+            'SELECT SUM(li.qty_ordered - li.qty_shipped) AS qty
+               FROM sales_order_line_items li
+              WHERE li.sales_order_id = ?
+                AND NOT ' . \App\Repositories\SalesOrderRepository::notGoodsSql(),
+            [$orderId]
+        );
         return (float)($r[0]['qty'] ?? 0);
     }
 
@@ -202,7 +220,7 @@ class FulfillmentRepository
     public function queue(string $method): array
     {
         $where = $method === '' ? '' : ' AND f.method = ?';
-        return $this->rows("SELECT f.*,so.so_number,c.company_name,fo.billing_policy,(SELECT SUM(li.qty_ordered-li.qty_shipped) FROM sales_order_line_items li WHERE li.sales_order_id=so.id) AS remaining FROM fulfillments f
+        return $this->rows("SELECT f.*,so.so_number,c.company_name,fo.billing_policy,(SELECT SUM(li.qty_ordered-li.qty_shipped) FROM sales_order_line_items li WHERE li.sales_order_id=so.id AND NOT " . \App\Repositories\SalesOrderRepository::notGoodsSql() . ") AS remaining FROM fulfillments f
             JOIN sales_orders so ON so.id=f.sales_order_id JOIN customers c ON c.id=so.customer_id
             JOIN fulfillment_orders fo ON fo.sales_order_id=so.id WHERE f.status <> 'cancelled'" . $where . ' ORDER BY f.id DESC', $method === '' ? [] : [$method]);
     }

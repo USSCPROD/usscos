@@ -610,10 +610,20 @@ class SalesOrderRepository
                      ORDER BY i.id DESC LIMIT 1)             AS invoice_id,
                    (SELECT i.invoice_number FROM invoices i WHERE i.sales_order_id = so.id
                      ORDER BY i.id DESC LIMIT 1)             AS invoice_number,
+                   -- Goods only, both of them. A charge is never picked, so once it is
+                   -- billed it carries qty_shipped without ever having carried
+                   -- qty_picked and this arithmetic goes negative: SO #37 reported
+                   -- qty_to_ship of -1. It behaves the same as zero against every
+                   -- <= 0 test here, which is precisely why it would have sat there —
+                   -- but on a part-shipped order it understates what is left by one.
                    (SELECT COALESCE(SUM(li.qty_picked - COALESCE(li.qty_shipped,0)), 0)
-                      FROM sales_order_line_items li WHERE li.sales_order_id = so.id) AS qty_to_ship,
+                      FROM sales_order_line_items li
+                     WHERE li.sales_order_id = so.id
+                       AND NOT " . self::NOT_GOODS . ") AS qty_to_ship,
                    (SELECT COALESCE(SUM(li.qty_picked - COALESCE(li.qty_packed,0)), 0)
-                      FROM sales_order_line_items li WHERE li.sales_order_id = so.id) AS qty_unpacked
+                      FROM sales_order_line_items li
+                     WHERE li.sales_order_id = so.id
+                       AND NOT " . self::NOT_GOODS . ") AS qty_unpacked
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
             LEFT JOIN ship_via sv ON sv.id = so.ship_via_id
