@@ -183,6 +183,7 @@ class SalesOrderRepository
      */
     private const CREATE_DEFAULTS = [
         ':rep_id'                    => null,
+        ':priority'                  => 'normal',
         ':requested_ship_date'       => null,
         ':po_number'                 => null,
         ':ship_via_id'               => null,
@@ -216,9 +217,26 @@ class SalesOrderRepository
     {
         $data = array_merge(self::CREATE_DEFAULTS, $data);
 
+        /*
+         * An Amazon order is urgent by default, because Amazon says so.
+         *
+         * Marketplace orders carry a shipping deadline that is not ours to negotiate,
+         * and missing it costs the account rather than annoying one customer. So they
+         * go to the top of the queue on arrival instead of waiting for somebody to
+         * notice and mark them — nobody was marking them: SO #10 came in through
+         * Amazon and sat at normal priority.
+         *
+         * Only when the caller has not said otherwise, so this sets a default rather
+         * than overriding a decision.
+         */
+        if (($data[':channel'] ?? '') === 'amazon'
+            && ($data[':priority'] ?? 'normal') === 'normal') {
+            $data[':priority'] = 'urgent';
+        }
+
         $stmt = $this->pdo->prepare("
             INSERT INTO sales_orders
-                (so_number, customer_id, created_by, rep_id, status, order_date,
+                (so_number, customer_id, created_by, rep_id, status, priority, order_date,
                  requested_ship_date, po_number, ship_via_id, freight_carrier_id, tax_rate_id,
                  customer_message_id, ship_name, ship_address_1, ship_address_2,
                  ship_city, ship_state, ship_zip, ship_phone,
@@ -227,7 +245,7 @@ class SalesOrderRepository
                  channel, channel_reference, marketplace_tax_collected,
                  marketplace_fee, marketplace_fee_source)
             VALUES
-                (:so_number, :customer_id, :created_by, :rep_id, :status, :order_date,
+                (:so_number, :customer_id, :created_by, :rep_id, :status, :priority, :order_date,
                  :requested_ship_date, :po_number, :ship_via_id, :freight_carrier_id, :tax_rate_id,
                  :customer_message_id, :ship_name, :ship_address_1, :ship_address_2,
                  :ship_city, :ship_state, :ship_zip, :ship_phone,
@@ -250,6 +268,7 @@ class SalesOrderRepository
                 requested_ship_date = :requested_ship_date,
                 po_number           = :po_number,
                 rep_id              = :rep_id,
+                priority            = :priority,
                 ship_via_id         = :ship_via_id,
                 freight_carrier_id  = :freight_carrier_id,
                 tax_rate_id         = :tax_rate_id,
@@ -602,6 +621,10 @@ class SalesOrderRepository
                    so.po_number, so.total_amount, so.ship_via_id,
                    so.ship_address_1, so.ship_city, so.ship_state, so.ship_zip,
                    so.priority,
+                   -- Where the order came from. A marketplace order has a deadline
+                   -- that is not ours to negotiate, and the bench has to be able to
+                   -- see which ones those are without opening them.
+                   so.channel, so.channel_reference,
                    c.id AS customer_id, c.company_name, c.phone,
                    sv.name AS ship_via_name, sv.ship_mode,
                    u.first_name AS rep_first, u.last_name AS rep_last,

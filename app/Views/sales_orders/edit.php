@@ -260,6 +260,22 @@ foreach ($line_items as $li) {
                     <?php endforeach; ?>
                 </select>
                 <?php /*
+                 * How urgent this one is, set where the order is written.
+                 *
+                 * The shipping queue can set it too — the clerk is often who finds out.
+                 * It is here as well because sales sometimes know at the point of
+                 * taking the order, and an Amazon order arrives urgent on its own:
+                 * a marketplace deadline is not ours to negotiate.
+                 */ ?>
+                <div style="margin-top:.6rem">
+                    <div style="<?= soInpStyle2('lbl') ?>">Priority</div>
+                    <select name="priority" style="<?= soInpStyle2('inp') ?>">
+                        <?php foreach (['normal' => 'Normal', 'high' => 'High', 'urgent' => 'Urgent'] as $pv => $pl): ?>
+                            <option value="<?= $pv ?>" <?= ($so['priority'] ?? 'normal') === $pv ? 'selected' : '' ?>><?= $pl ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php /*
                  * Who is taking the pallet.
                  *
                  * Ship Via above answers how it goes and stops at "Freight" - a method,

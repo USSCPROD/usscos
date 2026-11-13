@@ -475,6 +475,29 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
                     <div style="<?= soRO() ?>"><?= e($so['ship_via_name'] ?? '—') ?></div>
                 <?php endif; ?>
 
+                <?php if ($isLocked): ?>
+                    <div style="margin-top:.6rem">
+                        <div style="<?= soLbl() ?>">Priority</div>
+                        <div style="<?= soRO() ?>"><?= ucfirst(e($so['priority'] ?? 'normal')) ?></div>
+                    </div>
+                <?php else: ?>
+                <?php /*
+                 * How urgent this one is, set where the order is written.
+                 *
+                 * The shipping queue can set it too — the clerk is often who finds out.
+                 * It is here as well because sales sometimes know at the point of
+                 * taking the order, and an Amazon order arrives urgent on its own:
+                 * a marketplace deadline is not ours to negotiate.
+                 */ ?>
+                <div style="margin-top:.6rem">
+                    <div style="<?= soLbl() ?>">Priority</div>
+                    <select name="priority" style="<?= soInp() ?>">
+                        <?php foreach (['normal' => 'Normal', 'high' => 'High', 'urgent' => 'Urgent'] as $pv => $pl): ?>
+                            <option value="<?= $pv ?>" <?= ($so['priority'] ?? 'normal') === $pv ? 'selected' : '' ?>><?= $pl ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
                 <?php
                 /*
                  * Who is taking the pallet. Ship Via above stops at "Freight", which is

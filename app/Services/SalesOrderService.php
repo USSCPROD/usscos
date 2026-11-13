@@ -134,6 +134,10 @@ class SalesOrderService
             ':order_date'         => $post['order_date'],
             ':requested_ship_date'=> ($post['requested_ship_date'] ?? '') ?: null,
             ':po_number'          => ($post['po_number'] ?? '') ?: null,
+            // Urgent, high or normal. An Amazon order overrides this to urgent in the
+            // repository - a marketplace deadline is not ours to negotiate.
+            ':priority'           => in_array($post['priority'] ?? '', ['normal','high','urgent'], true)
+                                     ? $post['priority'] : 'normal',
             ':ship_via_id'        => ($post['ship_via_id'] ?? '') !== '' ? (int)$post['ship_via_id'] : null,
             // Who is taking the pallet, when somebody has already rung round for a
             // price. Ship Via stops at 'Freight'; this is the carrier's name.
@@ -221,6 +225,10 @@ class SalesOrderService
             ':requested_ship_date'=> ($post['requested_ship_date'] ?? '') ?: null,
             ':po_number'          => ($post['po_number'] ?? '') ?: null,
             ':rep_id'             => ($post['rep_id'] ?? '') !== '' ? (int)$post['rep_id'] : null,
+            // Urgent, high or normal. An Amazon order overrides this to urgent in the
+            // repository - a marketplace deadline is not ours to negotiate.
+            ':priority'           => in_array($post['priority'] ?? '', ['normal','high','urgent'], true)
+                                     ? $post['priority'] : 'normal',
             ':ship_via_id'        => ($post['ship_via_id'] ?? '') !== '' ? (int)$post['ship_via_id'] : null,
             // Who is taking the pallet, when somebody has already rung round for a
             // price. Ship Via stops at 'Freight'; this is the carrier's name.

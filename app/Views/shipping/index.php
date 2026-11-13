@@ -157,6 +157,37 @@ if ($activeTab === 'all') {
                     <tr style="border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="window.location='/sales-orders/<?= (int)$o['id'] ?>'" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">
                         <td data-label="SO #" style="padding:.75rem 1rem;white-space:nowrap">
                             <span style="font-weight:700;color:#0A3D91;font-family:monospace"><?= e($o['so_number']) ?></span>
+                            <?php
+                            /*
+                             * Where it came from, when that changes how it is treated.
+                             *
+                             * A marketplace order carries a shipping deadline that is
+                             * not ours to negotiate — missing it costs the account
+                             * rather than annoying one customer — so the bench has to
+                             * see which ones those are without opening them. Direct
+                             * orders say nothing, because most orders are direct and a
+                             * badge on everything is a badge on nothing.
+                             */
+                            $chan = $o['channel'] ?? 'direct';
+                            $chanStyle = [
+                                'amazon'  => ['#fff7ed', '#fdba74', '#9a3412', 'AMAZON'],
+                                'website' => ['#eff6ff', '#bfdbfe', '#1d4ed8', 'WEBSITE'],
+                                'edi'     => ['#f5f3ff', '#ddd6fe', '#5b21b6', 'EDI'],
+                            ][$chan] ?? null;
+                            ?>
+                            <?php if ($chanStyle): ?>
+                                <div style="margin-top:.3rem">
+                                    <span style="font-size:.68rem;font-weight:700;letter-spacing:.04em;
+                                                 padding:.15rem .4rem;border-radius:4px;
+                                                 background:<?= $chanStyle[0] ?>;border:1px solid <?= $chanStyle[1] ?>;
+                                                 color:<?= $chanStyle[2] ?>"><?= $chanStyle[3] ?></span>
+                                </div>
+                                <?php if (!empty($o['channel_reference'])): ?>
+                                    <div style="font-size:.68rem;color:#9ca3af;font-family:monospace;margin-top:.15rem">
+                                        <?= e($o['channel_reference']) ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </td>
                         <td data-label="Customer" style="padding:.75rem 1rem">
                             <div style="font-weight:600;color:#111"><?= e($o['company_name']) ?></div>
