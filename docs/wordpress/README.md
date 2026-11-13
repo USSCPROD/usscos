@@ -55,7 +55,7 @@ what makes it safe to put on a live site before you have finished testing the ot
 
    | Form | id | Sent as | Its fields |
    |---|---|---|---|
-   | Contact Form - Basic | 74 | `contact` | `your-name`, `your-email`, `your-subject`, `your-message` |
+   | Contact Form - Basic | 74 | `contact` | `your-name`, `your-email`, `your-phone`, `your-subject`, `your-message` |
    | Request a Quote | 14593 | `paint_quote` | `quote-name`, `quote-email`, `quote-phone`, `quote-company`, `quote-address/city/state/zip`, `quote-paintuser`, `quote-paintbrand`, `quote-paintcolor`, `quote-products` |
    | Request a Stencil Quote | 18220 | `stencil_quote` | as above plus `quote-paint`, `quote-details`, `quote-file` |
 
@@ -102,6 +102,20 @@ No restart needed. Leads submitted in between are lost to USSCOS but **still ema
 see [../site/README.md](../site/README.md). Those 120 leads are not a mystery feeder, and
 there is nothing to switch off: usscproducts.com is a **second** source being added
 alongside, not a replacement.
+
+## Phone on the contact form
+
+Added 13 Nov 2026, optional, paired with Subject in a two-column row. Also added to the
+form's Mail tab, so the email staff receive carries it too — the email is still the path
+people read, and a lead with a number is one somebody can ring.
+
+Optional on purpose: a required phone number loses the enquiries from people who only
+want an email back, and a lead you can email is worth more than no lead.
+
+**Adding the field was not enough on its own.** The snippet decides what arrives, and it
+only looked for `quote-phone`. The first test submitted a number and the lead came
+through with the phone blank. Both names are in the mapping now. A field nothing reads is
+a field that does not exist.
 
 ## Still open
 

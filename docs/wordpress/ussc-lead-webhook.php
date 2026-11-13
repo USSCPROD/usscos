@@ -86,7 +86,11 @@ function usscos_forward_lead( $contact_form ) {
 		'first_name' => isset( $parts[0] ) ? $parts[0] : '',
 		'last_name'  => isset( $parts[1] ) ? $parts[1] : '',
 		'email'      => (string) usscos_f( $p, array( 'quote-email', 'your-email' ) ),
-		'phone'      => (string) usscos_f( $p, array( 'quote-phone' ) ),
+		// Both names, because the forms disagree: the quote forms call it quote-phone
+		// and the contact form your-phone. Adding the field to the contact form on
+		// 13 Nov 2026 was not enough on its own — this list is what decides whether
+		// anything arrives, and a field nothing reads is a field that does not exist.
+		'phone'      => (string) usscos_f( $p, array( 'quote-phone', 'your-phone' ) ),
 		'company'    => (string) usscos_f( $p, array( 'quote-company' ) ),
 	);
 
