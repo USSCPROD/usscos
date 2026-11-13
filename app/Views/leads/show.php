@@ -50,7 +50,13 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
                 <?php if ($lead['website']): ?>
                     <dt>Website</dt><dd><a href="<?= e($lead['website']) ?>" target="_blank"><?= e($lead['website']) ?></a></dd>
                 <?php endif; ?>
-                <dt>Source</dt><dd><?= $sourceLabel[$lead['source']] ?? e($lead['source']) ?></dd>
+                <dt>Source</dt>
+                <dd>
+                    <?= $sourceLabel[$lead['source']] ?? e($lead['source']) ?>
+                    <?php if (!empty($lead['source_detail'])): ?>
+                        <div style="font-size:.82rem;color:#6b7280"><?= e($lead['source_detail']) ?></div>
+                    <?php endif; ?>
+                </dd>
                 <dt>Rep</dt><dd><?= $lead['rep_first'] ? e($lead['rep_first'] . ' ' . $lead['rep_last']) : '<span class="text-muted">Unassigned</span>' ?></dd>
                 <dt>Created</dt><dd><?= date('M j, Y', strtotime($lead['created_at'])) ?></dd>
             </dl>

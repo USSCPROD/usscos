@@ -186,11 +186,23 @@ class WebhookController extends Controller
     {
         // Build notes — prepend address block if present, then content notes
         $notes = '';
+
+        /*
+         * The city line is assembled before it is tested, so an empty address produced
+         * a bare "," — truthy, kept by array_filter, and printed at the top of every
+         * contact-form lead. Every website lead in the system opens with a stray comma
+         * because of it. Build the line, then keep it only if there is something in it.
+         */
+        $cityLine = trim(trim(
+            ($d['city'] ?? '') . ', ' . ($d['state'] ?? '') . ' ' . ($d['postal_code'] ?? '')
+        ), " ,");
+
         $addressParts = array_filter([
-            $d['address_line1'] ?? '',
-            $d['address_line2'] ?? '',
-            trim(($d['city'] ?? '') . ', ' . ($d['state'] ?? '') . ' ' . ($d['postal_code'] ?? '')),
-        ]);
+            trim((string)($d['address_line1'] ?? '')),
+            trim((string)($d['address_line2'] ?? '')),
+            $cityLine,
+        ], static fn ($part) => $part !== '');
+
         if ($addressParts) {
             $notes .= implode("\n", $addressParts) . "\n\n";
         }
@@ -199,11 +211,23 @@ class WebhookController extends Controller
             $notes .= "\n\nAttachment: " . $d['attachment'];
         }
 
+        /*
+         * Which form it came from, kept.
+         *
+         * Every handler sets a descriptive source — "Website — Contact Form",
+         * "Website — Paint Quote Request" — and this threw it away and wrote the enum
+         * 'web' instead. So a contact-form enquiry and somebody asking to be quoted for
+         * a pallet looked identical in the list, and the only way to tell them apart
+         * was to open each one and read the notes.
+         *
+         * source stays the enum, because the channel filters are built on it.
+         * source_detail carries the form.
+         */
         Database::insert(
             'INSERT INTO leads
                 (first_name, last_name, company_name, email, phone,
-                 source, notes, status, rep_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+                 source, source_detail, notes, status, rep_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
             [
                 $d['first_name'],
                 $d['last_name'],
@@ -211,6 +235,7 @@ class WebhookController extends Controller
                 $d['email'],
                 $d['phone']       ?? null,
                 'web',
+                ($d['source'] ?? '') ?: null,
                 trim($notes)      ?: null,
                 'new',
                 $d['assigned_to'] ?? null,

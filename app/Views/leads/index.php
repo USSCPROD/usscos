@@ -82,7 +82,17 @@
                             <td class="text-sm"><?= e(trim(($lead['first_name'] ?? '') . ' ' . ($lead['last_name'] ?? ''))) ?: '—' ?></td>
                             <td class="text-sm text-muted"><?= $lead['email'] ? '<a href="mailto:' . e($lead['email']) . '" onclick="event.stopPropagation()">' . e($lead['email']) . '</a>' : '—' ?></td>
                             <td class="text-sm text-muted"><?= e($lead['phone'] ?? '—') ?></td>
-                            <td class="text-sm text-muted"><?= $sourceLabel[$lead['source']] ?? e($lead['source']) ?></td>
+                            <td class="text-sm text-muted">
+                                <?= $sourceLabel[$lead['source']] ?? e($lead['source']) ?>
+                                <?php /* Which form, when we know. "Web" alone cannot tell a
+                                         two-line enquiry from somebody asking to be quoted
+                                         for a pallet, and those want answering differently. */ ?>
+                                <?php if (!empty($lead['source_detail'])): ?>
+                                    <div style="font-size:.78rem;color:#9ca3af">
+                                        <?= e(str_replace('Website — ', '', $lead['source_detail'])) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-sm"><?= $lead['rep_first'] ? e($lead['rep_first'] . ' ' . $lead['rep_last']) : '<span class="text-muted">—</span>' ?></td>
                             <td class="text-center">
                                 <span class="badge <?= $statusBadge[$lead['status']] ?? 'badge--neutral' ?>"><?= ucfirst($lead['status']) ?></span>
