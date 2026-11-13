@@ -838,8 +838,15 @@ class SalesOrderRepository
                    -- What the system thinks can be filled today. Advisory only: the
                    -- counts are not trusted yet, which is exactly why the quantity
                    -- decision belongs at gate two, after somebody has walked the floor.
+                   --
+                   -- Goods only. A charge line has no product, so COALESCE(NULL, 0)
+                   -- made it 0 on hand against 1 ordered and every order carrying
+                   -- shipping reported one line short on today's counts for ever —
+                   -- on SO #38 with 4,960 cases of white on the shelf. Nobody is
+                   -- short of handling.
                    SUM(CASE
-                         WHEN COALESCE(p.qty_on_hand, 0) < li.qty_ordered
+                         WHEN li.product_id IS NOT NULL
+                          AND COALESCE(p.qty_on_hand, 0) < li.qty_ordered
                          THEN 1 ELSE 0 END) AS lines_tight
 
             FROM sales_orders so
