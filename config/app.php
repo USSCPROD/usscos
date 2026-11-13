@@ -9,6 +9,10 @@ return [
     'url'      => $_ENV['APP_URL']   ?? 'http://localhost',
     'key'      => $_ENV['APP_KEY']   ?? '',
     'timezone' => 'America/New_York',
+
+    // Shared secret the WordPress site sends on /webhook/lead. Unset means the endpoint
+    // refuses everything rather than accepting anything — see WebhookController::lead().
+    'lead_webhook_secret' => trim((string)($_ENV['LEAD_WEBHOOK_SECRET'] ?? '')),
     'locale'   => 'en_US',
     'currency' => 'USD',
 

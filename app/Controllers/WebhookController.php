@@ -13,6 +13,33 @@ class WebhookController extends Controller
 {
     public function lead(Request $request, Response $response): Response
     {
+        /*
+         * Only the website may create leads.
+         *
+         * This endpoint sits outside the auth group by necessity — WordPress cannot log
+         * in — and took anything posted to it. Bots found it: an SEO pitch, a
+         * subscription bot and a vague "more information" all became leads and all
+         * emailed a rep. A lead list full of that is one people stop reading.
+         *
+         * A shared secret in a header is the least that works here. hash_equals so the
+         * comparison is not timing-attackable, and a missing secret in .env refuses
+         * everything rather than waving it through — a webhook that fails open is worse
+         * than one that is switched off, because nobody notices.
+         */
+        $expected = (string)(\App\Core\Config::get('app.lead_webhook_secret') ?: '');
+
+        if ($expected === '') {
+            error_log('Lead webhook: LEAD_WEBHOOK_SECRET is not set, refusing.');
+
+            return $response->json(['error' => 'Not configured'], 503);
+        }
+
+        $given = (string)($_SERVER['HTTP_X_USSCOS_SECRET'] ?? '');
+
+        if ($given === '' || !hash_equals($expected, $given)) {
+            return $response->json(['error' => 'Unauthorized'], 401);
+        }
+
         $raw = file_get_contents('php://input');
         $data = json_decode($raw, true);
 
