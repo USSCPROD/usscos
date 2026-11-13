@@ -83,6 +83,19 @@ intends to ring, and the list stops being read. The partner and dealer forms hav
 handler in USSCOS; they could have one, but that is a decision about what happens to
 them, not a wiring job.
 
+## Do not put the secret in this file and commit it
+
+It happened on 13 November 2026, into a **public** repository, and the exposed value had
+to be rotated. The file is edited in place to add the secret before pasting, and a
+`git add -A` swept the edited copy into a commit.
+
+Work on a copy named `*.local.php` — `.gitignore` covers that pattern — or paste the
+secret straight into the Code Snippets editor and leave this file alone.
+
+The blast radius of this particular secret is narrow: it authorises creating a lead and
+nothing else. There is no customer data behind it and no money. It still gets rotated,
+because a secret that is public is not a secret.
+
 ## The secret, and why
 
 `/webhook/lead` sits outside the login system by necessity — WordPress cannot log in. It

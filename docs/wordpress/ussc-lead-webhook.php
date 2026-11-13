@@ -36,7 +36,7 @@
 
 // -----------------------------------------------------------------------------
 
-define( 'USSCOS_LEAD_SECRET', 'JWzkto5wyiiQuRDa1gF2KVpCScRQhGAyw4wzp1I4 );
+define( 'USSCOS_LEAD_SECRET', 'PASTE_THE_SECRET_HERE' );
 define( 'USSCOS_LEAD_URL', 'https://os.usscos.com/webhook/lead' );
 
 /**
@@ -117,6 +117,13 @@ function usscos_forward_lead( $contact_form ) {
 	} else {
 		$payload['project_description'] = (string) usscos_f( $p, array( 'quote-details' ) );
 		$payload['needs_paint']         = (string) usscos_f( $p, array( 'quote-paint' ) );
+
+		// The artwork. A stencil quote without it is a phone call to ask for it again.
+		$url = usscos_keep_upload( $submission, 'quote-file' );
+
+		if ( $url ) {
+			$payload['attachment'] = $url;
+		}
 	}
 
 	$response = wp_remote_post(
@@ -166,4 +173,63 @@ function usscos_f( $posted, $names, $joinArrays = false ) {
 	}
 
 	return $joinArrays ? array() : '';
+}
+
+/**
+ * Keep an uploaded file, and give back a URL USSCOS can link to.
+ *
+ * Contact Form 7 puts uploads in a temporary directory and deletes them shortly after
+ * the mail goes — the copy that survives is the one attached to the email. So a lead
+ * arriving in USSCOS pointed at that path would point at nothing within the hour.
+ *
+ * Copying it into the media library gives it a permanent home on this site and a URL
+ * the lead can carry. The file stays here rather than being pushed to USSCOS, which
+ * keeps the webhook plain JSON and avoids a second place for artwork to live.
+ *
+ * Returns '' on any failure, and the caller simply omits the attachment: the lead is
+ * still worth having without it, and losing the whole enquiry over a file would be a
+ * poor trade.
+ */
+function usscos_keep_upload( $submission, $field ) {
+
+	$files = $submission->uploaded_files();
+
+	if ( empty( $files[ $field ] ) ) {
+		return '';
+	}
+
+	// CF7 hands back an array for multi-file fields and a string for single ones.
+	$path = is_array( $files[ $field ] ) ? reset( $files[ $field ] ) : $files[ $field ];
+
+	if ( ! $path || ! file_exists( $path ) ) {
+		return '';
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+
+	$name = wp_unique_filename( wp_upload_dir()['path'], basename( $path ) );
+	$tmp  = trailingslashit( get_temp_dir() ) . $name;
+
+	// Copied, not moved: CF7 still has to attach the original to the email, and
+	// taking it away would send the notification without the artwork.
+	if ( ! @copy( $path, $tmp ) ) {
+		error_log( 'USSCOS: could not copy stencil artwork from ' . $path );
+		return '';
+	}
+
+	$id = media_handle_sideload(
+		array( 'name' => $name, 'tmp_name' => $tmp ),
+		0,
+		'Stencil artwork from a website quote request'
+	);
+
+	if ( is_wp_error( $id ) ) {
+		@unlink( $tmp );
+		error_log( 'USSCOS: could not file stencil artwork: ' . $id->get_error_message() );
+		return '';
+	}
+
+	return (string) wp_get_attachment_url( $id );
 }

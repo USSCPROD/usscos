@@ -68,3 +68,8 @@ composer.lock
 # from being committed, and enough to make the tree dirty and block a deploy.
 /storage/*password*
 /storage/warehouse-logins.txt
+
+# The lead-forwarding snippet is edited in place to add the secret before it is
+# pasted into WordPress. That edited copy must never be committed - it was once,
+# on 13 Nov 2026, into a public repository.
+docs/wordpress/*.local.php
