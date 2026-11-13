@@ -655,7 +655,17 @@ class SalesOrderRepository
                     AND COALESCE(sv.ship_mode, 'other') NOT IN ('pickup', 'delivery')
                 )
             )
-            ORDER BY so.requested_ship_date ASC, so.order_date ASC
+            -- Oldest work first, so nothing is overtaken by something keyed today.
+            --
+            -- This said requested_ship_date ASC, order_date ASC, which reads as oldest
+            -- first and is not: MySQL sorts NULL first, and most orders have no ship-by
+            -- date, so every undated order went to the top. SO #38 was keyed this
+            -- morning and sat above orders from three weeks earlier.
+            --
+            -- COALESCE gives every order a date to be judged by - the one it was
+            -- promised for, or failing that the day it was taken - so an order with no
+            -- ship-by takes its proper place by age rather than jumping the queue.
+            ORDER BY COALESCE(so.requested_ship_date, so.order_date) ASC, so.id ASC
         ")->fetchAll(\PDO::FETCH_ASSOC);
     }
 
