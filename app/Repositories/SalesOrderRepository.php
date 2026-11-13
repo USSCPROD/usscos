@@ -601,6 +601,7 @@ class SalesOrderRepository
                    so.pick_status, so.pick_note, so.pack_status,
                    so.po_number, so.total_amount, so.ship_via_id,
                    so.ship_address_1, so.ship_city, so.ship_state, so.ship_zip,
+                   so.priority,
                    c.id AS customer_id, c.company_name, c.phone,
                    sv.name AS ship_via_name, sv.ship_mode,
                    u.first_name AS rep_first, u.last_name AS rep_last,
@@ -665,7 +666,11 @@ class SalesOrderRepository
             -- COALESCE gives every order a date to be judged by - the one it was
             -- promised for, or failing that the day it was taken - so an order with no
             -- ship-by takes its proper place by age rather than jumping the queue.
-            ORDER BY COALESCE(so.requested_ship_date, so.order_date) ASC, so.id ASC
+            -- Urgent first, then high, then everything else by age. The approval board
+            -- already sorts this way; the queue the warehouse actually works from did
+            -- not, so marking an order urgent moved it nowhere.
+            ORDER BY FIELD(so.priority, 'urgent', 'high', 'normal'),
+                     COALESCE(so.requested_ship_date, so.order_date) ASC, so.id ASC
         ")->fetchAll(\PDO::FETCH_ASSOC);
     }
 
@@ -842,6 +847,25 @@ class SalesOrderRepository
      *
      * @return array<int,array<string,mixed>>
      */
+    /**
+     * How urgent this order is, as decided by whoever is working the queue.
+     *
+     * The column has been read by the pull list, the approval board and the release
+     * queue since it was added, and written by nothing — no form field, no route. The
+     * only non-normal values in the data came in with the import.
+     */
+    public function setPriority(int $soId, string $priority): bool
+    {
+        if (!in_array($priority, ['normal', 'high', 'urgent'], true)) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare('UPDATE sales_orders SET priority = ? WHERE id = ?');
+        $stmt->execute([$priority, $soId]);
+
+        return $stmt->rowCount() > 0;
+    }
+
     public function approvalQueue(): array
     {
         return Database::select("

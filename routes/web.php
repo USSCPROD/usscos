@@ -192,6 +192,9 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/shipping/release',    [ShippingController::class, 'release'])->name('shipping.release');
     Router::post('/shipping/{id}/release', [ShippingController::class, 'releaseOrder'])->name('shipping.release.go');
     Router::post('/shipping/{id}/hold',    [ShippingController::class, 'holdOrder'])->name('shipping.hold');
+    // Priority has been read by three queues and settable from nowhere since it was
+    // added. The person who finds out an order is urgent is standing at the queue.
+    Router::post('/shipping/{id}/priority',[ShippingController::class, 'setPriority'])->name('shipping.priority');
     Router::post('/shipping/pull/pick', [ShippingController::class, 'pullPick'])->name('shipping.pull.pick');
     Router::post('/shipping/{id}/ack-change', [ShippingController::class, 'ackChange'])->name('shipping.ack_change');
     Router::get('/shipping/{id}/pick',       [ShippingController::class, 'pick'])->name('shipping.pick');

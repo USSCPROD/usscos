@@ -136,6 +136,7 @@ if ($activeTab === 'all') {
                         <th style="padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;white-space:nowrap">Carrier</th>
                         <?php endif; ?>
                         <th style="padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280">Status</th>
+                        <th style="padding:.7rem 1rem;text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;white-space:nowrap">Priority</th>
                         <th style="padding:.7rem 1rem;text-align:right;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280">Total</th>
                         <th style="padding:.7rem 1rem"></th>
                     </tr>
@@ -189,6 +190,35 @@ if ($activeTab === 'all') {
                         <?php endif; ?>
                         <td data-label="Status" style="padding:.75rem 1rem">
                             <span class="badge <?= $statusBadge[$o['status']] ?? 'badge--neutral' ?>"><?= $statusLabel[$o['status']] ?? e($o['status']) ?></span>
+                        </td>
+                        <?php /*
+                         * Set it here, because here is where somebody finds out.
+                         *
+                         * The column was read by the pull list, the approval board and
+                         * the release queue and written by nothing — there was no field
+                         * on any form and no route to post to, so an order could not be
+                         * made urgent at all. The clerk learns a job has to go today;
+                         * the salesperson who keyed it last week does not.
+                         *
+                         * Submits on change: one tap on the bench tablet, not pick-then-
+                         * press.
+                         */ ?>
+                        <td data-label="Priority" style="padding:.75rem 1rem;white-space:nowrap" onclick="event.stopPropagation()">
+                            <?php $pri = $o['priority'] ?? 'normal'; ?>
+                            <form method="POST" action="/shipping/<?= (int)$o['id'] ?>/priority" style="margin:0">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="return" value="/shipping<?= $activeTab !== 'all' ? '?tab=' . e($activeTab) : '' ?>">
+                                <select name="priority" onchange="this.form.submit()"
+                                        style="padding:.3rem .5rem;font-size:.8rem;border-radius:5px;cursor:pointer;
+                                               border:1px solid <?= $pri === 'urgent' ? '#fca5a5' : ($pri === 'high' ? '#fcd34d' : '#d1d5db') ?>;
+                                               background:<?= $pri === 'urgent' ? '#fef2f2' : ($pri === 'high' ? '#fffbeb' : '#fff') ?>;
+                                               color:<?= $pri === 'urgent' ? '#b91c1c' : ($pri === 'high' ? '#92400e' : '#6b7280') ?>;
+                                               font-weight:<?= $pri === 'normal' ? '400' : '700' ?>">
+                                    <option value="normal" <?= $pri === 'normal' ? 'selected' : '' ?>>Normal</option>
+                                    <option value="high"   <?= $pri === 'high'   ? 'selected' : '' ?>>High</option>
+                                    <option value="urgent" <?= $pri === 'urgent' ? 'selected' : '' ?>>Urgent</option>
+                                </select>
+                            </form>
                         </td>
                         <td data-label="Total" style="padding:.75rem 1rem;text-align:right;font-family:monospace;font-weight:600;color:#111">$<?= number_format((float)$o['total_amount'], 2) ?></td>
                         <td class="queue-actions" style="padding:.75rem 1rem;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">

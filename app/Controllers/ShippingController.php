@@ -393,6 +393,34 @@ class ShippingController extends Controller
      * A hold with no reason is indistinguishable from an order nobody got to, and the
      * difference matters to whoever picks the queue up tomorrow.
      */
+    /**
+     * Mark an order urgent, high or normal from the queue it is sitting in.
+     *
+     * The priority column has been read by the pull list, the approval board and the
+     * release queue since it was added, and written by nothing at all — there was no
+     * field on any form and no route to post to. An order could not be made urgent.
+     *
+     * It belongs here because the person who finds out a job has to go today is the
+     * one standing at the queue, not the salesperson who keyed it last week.
+     */
+    public function setPriority(Request $request, Response $response, string $id = '0'): Response
+    {
+        $back     = (string)($_POST['return'] ?? '/shipping');
+        $priority = (string)($_POST['priority'] ?? '');
+
+        if (!(new \App\Repositories\SalesOrderRepository())->setPriority((int)$id, $priority)) {
+            Session::flash('error', 'That priority is not one of normal, high or urgent.');
+
+            return $response->redirect($back);
+        }
+
+        Session::flash('success', $priority === 'normal'
+            ? 'Back to normal priority.'
+            : 'Marked ' . $priority . ' — it moves up the queue.');
+
+        return $response->redirect($back);
+    }
+
     public function holdOrder(Request $request, Response $response, string $id = '0'): Response
     {
         $reason = trim((string)($_POST['reason'] ?? ''));
