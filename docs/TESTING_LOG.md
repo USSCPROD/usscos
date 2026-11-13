@@ -382,26 +382,36 @@ before rebuilding against the wrong source.**
    than to collect afterwards, so the table needs deciding before the importer is
    rebuilt rather than after.
 
-9. **Invoices import with no channel, so marketplace revenue is unanswerable.**
+9. **How Amazon arrives — and what the import does and does not need to do.**
    Found 13 Nov 2026.
 
-   USSCOS holds **$8,678,536 of 2026 invoices across 9,351 invoices** — and **9,338 of
-   them have no sales order attached**, so nothing says where the sale came from. Only
-   the 13 orders keyed during testing carry a channel.
+   USSCOS holds **$8,678,536 of 2026 invoices across 9,351 invoices**, of which 9,338
+   have no sales order attached. I first read that as marketplace revenue being
+   unanswerable.
 
-   The system therefore cannot answer *how much of this year was Amazon?* — which is
-   exactly the question asked before deciding what to spend on an Amazon integration.
-   Chip's figures, 13 Nov 2026: **about $1M on Amazon against $20M company-wide**, known
-   from outside USSCOS because USSCOS cannot show it.
+   **Corrected the same day, by Chip: Amazon is a customer in QuickBooks, so this is
+   answerable after all** — by customer, not by channel. In the loaded data,
+   **$697,938.72 across 3,188 invoices in 2026** to customer AMAZON (id 3269), which is
+   consistent with his $1M+ for a full year against $20M company-wide.
 
-   `sales_orders.channel` already exists (`direct`, `amazon`, `website`, `pickup`, `edi`,
-   `other`) with `channel_reference` for the marketplace order id. The import needs to
-   populate both, or every marketplace-versus-direct question stays unanswerable after
-   cutover as well as before it.
+   So there is no need to reconstruct sales orders for imported history, and no need to
+   stamp a channel on historical invoices. QuickBooks holds what was sold; the customer
+   says where it came from.
 
-   Worth deciding at the same time whether imported invoices should hang off a
-   reconstructed sales order at all, or whether the channel belongs on the invoice
-   directly for history. Attaching it to nothing is the one option that does not work.
+   **What matters instead is the shape going forward.** A new Amazon order arrives as a
+   **sales order** — pulled from SP-API or middleware, carrying `channel = 'amazon'` and
+   the marketplace order id in `channel_reference` — and becomes an invoice at the end of
+   the flow, not at the start. The always-urgent rule keys off that channel and therefore
+   works, because whatever creates those orders sets it.
+
+   The useful figure out of this: **3,188 invoices averaging $219** in a partial extract,
+   so roughly 60 a week and more in reality. That settles whether to automate.
+
+   Still open: **AMAZON(VA)** exists as a separate customer with no 2026 invoices. If VA
+   is Vendor Central, that is a different relationship — selling *to* Amazon rather than
+   on the marketplace — and a different API. Worth establishing before anyone scopes the
+   integration. AMAZON itself is also duplicated (3269 and 97970, the second empty),
+   which is the ordinary duplicate problem.
 
 #### What it needs to become
 
