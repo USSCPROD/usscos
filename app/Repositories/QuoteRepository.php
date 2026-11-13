@@ -49,7 +49,10 @@ class QuoteRepository
 
         $sql = "
             SELECT q.id, q.quote_number, q.quote_date, q.expiry_date, q.status,
-                   q.total_amount, q.po_number, q.customer_id,
+                   q.total_amount, q.po_number, q.customer_id, q.lead_id,
+                   -- The name already falls back to the lead; the id has to as well,
+                   -- or the list shows a lead's name linked to a customer that does
+                   -- not exist and the link 404s.
                    COALESCE(c.company_name, l.company_name) AS company_name,
                    u.first_name AS rep_first, u.last_name AS rep_last
             FROM quotes q

@@ -109,7 +109,17 @@ $statusLabel = [
                     <a href="/quotes/<?= (int)$q['id'] ?>" class="link" style="font-weight:600"><?= e($q['quote_number']) ?></a>
                 </td>
                 <td style="padding:.75rem 1rem">
-                    <a href="/customers/<?= (int)$q['customer_id'] ?>" class="link"><?= e($q['company_name']) ?></a>
+                    <?php /* A quote can be raised against a lead, which has no customer
+                             yet — linking its name to /customers/0 gave a 404. Point at
+                             whichever record the quote actually belongs to. */ ?>
+                    <?php if (!empty($q['customer_id'])): ?>
+                        <a href="/customers/<?= (int)$q['customer_id'] ?>" class="link"><?= e($q['company_name']) ?></a>
+                    <?php elseif (!empty($q['lead_id'])): ?>
+                        <a href="/leads/<?= (int)$q['lead_id'] ?>" class="link"><?= e($q['company_name']) ?></a>
+                        <span class="badge badge--neutral" style="margin-left:.35rem;font-size:.7rem">Lead</span>
+                    <?php else: ?>
+                        <?= e($q['company_name'] ?? '—') ?>
+                    <?php endif; ?>
                 </td>
                 <td style="padding:.75rem 1rem;color:#374151;font-size:.9rem"><?= date('M j, Y', strtotime($q['quote_date'])) ?></td>
                 <td style="padding:.75rem 1rem;font-size:.9rem;color:<?= $isExpired ? '#dc2626' : '#374151' ?>">
