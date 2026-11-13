@@ -1,57 +1,47 @@
 <?php
 /**
- * USSCOS lead forwarding — Contact Form 7
+ * USSCOS lead forwarding — usscproducts.com
  * -----------------------------------------------------------------------------
- * Paste this into a code-snippets plugin (WPCode or Code Snippets), set to run
- * everywhere / PHP snippet. Do NOT paste it into HFCM — that injects HTML and
- * JavaScript into pages and cannot run server-side code.
+ * Paste into Code Snippets as a PHP snippet, "Run everywhere", then Activate.
  *
  * WHAT IT DOES
  *   After Contact Form 7 has sent its email, this also posts the submission to
- *   USSCOS so it becomes a lead.
+ *   USSCOS so it becomes a lead, routed to the right rep.
  *
  * THE EMAIL IS NOT AFFECTED.
- *   `wpcf7_mail_sent` fires *after* the mail has gone. If USSCOS is down, slow
- *   or misconfigured, the email has already been delivered and the person who
- *   normally receives it still gets it. That is deliberate: email stays the
- *   system of record until you decide to switch, and this is additive.
+ *   `wpcf7_mail_sent` fires only once the mail has gone. If USSCOS is down, slow
+ *   or misconfigured the email has already been delivered and whoever normally
+ *   receives it still does. Email stays the system of record until you decide
+ *   otherwise; this is purely additive.
  *
  * BEFORE IT WILL WORK
- *   1. Put the secret below. Get it from the server:
- *        ssh root@159.223.177.58 'grep LEAD_WEBHOOK_SECRET /var/www/usscos/.env'
- *   2. Check the form IDs in USSCOS_LEAD_FORMS match this site's forms.
- *      Contact Form 7 shows the ID in the shortcode, e.g. [contact-form-7 id="74"].
+ *   Put the secret in USSCOS_LEAD_SECRET below. Get it with:
+ *     ssh root@159.223.177.58 'grep LEAD_WEBHOOK_SECRET /var/www/usscos/.env'
+ *
+ *   Everything else — form ids and field names — is already filled in from the
+ *   live forms on this site as at 13 November 2026.
  */
 
 // -----------------------------------------------------------------------------
-// Settings
-// -----------------------------------------------------------------------------
 
-/** The shared secret from USSCOS .env — LEAD_WEBHOOK_SECRET. */
 define( 'USSCOS_LEAD_SECRET', 'PASTE_THE_SECRET_HERE' );
-
-/** Where the leads go. */
 define( 'USSCOS_LEAD_URL', 'https://os.usscos.com/webhook/lead' );
 
 /**
- * Which Contact Form 7 forms are forwarded, and as what.
+ * Which forms are forwarded, and as what.
  *
- * Only these three are sent. Newsletter signups and the partner/dealer forms are
- * deliberately absent: a newsletter signup is not a lead, and making it one is
- * how a lead list fills with people nobody intends to ring.
- *
- * Add a form by putting its id here with the right type. The types are the ones
- * USSCOS knows: contact, paint_quote, stencil_quote.
+ * The newsletter, Georgia Proud Partner and Become a Dealer forms are absent on
+ * purpose. A newsletter signup is not a lead, and making it one is how a lead
+ * list fills with people nobody intends to ring — at which point the reps stop
+ * reading it and the real enquiries go with it.
  */
 function usscos_lead_forms() {
 	return array(
-		74 => 'contact',        // Contact Form - Basic
-		// 0 => 'paint_quote',     // Request a Quote        — set the real id
-		// 0 => 'stencil_quote',   // Request a Stencil Quote — set the real id
+		74    => 'contact',        // Contact Form - Basic
+		14593 => 'paint_quote',    // Request a Quote
+		18220 => 'stencil_quote',  // Request a Stencil Quote
 	);
 }
-
-// -----------------------------------------------------------------------------
 
 add_action( 'wpcf7_mail_sent', 'usscos_forward_lead', 10, 1 );
 
@@ -61,7 +51,7 @@ function usscos_forward_lead( $contact_form ) {
 	$id    = (int) $contact_form->id();
 
 	if ( ! isset( $forms[ $id ] ) ) {
-		return; // Not a form we forward. Email has still gone.
+		return; // Not one we forward. The email has still gone.
 	}
 
 	$submission = WPCF7_Submission::get_instance();
@@ -70,34 +60,56 @@ function usscos_forward_lead( $contact_form ) {
 		return;
 	}
 
-	$posted = $submission->get_posted_data();
+	$p    = $submission->get_posted_data();
+	$type = $forms[ $id ];
 
-	// Contact Form 7 gives one name field. USSCOS wants two, so split on the
-	// first space and put everything else in the surname — "Mary Jane Watson"
-	// should not lose "Jane".
-	$full  = trim( (string) usscos_field( $posted, array( 'your-name', 'name', 'full-name' ) ) );
+	// Both quote forms use quote-name; the contact form uses your-name. One name
+	// field either way, and USSCOS wants two — split on the first space so that
+	// "Mary Jane Watson" does not lose "Jane".
+	$full  = trim( (string) usscos_f( $p, array( 'quote-name', 'your-name' ) ) );
 	$parts = preg_split( '/\s+/', $full, 2 );
-	$first = isset( $parts[0] ) ? $parts[0] : '';
-	$last  = isset( $parts[1] ) ? $parts[1] : '';
 
 	$payload = array(
-		'form_type'  => $forms[ $id ],
-		'first_name' => $first,
-		'last_name'  => $last,
-		'email'      => (string) usscos_field( $posted, array( 'your-email', 'email' ) ),
-		'phone'      => (string) usscos_field( $posted, array( 'your-phone', 'phone', 'tel' ) ),
-		'company'    => (string) usscos_field( $posted, array( 'company', 'your-company', 'organization' ) ),
-		'subject'    => (string) usscos_field( $posted, array( 'your-subject', 'subject' ) ),
-		'message'    => (string) usscos_field( $posted, array( 'your-message', 'message', 'comments' ) ),
+		'form_type'  => $type,
+		'first_name' => isset( $parts[0] ) ? $parts[0] : '',
+		'last_name'  => isset( $parts[1] ) ? $parts[1] : '',
+		'email'      => (string) usscos_f( $p, array( 'quote-email', 'your-email' ) ),
+		'phone'      => (string) usscos_f( $p, array( 'quote-phone' ) ),
+		'company'    => (string) usscos_f( $p, array( 'quote-company' ) ),
 	);
+
+	// The quote forms collect an address; the contact form does not.
+	if ( 'contact' !== $type ) {
+		$payload['address_line1'] = (string) usscos_f( $p, array( 'quote-address' ) );
+		$payload['city']          = (string) usscos_f( $p, array( 'quote-city' ) );
+		$payload['state']         = (string) usscos_f( $p, array( 'quote-state' ) );
+		$payload['postal_code']   = (string) usscos_f( $p, array( 'quote-zip' ) );
+	}
+
+	// Field names differ per form. These map this site's names onto the ones the
+	// USSCOS handlers read when they build the lead notes — get these wrong and
+	// the lead arrives with a name and an empty body, which is worse than useless
+	// because somebody has to ring and ask what was already typed.
+	if ( 'contact' === $type ) {
+		$payload['subject'] = (string) usscos_f( $p, array( 'your-subject' ) );
+		$payload['message'] = (string) usscos_f( $p, array( 'your-message' ) );
+	} elseif ( 'paint_quote' === $type ) {
+		$payload['uses_paint']    = (string) usscos_f( $p, array( 'quote-paintuser' ) );
+		$payload['current_brand'] = (string) usscos_f( $p, array( 'quote-paintbrand' ) );
+		$payload['products']      = usscos_f( $p, array( 'quote-products' ), true );
+		$payload['notes']         = (string) usscos_f( $p, array( 'quote-paintcolor' ) );
+	} else {
+		$payload['project_description'] = (string) usscos_f( $p, array( 'quote-details' ) );
+		$payload['needs_paint']         = (string) usscos_f( $p, array( 'quote-paint' ) );
+	}
 
 	$response = wp_remote_post(
 		USSCOS_LEAD_URL,
 		array(
-			// Short, and non-blocking is NOT used on purpose: a fire-and-forget
-			// request gives no way to know it failed. Five seconds is long enough
-			// for a healthy server and short enough that a sick one does not hold
-			// up the page the visitor is looking at.
+			// Blocking on purpose. Fire-and-forget would never tell us it failed,
+			// and a lead feed that stopped six months ago is discovered by somebody
+			// asking where the enquiries went. Five seconds is plenty for a healthy
+			// server and short enough that a sick one does not hold up the visitor.
 			'timeout'  => 5,
 			'blocking' => true,
 			'headers'  => array(
@@ -108,10 +120,9 @@ function usscos_forward_lead( $contact_form ) {
 		)
 	);
 
-	// Log failures rather than surfacing them. The visitor has submitted the form
-	// and the email has gone; telling them about our internal plumbing helps
-	// nobody. But a silent failure is how you discover six months later that the
-	// leads stopped — so it goes in the PHP error log either way.
+	// Logged, never shown. The visitor has submitted and the email has gone;
+	// telling them about our plumbing helps nobody. But a silent failure is how
+	// you stop noticing, so it goes in the PHP error log either way.
 	if ( is_wp_error( $response ) ) {
 		error_log( 'USSCOS lead webhook failed: ' . $response->get_error_message() );
 		return;
@@ -120,22 +131,23 @@ function usscos_forward_lead( $contact_form ) {
 	$code = (int) wp_remote_retrieve_response_code( $response );
 
 	if ( $code < 200 || $code >= 300 ) {
-		error_log(
-			'USSCOS lead webhook returned ' . $code . ': '
-			. wp_remote_retrieve_body( $response )
-		);
+		error_log( 'USSCOS lead webhook returned ' . $code . ': ' . wp_remote_retrieve_body( $response ) );
 	}
 }
 
-/** First of these field names that has a value. Forms disagree about naming. */
-function usscos_field( $posted, $names ) {
+/** First of these field names with a value. $joinArrays for checkbox groups. */
+function usscos_f( $posted, $names, $joinArrays = false ) {
 	foreach ( $names as $name ) {
 		if ( ! empty( $posted[ $name ] ) ) {
-			return is_array( $posted[ $name ] )
-				? implode( ', ', $posted[ $name ] )
-				: $posted[ $name ];
+			$v = $posted[ $name ];
+
+			if ( is_array( $v ) ) {
+				return $joinArrays ? $v : implode( ', ', $v );
+			}
+
+			return $v;
 		}
 	}
 
-	return '';
+	return $joinArrays ? array() : '';
 }
