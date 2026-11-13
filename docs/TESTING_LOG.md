@@ -9,6 +9,12 @@ finding that lives only in a chat message is a finding that gets rediscovered.
 **Two kinds of entry, and the difference matters.**
 
 - **Code** — a fault in the application. It survives the re-import. Fix it now.
+> **Scale, for judging any of this:** USSC is a **$20M business**, about **$1M of it on
+> Amazon** (Chip, 13 Nov 2026). USSCOS currently holds $8.67M of 2026 invoices, so the
+> extract is well under half a year's real trade. Anything here that scales with volume —
+> the 9,665 duplicate customers, the stock counts, the importer — is bigger in the real
+> data than it looks in this one.
+
 - **Data** — an artifact of the partial extract loaded for testing. Recheck it after
   the real import rather than chasing it. See the note in [GO_LIVE.md](GO_LIVE.md).
 
@@ -375,6 +381,27 @@ before rebuilding against the wrong source.**
    turns out to be, the people on each account are far cheaper to capture while it runs
    than to collect afterwards, so the table needs deciding before the importer is
    rebuilt rather than after.
+
+9. **Invoices import with no channel, so marketplace revenue is unanswerable.**
+   Found 13 Nov 2026.
+
+   USSCOS holds **$8,678,536 of 2026 invoices across 9,351 invoices** — and **9,338 of
+   them have no sales order attached**, so nothing says where the sale came from. Only
+   the 13 orders keyed during testing carry a channel.
+
+   The system therefore cannot answer *how much of this year was Amazon?* — which is
+   exactly the question asked before deciding what to spend on an Amazon integration.
+   Chip's figures, 13 Nov 2026: **about $1M on Amazon against $20M company-wide**, known
+   from outside USSCOS because USSCOS cannot show it.
+
+   `sales_orders.channel` already exists (`direct`, `amazon`, `website`, `pickup`, `edi`,
+   `other`) with `channel_reference` for the marketplace order id. The import needs to
+   populate both, or every marketplace-versus-direct question stays unanswerable after
+   cutover as well as before it.
+
+   Worth deciding at the same time whether imported invoices should hang off a
+   reconstructed sales order at all, or whether the channel belongs on the invoice
+   directly for history. Attaching it to nothing is the one option that does not work.
 
 #### What it needs to become
 
