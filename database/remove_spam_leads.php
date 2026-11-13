@@ -33,6 +33,19 @@ $commit = in_array('--commit', $args, true);
 $dead   = in_array('--dead', $args, true);
 
 /*
+ * --web takes every lead whose source is 'web' rather than matching on wording.
+ *
+ * Chip, 13 Nov 2026: usscos.com is not a live site — nothing links to it and no
+ * customer has reason to find it — so a lead that came through its forms is spam by
+ * definition. That is a far better rule than guessing from the text, which let
+ * "I would like more information. Please contact me by email — us specialty coatings"
+ * through because the phrase was not at the end of the note.
+ *
+ * Leads that anybody has worked are still protected, whichever mode is used.
+ */
+$webMode = in_array('--web', $args, true);
+
+/*
  * Signals, not one rule. Each is weak alone; a lead matching any of them, having never
  * been worked, is not worth a person's attention.
  */
@@ -52,7 +65,26 @@ const PATTERNS = [
 
 $found = [];
 
-foreach (PATTERNS as $label => $rx) {
+if ($webMode) {
+    $rows = Database::select(
+        "SELECT l.id, l.company_name, l.email, l.created_at, l.status,
+                LEFT(REPLACE(REPLACE(l.notes, '\n', ' '), '\r', ''), 64) AS snippet
+           FROM leads l
+          WHERE l.source = 'web'
+            AND l.customer_id IS NULL
+            AND l.status <> 'converted'
+            AND NOT EXISTS (SELECT 1 FROM quotes q        WHERE q.lead_id = l.id)
+            AND NOT EXISTS (SELECT 1 FROM opportunities o WHERE o.lead_id = l.id)
+            AND NOT EXISTS (SELECT 1 FROM tasks t         WHERE t.lead_id = l.id)
+          ORDER BY l.id"
+    );
+
+    foreach ($rows as $r) {
+        $found[(int)$r['id']] = $r + ['why' => 'came through usscos.com'];
+    }
+}
+
+foreach ($webMode ? [] : PATTERNS as $label => $rx) {
     $rows = Database::select(
         "SELECT l.id, l.company_name, l.email, l.created_at, l.status,
                 LEFT(REPLACE(REPLACE(l.notes, '\\n', ' '), '\\r', ''), 64) AS snippet
