@@ -4,6 +4,9 @@ $preset_customer        = $preset_customer         ?? null;
 $preset_lead            = $preset_lead             ?? null;
 $preset_opportunity_id  = $preset_opportunity_id   ?? 0;
 
+// Nothing quoted yet, so no shipping figure to show back.
+$quoteShipAmount = null;
+
 $termDaysMap = [];
 foreach ($payment_terms as $pt) {
     $termDaysMap[(int)$pt['id']] = (int)$pt['days_due'];
@@ -173,10 +176,10 @@ $currentUser = \App\Core\Auth::user();
             </td>
             <td style="padding:.85rem 1.25rem;vertical-align:top;width:20%">
                 <div style="<?= qLblStyle() ?>">Ship Via</div>
-                <select name="ship_via_id" style="<?= qInpStyle() ?>">
-                    <option value="">— Select —</option>
+                <select name="ship_via_id" id="shipViaSelect" style="<?= qInpStyle() ?>">
+                    <option value="" data-mode="" data-carrier="">— Select —</option>
                     <?php foreach ($ship_via_options as $sv): ?>
-                        <option value="<?= (int)$sv['id'] ?>" <?= (int)$sv['id'] === $defaultShipViaId ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
+                        <option value="<?= (int)$sv['id'] ?>" data-mode="<?= e($sv['ship_mode'] ?? 'other') ?>" data-carrier="<?= e($sv['carrier_code'] ?? '') ?>" <?= (int)$sv['id'] === $defaultShipViaId ? 'selected' : '' ?>><?= e($sv['name']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </td>
@@ -218,6 +221,31 @@ $currentUser = \App\Core\Auth::user();
                     <tr id="fDiscRow" style="display:none">
                         <td colspan="7" style="padding:.4rem .75rem;text-align:right;color:#6b7280;font-size:.9rem">Discount</td>
                         <td style="padding:.4rem .75rem;text-align:right;font-family:monospace;color:#ef4444" id="fDiscount"></td>
+                        <td></td>
+                    </tr>
+                    <?php /* Shipping is charged, not picked, so it becomes a line of its
+                             own exactly as it does on a sales order — which is what makes
+                             it survive the conversion and read correctly on the invoice.
+
+                             It belongs on the quote because institutional buyers raise a
+                             PO against the quoted figure: leave shipping off and the
+                             invoice exceeds the PO, and their purchasing rejects it. */ ?>
+                    <tr>
+                        <td colspan="7" style="padding:.5rem .75rem;text-align:right;color:#6b7280;font-size:.9rem">
+                            Shipping &amp; handling
+                        </td>
+                        <td style="padding:.5rem .75rem;text-align:right">
+                            <input type="number" name="shipping_amount" id="fShipAmount"
+                                   step="0.01" min="0" placeholder="0.00"
+                                   value="<?= $quoteShipAmount !== null ? number_format($quoteShipAmount, 2, '.', '') : '' ?>"
+                                   style="width:100%;max-width:7.5rem;padding:.35rem .5rem;border:1px solid #d1d5db;
+                                          border-radius:6px;font-family:monospace;text-align:right;font-size:.9rem">
+                            <div style="margin-top:.35rem;text-align:right">
+                                <button type="button" id="fQuoteBtn" class="btn btn--sm btn--secondary"
+                                        style="font-size:.78rem">Get FedEx quote</button>
+                            </div>
+                            <div id="fQuoteOut" style="margin-top:.4rem;font-size:.8rem;text-align:left"></div>
+                        </td>
                         <td></td>
                     </tr>
                     <tr>
@@ -331,12 +359,16 @@ function qThStyle(): string {
         });
         const rate=parseFloat(document.getElementById('taxRatePct').value)||0;
         const taxAmt=taxable*rate/100;
+        // Shipping is charged but not taxed, and is not one of the .q-line rows, so it
+        // is added to the total here rather than counted in the loop above.
+        const shipEl=document.getElementById('fShipAmount');
+        const ship=shipEl?(parseFloat(shipEl.value)||0):0;
         document.getElementById('fSubtotal').textContent=fmt(sub);
         const dr=document.getElementById('fDiscRow');
         dr.style.display=disc>0?'':'none';
         if(disc>0) document.getElementById('fDiscount').textContent='−'+fmt(disc);
         document.getElementById('fTax').textContent=fmt(taxAmt);
-        document.getElementById('fTotal').textContent=fmt(sub-disc+taxAmt);
+        document.getElementById('fTotal').textContent=fmt(sub-disc+taxAmt+ship);
     }
     function bindRow(tr){
         tr.querySelectorAll('.f-calc').forEach(el=>{
@@ -523,6 +555,93 @@ sel.innerHTML='<option value="">— None —</option>';
     })();
     <?php endif; ?>
 })();
+
+    /*
+     * Shipping on the quote: price it, or type it.
+     *
+     * Reuses the sales order's quote endpoint — the field names on this form are the
+     * same ones it reads (line_product_id[], line_qty[], ship_zip), so there is one
+     * cartonizer and one markup behind both screens rather than two that drift.
+     *
+     * Freight is typed by hand: Kuebix price a pallet over the phone and there is no
+     * API to ask yet. The button hides itself and says so rather than offering a quote
+     * that could only ever answer "this is freight".
+     */
+    var FREIGHT_MARKUP = <?= json_encode((float)(\App\Core\Config::get('shipping.freight_markup') ?? 20.0)) ?>;
+    (function(){
+        const btn=document.getElementById('fQuoteBtn'), out=document.getElementById('fQuoteOut');
+        if(!btn) return;
+        const via=document.getElementById('shipViaSelect');
+        const wrap=btn.parentNode;
+
+        function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+
+        function syncQuoteBtn(){
+            const opt = via && via.selectedIndex>=0 ? via.options[via.selectedIndex] : null;
+            const mode = opt ? (opt.dataset.mode||'') : '';
+            const carrier = opt ? (opt.dataset.carrier||'') : '';
+            const canQuote = carrier==='fedex';
+            wrap.style.display = canQuote ? '' : 'none';
+            if(canQuote){
+                if(out.textContent.indexOf('Kuebix')>-1 || out.textContent.indexOf('Choose')>-1) out.innerHTML='';
+                return;
+            }
+            if(mode==='freight'){
+                out.innerHTML='<div style="color:#6b7280">Freight — get the price from Kuebix and add $'
+                             + FREIGHT_MARKUP.toFixed(2) + ', then type it in.</div>';
+            } else if(!opt || opt.value===''){
+                out.innerHTML='<div style="color:#9ca3af">Choose how it ships to price it.</div>';
+            } else {
+                out.innerHTML='<div style="color:#9ca3af">No quote for this carrier — type the amount.</div>';
+            }
+        }
+        if(via) via.addEventListener('change',syncQuoteBtn);
+        syncQuoteBtn();
+
+        btn.addEventListener('click',function(){
+            // By id. The topbar carries a form of its own, so querySelector('form')
+            // posts that one and the quote can only answer "add the delivery ZIP".
+            const fd=new FormData(document.getElementById('quoteForm'));
+            btn.disabled=true; btn.textContent='Asking FedEx…';
+            out.innerHTML='';
+            fetch('/sales-orders/quote-shipping',{method:'POST',body:fd})
+                .then(r=>r.json())
+                .then(d=>{
+                    btn.disabled=false; btn.textContent='Get FedEx quote';
+                    if(!d.ok){ out.innerHTML='<div style="color:#b45309">'+esc(d.message||'No quote.')+'</div>'; return; }
+                    let h='<div style="color:#6b7280;margin-bottom:.3rem">'+d.boxes+' box(es), '+d.weight+' lb — '
+                        +'FedEx price plus $'+Number(d.markup).toFixed(2)+'. Click one to use it.</div>';
+                    if(d.sandbox){
+                        h+='<div style="color:#b45309;margin-bottom:.3rem">Sandbox rates — list price, not '
+                          +'USSC’s negotiated account rates. Expect these to be high.</div>';
+                    }
+                    d.rates.forEach(function(r){
+                        h+='<div class="q-rate" data-charge="'+r.charge+'" style="display:flex;justify-content:space-between;'
+                          +'gap:1rem;padding:.3rem .45rem;cursor:pointer;border-radius:5px">'
+                          +'<span>'+esc(r.label)+'</span>'
+                          +'<span style="font-family:monospace"><span style="color:#9ca3af">'+fmt(r.cost)+'</span> → <strong>'+fmt(r.charge)+'</strong></span>'
+                          +'</div>';
+                    });
+                    out.innerHTML=h;
+                    out.querySelectorAll('.q-rate').forEach(function(el){
+                        el.addEventListener('mouseover',()=>el.style.background='#eff6ff');
+                        el.addEventListener('mouseout', ()=>el.style.background='');
+                        el.addEventListener('click',function(){
+                            document.getElementById('fShipAmount').value=Number(this.dataset.charge).toFixed(2);
+                            out.innerHTML='<div style="color:#166534">Shipping set to '+fmt(this.dataset.charge)+'.</div>';
+                            recalcAll();
+                        });
+                    });
+                })
+                .catch(()=>{ btn.disabled=false; btn.textContent='Get FedEx quote';
+                             out.innerHTML='<div style="color:#b45309">Could not reach the quote service.</div>'; });
+        });
+
+        // Typing a figure by hand has to move the total too.
+        const amt=document.getElementById('fShipAmount');
+        if(amt) amt.addEventListener('input', recalcAll);
+    }());
+
 </script>
 
 <?php

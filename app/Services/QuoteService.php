@@ -281,7 +281,26 @@ class QuoteService
             $qty   = (float)str_replace(',', '', $qty);
             $price = (float)str_replace(',', '', $prices[$i] ?? '0');
             $disc  = (float)($discounts[$i] ?? 0);
-            if ($qty == 0 && $price == 0) continue;
+
+            /*
+             * Skip the blank rows the form keeps at the bottom.
+             *
+             * This only skipped a row with no quantity AND no price, but an empty row
+             * submits quantity 1, so every quote was saving a spare line at $0.00 and
+             * carrying it onto the sales order. The same fault was fixed on sales
+             * orders on 10 Nov; quotes still had it.
+             *
+             * A row is real if somebody put something in it: a product, some words, or
+             * a price. A free-text line at no charge is legitimate, so price alone is
+             * not the test.
+             */
+            $hasProduct = ($productIds[$i] ?? '') !== '';
+            $hasWords   = trim((string)($descs[$i] ?? '')) !== ''
+                       || trim((string)($items[$i] ?? '')) !== '';
+
+            if (!$hasProduct && !$hasWords && $price == 0.0) {
+                continue;
+            }
 
             $lines[] = [
                 'product_id'      => ($productIds[$i] ?? '') !== '' ? (int)$productIds[$i] : null,
@@ -295,7 +314,55 @@ class QuoteService
                 'line_total'      => round($qty * $price * (1 - $disc / 100), 2),
             ];
         }
+
+        $shipping = $this->shippingLine($post);
+
+        if ($shipping !== null) {
+            $lines[] = $shipping;
+        }
+
         return $lines;
+    }
+
+    /**
+     * The shipping charge on a quote, as a line of its own.
+     *
+     * The same shape a sales order uses, so it survives the conversion untouched and
+     * reads correctly on the invoice without anything having to translate it.
+     *
+     * It belongs on the quote at all because institutional buyers raise a purchase
+     * order against the quoted figure. Quote $1,730 and invoice $1,950 and the invoice
+     * exceeds the PO, which their purchasing department will reject — so the shipping
+     * has to be in the number they approve.
+     *
+     * Not a product, and marked not taxable: the pick and pack screens drop charge
+     * lines by their wording so nobody is sent to find a box of handling.
+     */
+    private function shippingLine(array $post): ?array
+    {
+        $raw = $post['shipping_amount'] ?? '';
+
+        if ($raw === '' || $raw === null) {
+            return null;
+        }
+
+        $amount = round((float)str_replace([',', '$'], '', (string)$raw), 2);
+
+        if ($amount <= 0) {
+            return null;
+        }
+
+        return [
+            'product_id'      => null,
+            'quickbooks_item' => 'SH',
+            'description'     => 'Shipping and Handling',
+            'qty'             => 1.0,
+            'uom_id'          => null,
+            'unit_price'      => $amount,
+            'discount_pct'    => 0.0,
+            'is_taxable'      => 0,
+            'line_total'      => $amount,
+        ];
     }
 
     private function calcTotals(array $lines, float $taxRatePct): array

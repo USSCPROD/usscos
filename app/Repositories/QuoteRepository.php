@@ -263,7 +263,12 @@ class QuoteRepository
 
     public function getShipViaOptions(): array
     {
-        return $this->pdo->query("SELECT id, name FROM ship_via WHERE is_active = 1 ORDER BY sort_order, name")
+        // ship_mode and carrier_code travel with the option so the quote form can
+        // decide whether FedEx can be asked for a price, the same way the sales order
+        // form does. Without them every option looked like an unquotable carrier.
+        return $this->pdo->query("SELECT id, name, ship_mode, carrier_code
+                                    FROM ship_via WHERE is_active = 1
+                                   ORDER BY sort_order, name")
             ->fetchAll(\PDO::FETCH_ASSOC);
     }
 
