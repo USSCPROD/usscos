@@ -47,15 +47,17 @@ class QuoteController extends Controller
 
         if ($customerId) {
             $presetCustomer = Database::selectOne(
+                // rep_id so the quote can default to whoever already owns this account
+                // rather than making them find themselves in a list of nineteen.
                 'SELECT id, company_name, email AS customer_email, phone,
                         bill_address_1, bill_address_2, bill_city, bill_state, bill_zip,
-                        payment_term_id
+                        payment_term_id, rep_id
                  FROM customers WHERE id = ?',
                 [$customerId]
             );
         } elseif ($leadId) {
             $presetLead = Database::selectOne(
-                'SELECT id, company_name, email, phone, first_name, last_name
+                'SELECT id, company_name, email, phone, first_name, last_name, rep_id
                  FROM leads WHERE id = ?',
                 [$leadId]
             );

@@ -143,10 +143,21 @@ $currentUser = \App\Core\Auth::user();
             </td>
             <td style="padding:.85rem 1.25rem;border-right:1px solid #d1d5db;vertical-align:top;width:20%">
                 <div style="<?= qLblStyle() ?>">Rep</div>
+                <?php
+                /*
+                 * The rep who already owns the lead or the customer this quote is for.
+                 *
+                 * Quoting from a lead carried the lead across and left the rep blank,
+                 * so whoever owns it had to find themselves in the list — and a quote
+                 * with no rep on it is one the sales order inherits with no rep either,
+                 * which is how commission goes missing quietly.
+                 */
+                $quoteRep = $preset_lead['rep_id'] ?? $preset_customer['rep_id'] ?? '';
+                ?>
                 <select name="rep_id" style="<?= qInpStyle() ?>">
                     <option value="">— None —</option>
                     <?php foreach ($reps as $rep): ?>
-                        <option value="<?= (int)$rep['id'] ?>"><?= e($rep['last_name'] . ', ' . $rep['first_name']) ?><?= $rep['rep_code'] ? ' (' . e($rep['rep_code']) . ')' : '' ?></option>
+                        <option value="<?= (int)$rep['id'] ?>" <?= (string)$quoteRep === (string)$rep['id'] ? 'selected' : '' ?>><?= e($rep['last_name'] . ', ' . $rep['first_name']) ?><?= $rep['rep_code'] ? ' (' . e($rep['rep_code']) . ')' : '' ?></option>
                     <?php endforeach; ?>
                 </select>
             </td>

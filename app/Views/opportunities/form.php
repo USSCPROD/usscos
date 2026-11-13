@@ -62,10 +62,27 @@ $defaultProb = ['prospecting' => 20, 'proposal' => 50, 'negotiation' => 75, 'clo
                 <tr>
                     <td style="padding:.5rem .75rem .5rem 0;vertical-align:top">
                         <label class="form-label">Assigned Rep</label>
+                        <?php
+                        /*
+                         * Whoever already owns the thing this opportunity came from.
+                         *
+                         * Raising one from a lead carried the lead across but left the
+                         * rep unassigned, so the person who owns the lead had to pick
+                         * themselves out of a list of nineteen. An opportunity nobody
+                         * is assigned to is also one that appears on no rep's board.
+                         *
+                         * On an existing opportunity its own rep wins; on a new one the
+                         * lead's or the customer's is the obvious default.
+                         */
+                        $oppRep = $opp['rep_id']
+                               ?? $lead['rep_id']
+                               ?? $customer['rep_id']
+                               ?? '';
+                        ?>
                         <select name="rep_id" class="input" style="width:100%;box-sizing:border-box">
                             <option value="">— Unassigned —</option>
                             <?php foreach ($users as $u): ?>
-                                <option value="<?= (int)$u['id'] ?>" <?= (string)($opp['rep_id'] ?? '') === (string)$u['id'] ? 'selected' : '' ?>>
+                                <option value="<?= (int)$u['id'] ?>" <?= (string)$oppRep === (string)$u['id'] ? 'selected' : '' ?>>
                                     <?= e($u['first_name'] . ' ' . $u['last_name']) ?>
                                 </option>
                             <?php endforeach; ?>
