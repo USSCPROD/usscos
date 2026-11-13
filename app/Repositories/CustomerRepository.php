@@ -813,14 +813,44 @@ class CustomerRepository extends Repository
         return $stmt->rowCount();
     }
 
+    /**
+     * Create a customer out of a converted lead.
+     *
+     * The lead's rep is a `users.id`. It was being written to `customers.rep_id`, which
+     * is the dead column from the migration collision — the customer page reads it, so
+     * the screen said ASSIGNED: CHRIS DANIS, while `AccessScope` scopes a rep's login by
+     * `customers.sales_rep_id` and saw nothing. A rep converting their own lead ended up
+     * unable to see the customer they had just created, with the page insisting it was
+     * theirs.
+     *
+     * So the login is translated to the `sales_reps` row it belongs to, and both columns
+     * are written: `sales_rep_id` because it is the one that decides anything, `rep_id`
+     * because the display still reads it until that column is retired.
+     *
+     * Found 13 Nov 2026 on the Cherokee County Parks lead.
+     */
     public function insertFromLead(array $data): int
     {
+        $userId = ($data['rep_id'] ?? null) !== null ? (int)$data['rep_id'] : null;
+        $repId  = null;
+
+        if ($userId !== null) {
+            $row = Database::selectOne(
+                'SELECT id FROM sales_reps WHERE user_id = ? AND is_active = 1 LIMIT 1',
+                [$userId]
+            );
+
+            $repId = $row === false ? null : (int)$row['id'];
+        }
+
         $pdo  = Database::connection();
         $stmt = $pdo->prepare("
             INSERT INTO customers
-                (company_name, quickbooks_name, first_name, last_name, email, phone, rep_id, is_active)
+                (company_name, quickbooks_name, first_name, last_name, email, phone,
+                 rep_id, sales_rep_id, is_active)
             VALUES
-                (:company_name, :quickbooks_name, :first_name, :last_name, :email, :phone, :rep_id, 1)
+                (:company_name, :quickbooks_name, :first_name, :last_name, :email, :phone,
+                 :rep_id, :sales_rep_id, 1)
         ");
         $stmt->execute([
             ':company_name'    => $data['company_name'],
@@ -829,7 +859,8 @@ class CustomerRepository extends Repository
             ':last_name'       => $data['last_name']  ?? null,
             ':email'           => $data['email']      ?? null,
             ':phone'           => $data['phone']      ?? null,
-            ':rep_id'          => $data['rep_id']     ?? null,
+            ':rep_id'          => $userId,
+            ':sales_rep_id'    => $repId,
         ]);
         return (int)$pdo->lastInsertId();
     }
