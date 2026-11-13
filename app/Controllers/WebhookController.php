@@ -14,30 +14,31 @@ class WebhookController extends Controller
     public function lead(Request $request, Response $response): Response
     {
         /*
-         * Only the website may create leads.
+         * The secret is accepted but not yet required.
          *
-         * This endpoint sits outside the auth group by necessity — WordPress cannot log
-         * in — and took anything posted to it. Bots found it: an SEO pitch, a
-         * subscription bot and a vague "more information" all became leads and all
-         * emailed a rep. A lead list full of that is one people stop reading.
+         * usscos.com's own forms — contact.php, paint-quote.php, stencil-quote.php —
+         * post here and do not send it. Requiring it on 13 Nov 2026 took live lead
+         * capture down until it was noticed, which is the kind of change that has to
+         * land on both sides at once or not at all.
          *
-         * A shared secret in a header is the least that works here. hash_equals so the
-         * comparison is not timing-attackable, and a missing secret in .env refuses
-         * everything rather than waving it through — a webhook that fails open is worse
-         * than one that is switched off, because nobody notices.
+         * It is also not the fix for the spam. The junk leads arrived *through* the
+         * contact form, filled in by bots; a secret stops something posting straight at
+         * this endpoint and does nothing about that. The fix for form spam is a
+         * honeypot on the form — see docs/wordpress/README.md.
+         *
+         * So: when a secret is sent it must be right, which protects the forms once
+         * they send it. When none is sent the request is allowed and logged, so the
+         * switch to requiring it can be made the moment the logs stop showing any.
          */
         $expected = (string)(\App\Core\Config::get('app.lead_webhook_secret') ?: '');
+        $given    = (string)($_SERVER['HTTP_X_USSCOS_SECRET'] ?? '');
 
-        if ($expected === '') {
-            error_log('Lead webhook: LEAD_WEBHOOK_SECRET is not set, refusing.');
-
-            return $response->json(['error' => 'Not configured'], 503);
+        if ($expected !== '' && $given !== '' && !hash_equals($expected, $given)) {
+            return $response->json(['error' => 'Unauthorized'], 401);
         }
 
-        $given = (string)($_SERVER['HTTP_X_USSCOS_SECRET'] ?? '');
-
-        if ($given === '' || !hash_equals($expected, $given)) {
-            return $response->json(['error' => 'Unauthorized'], 401);
+        if ($expected !== '' && $given === '') {
+            error_log('Lead webhook: no secret sent from ' . ($_SERVER['REMOTE_ADDR'] ?? '?'));
         }
 
         $raw = file_get_contents('php://input');
