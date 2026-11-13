@@ -45,10 +45,22 @@ class OpportunityController extends Controller
             exit;
         }
 
+        /*
+         * The board shows open deals; ?view=closed shows the finished ones.
+         *
+         * Without the second view a won deal left the screen and could not be reached
+         * from anywhere in the navigation — the Closed Won tile counted it and nothing
+         * listed it.
+         */
+        $closed = $request->query('view') === 'closed';
+
         return $this->view('opportunities.index', [
-            'title'  => 'Pipeline',
-            'stages' => $this->opps->allByStage(),
-            'stats'  => $this->opps->getPipelineStats(),
+            'title'   => $closed ? 'Pipeline — closed' : 'Pipeline',
+            'stages'  => $closed ? ['prospecting' => [], 'proposal' => [], 'negotiation' => []]
+                                 : $this->opps->allByStage(),
+            'stats'   => $this->opps->getPipelineStats(),
+            'closed'  => $closed,
+            'closedRows' => $closed ? $this->opps->closed() : [],
         ]);
     }
 

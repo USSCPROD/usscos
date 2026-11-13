@@ -95,6 +95,32 @@ class OpportunityRepository
         ")->execute([':stage' => $stage, ':reason' => $lostReason, ':id' => $id]);
     }
 
+    /**
+     * The deals that have finished, won and lost.
+     *
+     * The board deliberately shows only open stages — a pipeline is work still in
+     * front of you. But that was the only view there was, so a deal vanished the
+     * moment it was won: the Closed Won tile counted it and nothing anywhere could
+     * list it, and the only way back to a won deal was through the lead or customer
+     * it hung off. Found 13 Nov 2026.
+     */
+    public function closed(int $limit = 200): array
+    {
+        return Database::select("
+            SELECT o.*,
+                   u.first_name AS rep_first, u.last_name AS rep_last,
+                   COALESCE(c.company_name, l.company_name) AS account_name,
+                   c.id AS cust_id, l.id AS lead_ref
+              FROM opportunities o
+              LEFT JOIN users u      ON u.id = o.rep_id
+              LEFT JOIN customers c  ON c.id = o.customer_id
+              LEFT JOIN leads l      ON l.id = o.lead_id
+             WHERE o.stage IN ('closed_won','closed_lost')
+             ORDER BY o.updated_at DESC, o.id DESC
+             LIMIT {$limit}
+        ");
+    }
+
     public function getPipelineStats(): array
     {
         return Database::selectOne("
