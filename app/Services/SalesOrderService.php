@@ -312,6 +312,39 @@ class SalesOrderService
         ];
     }
 
+    /**
+     * Turn a typed SKU into the product it names.
+     *
+     * The line grid sets `line_product_id` when somebody picks from the autocomplete.
+     * Type the code and tab away and it stays empty, and the line saves as free text:
+     * it still prints and still bills, but it moves no stock, and on the pull list it
+     * is something a person has to go and find rather than something the system knows
+     * the weight, the pack size and the shelf of.
+     *
+     * So an exact SKU match fills it in. Exact only, and only when nothing was picked —
+     * guessing at a near-match would be worse than leaving it free text, because a line
+     * silently pointed at the wrong product ships the wrong paint.
+     */
+    private function resolveProductId(?string $productId, ?string $item): ?int
+    {
+        if (($productId ?? '') !== '') {
+            return (int)$productId;
+        }
+
+        $sku = trim((string)$item);
+
+        if ($sku === '') {
+            return null;
+        }
+
+        $row = \App\Core\Database::selectOne(
+            'SELECT id FROM products WHERE sku = ? AND is_active = 1 LIMIT 1',
+            [$sku]
+        );
+
+        return $row === false ? null : (int)$row['id'];
+    }
+
     private function parseLines(array $post): array
     {
         $items      = $post['line_item']     ?? [];
@@ -342,7 +375,7 @@ class SalesOrderService
             $lineTotal = round($qty * $price * (1 - $disc / 100), 2);
 
             $lines[] = [
-                'product_id'     => ($productIds[$i] ?? '') !== '' ? (int)$productIds[$i] : null,
+                'product_id'     => $this->resolveProductId($productIds[$i] ?? null, $items[$i] ?? null),
                 'quickbooks_item'=> ($items[$i] ?? '') ?: null,
                 'description'    => ($descs[$i] ?? '') ?: null,
                 'qty_ordered'    => $qty,
