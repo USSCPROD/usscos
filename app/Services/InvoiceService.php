@@ -294,18 +294,39 @@ class InvoiceService extends Service
             $picked      = (float)($li['qty_picked'] ?? 0);
             $alreadyGone = (float)($li['qty_shipped'] ?? 0);
 
+            /*
+             * A charge is never picked, so it must not be billed from the pick.
+             *
+             * Shipping and handling sits on the order as a line nobody can pick — that
+             * is the whole point, so the bench is not sent to find a box of handling.
+             * But the quantity to invoice was taken from what was picked, which for a
+             * charge is always zero, so the `continue` below dropped it and the
+             * customer was never billed for it.
+             *
+             * SO #37 went out at $2,149.80 and invoiced at $1,730.00: $419.80 of
+             * shipping, charged on the order, quietly absent from the invoice. Found
+             * 13 Nov 2026 the first time an order carrying quoted freight was walked
+             * through to an invoice.
+             *
+             * So a charge bills against what was ordered, less whatever has already
+             * been billed — which also means it goes on the first invoice of a split
+             * shipment and not on the second.
+             */
+            $isCharge = \App\Repositories\SalesOrderRepository::isChargeLine($li);
+
             // Only what has not gone yet. Shipping the remainder of a partially shipped
             // order used to re-invoice the whole picked quantity, because qty_shipped was
             // never written — so the customer was billed twice for the first shipment,
             // and stock would now be deducted twice as well.
-            $qty = $wasPicked ? max(0.0, $picked - $alreadyGone) : max(0.0, $ordered - $alreadyGone);
+            $qty = ($wasPicked && !$isCharge)
+                ? max(0.0, $picked - $alreadyGone)
+                : max(0.0, $ordered - $alreadyGone);
 
             // A charge is not goods and cannot be short. Shipping and handling is a
             // line on the order that nobody picks, so counting it here left every
             // order carrying freight marked partially shipped for ever — sitting in
             // the shipping queue after it had already gone out with a label on it.
-            if ($alreadyGone + $qty < $ordered
-                && !\App\Repositories\SalesOrderRepository::isChargeLine($li)) {
+            if ($alreadyGone + $qty < $ordered && !$isCharge) {
                 $shortfall = true;
             }
 
