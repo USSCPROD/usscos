@@ -69,7 +69,17 @@ Each phase ships on its own and is usable when it lands.
 4. **Customer and distributor accounts.** Sign-in, wholesale pricing, saved quotes and
    orders on terms. Includes migrating the shop's existing accounts from
    `/opt/usscstencils/var`.
-5. **Endzone and midfield designers.** Port `endzone.py`, `midfield.py`, `proof.py` and
+5. **Endzone and midfield designers.** ✅ Built 19 Nov 2026, ahead of phases 2–4 at
+   Chip's request, at `/custom/endzone` and `/custom/midfield`. Prices match the shop to
+   the cent (checked against endzone.py and midfield.py). Until cart and accounts exist
+   they are open to everyone and end in "Request this stencil", a stencil quote lead
+   with the proof's address and, for midfield, the original logo. When phases 3 and 4
+   land they get Add to Cart and Save Design. Differences from the shop: proofs are
+   print-ready pages (save as PDF) because the server has no rsvg-convert; raster logos
+   are not traced to vector on upload (the art team works from the original); SVG logos
+   are rasterised in the browser. The letter outlines are in
+   `storage/stencil-data/endzone_letters.json` on the server only.
+   Original plan for this phase: Port `endzone.py`, `midfield.py`, `proof.py` and
    `pdfgen.py`, with their instant prices and proof PDFs.
 6. **Cut-over.** 301s from every stencils.usscproducts.com URL and the 38 old WordPress
    stencil URLs. Then Google Tag Manager (GTM-T9C6GNWV), Search Console, and retiring
