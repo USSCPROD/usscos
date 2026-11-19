@@ -30,6 +30,7 @@ use App\Controllers\SalesOrderController;
 use App\Controllers\WebhookController;
 use App\Controllers\ShippingController;
 use App\Controllers\SiteController;
+use App\Controllers\DesignerController;
 use App\Controllers\ReceivingController;
 use App\Controllers\VendorController;
 
@@ -424,6 +425,17 @@ Router::get('/page/{slug}',     [SiteController::class, 'page'])->name('site.pag
 // /stencils/no-parking/4-inch-letters. ?material=3-32 picks the thickness.
 Router::get('/stencils/{slug}',        [SiteController::class, 'stencil'])->name('site.stencil');
 Router::get('/stencils/{slug}/{size}', [SiteController::class, 'stencil'])->name('site.stencil.size');
+
+// The online stencil designers, at the stencil shop's addresses. Public. The logo is
+// served by query (?id=) because nginx answers any path ending .png from disk.
+Router::get('/custom/endzone',          [DesignerController::class, 'endzonePage'])->name('designer.endzone');
+Router::post('/custom/endzone/quote',   [DesignerController::class, 'endzoneQuote'])->name('designer.endzone.quote');
+Router::get('/custom/midfield',         [DesignerController::class, 'midfieldPage'])->name('designer.midfield');
+Router::post('/custom/midfield/upload', [DesignerController::class, 'midfieldUpload'])->name('designer.midfield.upload');
+Router::post('/custom/midfield/quote',  [DesignerController::class, 'midfieldQuote'])->name('designer.midfield.quote');
+Router::get('/custom/midfield/logo',    [DesignerController::class, 'midfieldLogo'])->name('designer.midfield.logo');
+Router::get('/custom/proof',            [DesignerController::class, 'proof'])->name('designer.proof');
+Router::post('/custom/request',         [DesignerController::class, 'request'])->name('designer.request');
 
 // The contact and quote form. Public, like the webhook: no session, so no CSRF token;
 // a honeypot and a minimum time on the page instead (SiteController::enquire).

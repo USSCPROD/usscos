@@ -277,6 +277,16 @@ $crumbs  = $crumbs ?? [];
       <p style="font-size:.9rem;color:var(--mut);margin:0 0 1.5rem"><?= nl2br(e($pr['description'])) ?></p>
     <?php endif; ?>
 
+    <?php
+      // The shop put its designers on these listings: endzone on the endzone listing and
+      // the 10-mil block letters, midfield on the midfield listing.
+      $designer = ['endzone-stencils' => 'endzone', 'football-block-letters-10-mil' => 'endzone',
+                   'midfield-logo-stencil' => 'midfield'][(string)($pr['website_slug'] ?? '')] ?? null;
+    ?>
+    <?php if ($designer !== null): ?>
+      <?= view('site._designer_box', ['kind' => $designer]) ?>
+    <?php endif; ?>
+
     <?php if ($price <= 0): ?>
       <!-- Priced with the customer: the form is the way to start, artwork and all. -->
       <?= view('site._enquiry_form', [

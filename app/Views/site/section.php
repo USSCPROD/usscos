@@ -109,7 +109,14 @@
         <?php endif; ?>
       </div>
     </div>
+    <?php
+      // The designers lead these pages, as they did on the shop.
+      $designers = $section['slug'] === 'stencils' && $active !== null
+          ? (['sports' => ['endzone', 'midfield'], 'endzone' => ['endzone'], 'midfield' => ['midfield']][$active['slug']] ?? [])
+          : [];
+    ?>
     <div class="grid g4">
+      <?php foreach ($designers as $dk): ?><?= view('site._designer_box', ['kind' => $dk, 'card' => true]) ?><?php endforeach; ?>
       <?php foreach ($products as $p): ?><?= view('site._card', ['p' => $p]) ?><?php endforeach; ?>
     </div>
   <?php endif; ?>

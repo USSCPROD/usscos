@@ -299,6 +299,12 @@ class SiteController extends Controller
      *
      * @return array<int,array<string,mixed>>
      */
+    /** The navigation, for the stencil designers' pages (DesignerController). */
+    public function navForDesigner(): array
+    {
+        return $this->stockedNav();
+    }
+
     private function stockedNav(): array
     {
         $out = [];

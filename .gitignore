@@ -16,6 +16,9 @@
 /storage/logs/*
 /storage/cache/*
 /storage/uploads/*
+# The endzone letter outlines: our stencil lettering, which is never public. This
+# repository is public, so the file lives only on the server (EndzoneDesigner).
+/storage/stencil-data/
 /storage/sessions/*
 !/storage/*/.gitkeep
 

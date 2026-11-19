@@ -686,6 +686,15 @@ class StorefrontRepository extends Repository
         return $out;
     }
 
+    /** The Football Block Letters (STBL-15 … STBL-25): the endzone designer's per-letter prices. */
+    public function footballLetterSizes(): array
+    {
+        return Database::select("
+            SELECT p.sku, p.website_price FROM products p
+            WHERE " . self::PUBLIC_WHERE . " AND p.sku LIKE 'STBL-%'
+        ");
+    }
+
     /** A content page by slug: title, description, html. */
     public function sitePage(string $slug): array|false
     {

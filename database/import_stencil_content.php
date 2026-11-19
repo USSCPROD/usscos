@@ -721,8 +721,7 @@ function cardVariant(array $p): int
  *
  *   /shop, /shop/words           → /shop/stencils, /shop/stencils/words
  *   /brand/mcdonalds             → /shop/stencils/retail-mcdonalds
- *   /custom/endzone, /midfield   → the endzone and midfield quote listings, until the
- *                                  designers are built here (docs/STENCIL_SHOP_PORT.md)
+ *   /custom/endzone, /midfield   → unchanged: the designers live at those addresses here
  *   /custom                      → the contact form, until the custom stencil builder is
  *   /about, /returns             → /stencil-materials, /returns
  *   usscproducts.com paint pages → this site's paint sections
@@ -735,8 +734,7 @@ function siteLinks(string $html): string
         '#href="/shop"#'                         => 'href="/shop/stencils"',
         '#href="/shop/([a-z0-9-]+)"#'            => 'href="/shop/stencils/$1"',
         '#href="/brand/([a-z0-9-]+)"#'           => 'href="/shop/stencils/retail-$1"',
-        '#href="/custom/endzone"#'               => 'href="/stencils/endzone-stencils"',
-        '#href="/custom/midfield"#'              => 'href="/stencils/midfield-logo-stencil"',
+        // /custom/endzone and /custom/midfield are the designers, at the same addresses here.
         '#href="/custom"#'                       => 'href="/contact?about=Custom%20stencil"',
         '#href="/about"#'                        => 'href="/stencil-materials"',
         '#href="https?://(?:www\.)?usscproducts\.com/product-category/field-marking-paints/?"#' => 'href="/shop/field-marking-paint"',

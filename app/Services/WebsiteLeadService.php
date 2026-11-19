@@ -92,6 +92,62 @@ class WebsiteLeadService
         return $id;
     }
 
+    /**
+     * A design from the online designers, sent as a quote request.
+     *
+     * $notes is the design, priced, with the proof's address. $logo, for a midfield logo:
+     * ['tmp' => the stored original, 'name' => its file name]. It is copied into the lead
+     * files, so the lead keeps it whatever happens to the designer's own upload folder.
+     */
+    public function designerRequest(array $d, string $about, string $notes, ?array $logo): int
+    {
+        $name  = trim((string)($d['name'] ?? ''));
+        $parts = preg_split('/\s+/', $name, 2) ?: [''];
+        $attachment = null;
+
+        if ($logo !== null && is_file($logo['tmp'])) {
+            $dir = BASE_PATH . '/storage/uploads/lead-files';
+            $ext = strtolower(pathinfo((string)$logo['name'], PATHINFO_EXTENSION));
+
+            if ((is_dir($dir) || mkdir($dir, 0775, true)) && in_array($ext, self::FILE_TYPES, true)) {
+                $stored = bin2hex(random_bytes(16)) . '.' . $ext;
+
+                if (copy($logo['tmp'], $dir . '/' . $stored)) {
+                    $attachment = '/leads/files/' . $stored . '  (their logo, as uploaded)';
+                }
+            }
+        }
+
+        $routing = $this->routing();
+
+        $id = $this->createLead([
+            'first_name'  => $parts[0] ?? '',
+            'last_name'   => $parts[1] ?? '',
+            'company'     => trim((string)($d['org'] ?? '')) ?: null,
+            'email'       => trim((string)($d['email'] ?? '')),
+            'phone'       => trim((string)($d['phone'] ?? '')) ?: null,
+            'source'      => 'Website — Stencil Designer',
+            'notes'       => "About: {$about}\n\n{$notes}",
+            'assigned_to' => $routing['stencil_user_id'] ?? null,
+            'attachment'  => $attachment,
+        ]);
+
+        $this->notify(
+            $routing['stencil_email'],
+            'New Stencil Design — ' . $about . ' — ' . $name,
+            '<table style="width:100%;border-collapse:collapse">'
+            . $this->row('Name', $name)
+            . $this->row('Organization', (string)($d['org'] ?? ''))
+            . $this->row('Email', (string)($d['email'] ?? ''))
+            . $this->row('Phone', (string)($d['phone'] ?? ''))
+            . $this->row('Design', $notes)
+            . $this->row('Logo', $attachment !== null ? 'Attached — open the lead in USSCOS' : '')
+            . '</table>'
+        );
+
+        return $id;
+    }
+
     /** Null when the upload is acceptable; otherwise what to tell the customer. */
     public static function fileProblem(?array $file): ?string
     {
