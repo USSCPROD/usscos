@@ -695,6 +695,16 @@ class StorefrontRepository extends Repository
         ");
     }
 
+    /** The Single Letter or Number listing's SKUs: the custom stencil builder's letter sizes. */
+    public function singleCharacterSizes(): array
+    {
+        return Database::select("
+            SELECT p.sku, p.variant_label, p.website_price, p.variant_order FROM products p
+            WHERE " . self::PUBLIC_WHERE . " AND p.website_slug = 'single-letter-or-number'
+            ORDER BY p.variant_order
+        ");
+    }
+
     /** A content page by slug: title, description, html. */
     public function sitePage(string $slug): array|false
     {

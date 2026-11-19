@@ -51,7 +51,7 @@
   <?php endif; ?>
 </div>
 
-<script src="/assets/js/stencil-designers.js?v=1" defer></script>
+<script src="/assets/js/stencil-designers.js?v=2" defer></script>
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/site.php';

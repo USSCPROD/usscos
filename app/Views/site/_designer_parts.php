@@ -75,13 +75,13 @@ $co   = config('site.company');
       <h2 style="margin:0 0 .35rem;font-size:1.25rem">Request this stencil</h2>
       <p style="margin:0 0 1rem;color:var(--mut);font-size:.9rem">Send us your design as it is above. We'll confirm it,
         send a proof before anything is cut, and arrange your order and shipping.
-        Your name and school also go on the proof.</p>
+        <?= ($kind ?? '') !== 'text' ? 'Your name and school also go on the proof.' : '' ?></p>
       <?php if (($error ?? '') !== ''): ?>
         <div class="dz-alert" style="margin:0 0 1rem"><?= e($error) ?></div>
       <?php endif; ?>
       <form id="dz-request-form" method="POST" action="/custom/request">
         <input type="hidden" name="kind" value="<?= e($kind) ?>">
-        <?php foreach (['text', 'size', 'style', 'format', 'fill', 'line', 'logo', 'field', 'width'] as $h): ?>
+        <?php foreach (['text', 'size', 'style', 'format', 'fill', 'line', 'logo', 'field', 'width', 'thickness'] as $h): ?>
           <input type="hidden" name="<?= $h ?>" value="">
         <?php endforeach; ?>
         <input type="hidden" name="started" value="<?= time() ?>">

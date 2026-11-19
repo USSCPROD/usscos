@@ -722,7 +722,7 @@ function cardVariant(array $p): int
  *   /shop, /shop/words           → /shop/stencils, /shop/stencils/words
  *   /brand/mcdonalds             → /shop/stencils/retail-mcdonalds
  *   /custom/endzone, /midfield   → unchanged: the designers live at those addresses here
- *   /custom                      → the contact form, until the custom stencil builder is
+ *   /custom                      → unchanged: the custom stencil builder lives there here
  *   /about, /returns             → /stencil-materials, /returns
  *   usscproducts.com paint pages → this site's paint sections
  */
@@ -735,7 +735,6 @@ function siteLinks(string $html): string
         '#href="/shop/([a-z0-9-]+)"#'            => 'href="/shop/stencils/$1"',
         '#href="/brand/([a-z0-9-]+)"#'           => 'href="/shop/stencils/retail-$1"',
         // /custom/endzone and /custom/midfield are the designers, at the same addresses here.
-        '#href="/custom"#'                       => 'href="/contact?about=Custom%20stencil"',
         '#href="/about"#'                        => 'href="/stencil-materials"',
         '#href="https?://(?:www\.)?usscproducts\.com/product-category/field-marking-paints/?"#' => 'href="/shop/field-marking-paint"',
         '#href="https?://(?:www\.)?usscproducts\.com/product-category/traffic-paints/?"#'       => 'href="/shop/traffic-paint"',

@@ -12,6 +12,7 @@ use App\Services\Stencils\DesignerError;
 use App\Services\Stencils\EndzoneDesigner;
 use App\Services\Stencils\MidfieldDesigner;
 use App\Services\Stencils\StencilProof;
+use App\Services\Stencils\TextDesigner;
 use App\Services\WebsiteLeadService;
 
 /**
@@ -33,6 +34,7 @@ class DesignerController extends Controller
 
     private EndzoneDesigner $endzone;
     private MidfieldDesigner $midfield;
+    private TextDesigner $text;
     private StorefrontRepository $shop;
 
     public function __construct()
@@ -41,6 +43,7 @@ class DesignerController extends Controller
         $this->shop     = new StorefrontRepository();
         $this->endzone  = new EndzoneDesigner($this->shop);
         $this->midfield = new MidfieldDesigner();
+        $this->text     = new TextDesigner($this->shop);
     }
 
     // ── Pages ────────────────────────────────────────────────────────────────
@@ -56,6 +59,41 @@ class DesignerController extends Controller
             'sent'   => (string)($request->query('sent') ?? ''),
             'error'  => (string)($request->query('error') ?? ''),
         ]);
+    }
+
+    /** The custom stencil builder: type your text, see it in our lettering, priced. */
+    public function textPage(Request $request, Response $response): Response
+    {
+        $sizes = $this->text->sizes();
+        $default = null;
+
+        foreach ($sizes as $s) {
+            if ($s['height'] === 12.0 && !$s['widthStated']) {
+                $default = $s['key'];
+            }
+        }
+
+        return $this->view('site.designer_text', [
+            'title'     => 'Custom Stencil',
+            'nav'       => (new SiteController())->navForDesigner(),
+            'ready'     => $this->text->ready(),
+            'sizes'     => $sizes,
+            'default'   => $default ?? ($sizes[0]['key'] ?? ''),
+            'materials' => TextDesigner::MATERIALS,
+            'sent'      => (string)($request->query('sent') ?? ''),
+            'error'     => (string)($request->query('error') ?? ''),
+        ]);
+    }
+
+    public function textQuote(Request $request, Response $response): Response
+    {
+        try {
+            return $response->json($this->text->quote(
+                (string)$request->post('text', ''), (string)$request->post('size', ''), (string)$request->post('thickness', '')
+            ));
+        } catch (DesignerError $e) {
+            return $response->json(['error' => $e->getMessage()], 422);
+        }
     }
 
     public function midfieldPage(Request $request, Response $response): Response
@@ -167,8 +205,8 @@ class DesignerController extends Controller
      */
     public function request(Request $request, Response $response): Response
     {
-        $kind = $request->post('kind') === 'midfield' ? 'midfield' : 'endzone';
-        $back = '/custom/' . $kind;
+        $kind = in_array($request->post('kind'), ['midfield', 'text'], true) ? (string)$request->post('kind') : 'endzone';
+        $back = $kind === 'text' ? '/custom' : '/custom/' . $kind;
 
         $started = (int)$request->post('started', 0);
         if (trim((string)$request->post('website', '')) !== '' || ($started > 0 && time() - $started < 3)) {
@@ -191,7 +229,15 @@ class DesignerController extends Controller
                 throw new DesignerError($problem);
             }
 
-            if ($kind === 'midfield') {
+            if ($kind === 'text') {
+                $q = $this->text->quote((string)$request->post('text', ''), (string)$request->post('size', ''), (string)$request->post('thickness', ''));
+                $summary = sprintf("Custom stencil: “%s”\n%s letters, %s · lettering %s\" × %s\"\n%s · ships %s lbs\nOnline price: $%s",
+                    implode(' / ', $q['lines']), $q['size'], $q['material'], $q['text']['width'], $q['text']['height'],
+                    isset($q['sheets']) ? $q['pieces'] . ' letter stencils' : sprintf('Sheet %s" × %s"%s', $q['plate']['width'], $q['plate']['height'], $q['pieces'] > 1 ? ', ' . $q['pieces'] . ' pieces' : ''),
+                    $q['weight'], number_format($q['price'], 2));
+                $proof = '';
+                $attach = null;
+            } elseif ($kind === 'midfield') {
                 $q = $this->midfield->quote((string)$request->post('logo', ''), (string)$request->post('field', ''), $request->post('width'));
                 $summary = sprintf("Custom midfield logo — %s field\nLogo %s wide × %s tall (%s)\nOne stencil, %d panels · ships %d lbs in %d box(es)\nOnline price: $%s",
                     $q['fieldLabel'], EndzoneDesigner::ft($q['width']), EndzoneDesigner::ft($q['height']), $q['name'] ?: 'uploaded logo',
@@ -217,8 +263,10 @@ class DesignerController extends Controller
             return $response->redirect($back . '?error=' . rawurlencode($e->getMessage()) . '#request');
         }
 
-        (new WebsiteLeadService())->designerRequest($d, $kind === 'midfield' ? 'Custom Midfield Logo' : 'Custom Endzone Lettering',
-            $summary . "\n\nProof: " . $proof . ($d['note'] !== '' ? "\n\nTheir note:\n" . $d['note'] : ''), $attach);
+        $about = ['midfield' => 'Custom Midfield Logo', 'endzone' => 'Custom Endzone Lettering', 'text' => 'Custom Stencil'][$kind];
+
+        (new WebsiteLeadService())->designerRequest($d, $about,
+            $summary . ($proof !== '' ? "\n\nProof: " . $proof : '') . ($d['note'] !== '' ? "\n\nTheir note:\n" . $d['note'] : ''), $attach);
 
         return $response->redirect($back . '?sent=1#request');
     }

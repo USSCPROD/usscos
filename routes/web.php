@@ -428,6 +428,8 @@ Router::get('/stencils/{slug}/{size}', [SiteController::class, 'stencil'])->name
 
 // The online stencil designers, at the stencil shop's addresses. Public. The logo is
 // served by query (?id=) because nginx answers any path ending .png from disk.
+Router::get('/custom',                  [DesignerController::class, 'textPage'])->name('designer.text');
+Router::post('/custom/text/quote',      [DesignerController::class, 'textQuote'])->name('designer.text.quote');
 Router::get('/custom/endzone',          [DesignerController::class, 'endzonePage'])->name('designer.endzone');
 Router::post('/custom/endzone/quote',   [DesignerController::class, 'endzoneQuote'])->name('designer.endzone.quote');
 Router::get('/custom/midfield',         [DesignerController::class, 'midfieldPage'])->name('designer.midfield');

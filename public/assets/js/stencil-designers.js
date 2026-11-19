@@ -353,6 +353,84 @@
     draw();
   }
 
+  // ============================================================ custom text
+
+  var inches = function (n) { return Math.round(n * 10) / 10 + '"'; };
+
+  /** The stencil sheet with the lettering cut out, and dimension lines: the shop's plateSvg. */
+  function plateSvg(layout) {
+    var w = layout.plate.width, h = layout.plate.height, t = layout.text, sheets = layout.sheets;
+    var unit = Math.max(w, h) / 100, pad = unit * 9, fs = unit * 4.2, sw = unit * 0.35;
+    var vb = [-pad * 0.4, -pad * 0.4, w + pad * 0.9 + fs * 3.4, h + pad * 0.9 + fs * 1.8];
+    var r = Math.min(w, h) * 0.03;
+    var x1 = t.x, x2 = t.x + t.width, y1 = t.y, y2 = t.y + t.height;
+    var dy = h + pad * 0.5, dx = w + pad * 0.5, tick = pad * 0.2;
+    var plates = sheets
+      ? sheets.map(function (s) { return '<rect x="' + s.x + '" y="' + s.y + '" width="' + s.width + '" height="' + s.height + '" rx="' + (Math.min(s.width, s.height) * 0.03) + '" fill="#eef1ef" stroke="#c9cfcb" stroke-width="' + sw + '"/>'; }).join('')
+      : '<rect x="0" y="0" width="' + w + '" height="' + h + '" rx="' + r + '" fill="#eef1ef" stroke="#c9cfcb" stroke-width="' + sw + '"/>';
+    return '<svg viewBox="' + vb.join(' ') + '" role="img" aria-label="Preview of ' + esc(layout.lines.join(' ')) + '" style="color:#646b66">' + plates +
+      '<path d="' + layout.path + '" fill="#2b2f2c"/>' +
+      '<g stroke="currentColor" fill="none" stroke-width="' + sw + '">' +
+      '<path stroke-dasharray="' + unit + ' ' + unit + '" opacity=".6" d="M' + x1 + ' ' + y2 + ' V' + (dy + tick) + ' M' + x2 + ' ' + y2 + ' V' + (dy + tick) + ' M' + x2 + ' ' + y1 + ' H' + (dx + tick) + ' M' + x2 + ' ' + y2 + ' H' + (dx + tick) + '"/>' +
+      '<path d="M' + x1 + ' ' + dy + ' H' + x2 + ' M' + x1 + ' ' + (dy - tick) + ' V' + (dy + tick) + ' M' + x2 + ' ' + (dy - tick) + ' V' + (dy + tick) + '"/>' +
+      '<path d="M' + dx + ' ' + y1 + ' V' + y2 + ' M' + (dx - tick) + ' ' + y1 + ' H' + (dx + tick) + ' M' + (dx - tick) + ' ' + y2 + ' H' + (dx + tick) + '"/></g>' +
+      '<text x="' + ((x1 + x2) / 2) + '" y="' + (dy + fs * 1.3) + '" font-size="' + fs + '" text-anchor="middle" fill="currentColor">' + inches(t.width) + '</text>' +
+      '<text x="' + (dx + fs * 0.4) + '" y="' + ((y1 + y2) / 2 + fs * 0.35) + '" font-size="' + fs + '" fill="currentColor">' + inches(t.height) + '</text></svg>' +
+      '<p class="dz-cap">' + (sheets
+        ? 'Lettering ' + inches(t.width) + ' × ' + inches(t.height) + ' · ' + sheets.length + ' letter stencil' + (sheets.length === 1 ? '' : 's') + ', each ' + inches(sheets[0].width) + ' × ' + inches(sheets[0].height)
+        : 'Lettering ' + inches(t.width) + ' × ' + inches(t.height) + ' · Stencil sheet ' + inches(w) + ' × ' + inches(h)) + '</p>';
+  }
+
+  function custom(root) {
+    var sizes = JSON.parse(root.dataset.sizes || '[]'), materials = JSON.parse(root.dataset.materials || '{}');
+    var text = $('#c-text'), size = $('#c-size'), mat = $('#c-mat');
+    var seq = 0;
+
+    size.innerHTML = sizes.map(function (s) { return '<option value="' + esc(s.key) + '">' + esc(s.label) + ' letters</option>'; }).join('');
+    size.value = root.dataset.default || (sizes[0] && sizes[0].key);
+
+    function fillMaterials() {
+      var s = sizes.filter(function (x) { return x.key === size.value; })[0], keep = mat.value;
+      var keys = Object.keys(materials).filter(function (m) { return s && s.prices[m]; });
+      mat.innerHTML = keys.map(function (m) { return '<option value="' + m + '">' + esc(materials[m]) + '</option>'; }).join('');
+      if (keys.indexOf(keep) >= 0) mat.value = keep;
+    }
+
+    var update = debounce(function () {
+      var my = ++seq;
+      clearDesign(null);
+      $('#c-msg').innerHTML = '';
+      post('/custom/text/quote', { text: text.value, size: size.value, thickness: mat.value }).then(function (res) {
+        if (my !== seq) return;
+        $('#c-preview').innerHTML = plateSvg(res);
+        $('#c-price').textContent = money(res.price);
+        $('#c-breakdown').textContent = money(res.stencilPrice) + ' for ' + inches(res.text.width) + ' × ' + inches(res.text.height) + ' lettering' + (res.setupFee ? ' + ' + money(res.setupFee) + ' setup' : '');
+        var typed = text.value.trim().toUpperCase().replace(/\s*\n\s*/g, ' / ');
+        $('#c-chars').textContent = res.lines.join(' / ') !== typed ? 'Will be cut as: ' + res.lines.join(' / ') : '';
+        specs($('#c-specs'), [
+          ['Lettering size', inches(res.text.width) + ' × ' + inches(res.text.height)],
+          ['Letter size', /x/i.test(res.size) ? res.size.replace(/\s*x\s*/i, ' × ') : res.size + ' tall, ~' + inches(res.letterWidth) + ' wide'],
+          res.sheets ? ['Stencil sheets', res.sheets.length + ' letters, each ' + inches(res.sheets[0].width) + ' × ' + inches(res.sheets[0].height)]
+            : ['Stencil sheet', inches(res.plate.width) + ' × ' + inches(res.plate.height) + (res.pieces > 1 ? ' · ' + res.pieces + ' pieces' : '')]
+        ]);
+        setDesign({ kind: 'text', text: res.lines.join('\n'), size: res.sizeKey, thickness: res.thickness }, null);
+      }).catch(function (e) {
+        if (my !== seq) return;
+        $('#c-price').textContent = '—';
+        $('#c-breakdown').textContent = '';
+        $('#c-msg').innerHTML = '<div class="dz-alert">' + esc(e.message) + '</div>';
+      });
+    }, 200);
+
+    fillMaterials();
+    text.addEventListener('input', update);
+    size.addEventListener('change', function () { fillMaterials(); update(); });
+    mat.addEventListener('change', update);
+    update();
+  }
+
+  var ct = document.getElementById('custom-designer');
+  if (ct) custom(ct);
   var ez = document.getElementById('endzone-designer');
   if (ez) endzone(ez);
   var mf = document.getElementById('midfield-designer');
