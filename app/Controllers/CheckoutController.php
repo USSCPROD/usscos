@@ -37,7 +37,7 @@ class CheckoutController extends Controller
     public function price(Request $request, Response $response): Response
     {
         try {
-            $priced = (new CartService())->price($this->json()['items'] ?? []);
+            $priced = (new CartService())->price($this->body()['items'] ?? []);
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
         }
@@ -48,7 +48,7 @@ class CheckoutController extends Controller
     /** {items, zip, residential} → {zip, options: [{id, name, price}]} */
     public function shipping(Request $request, Response $response): Response
     {
-        $in = $this->json();
+        $in = $this->body();
 
         try {
             return $response->json((new WebOrderService())->shipping($in['items'] ?? [], (string)($in['zip'] ?? ''), !empty($in['residential'])));
@@ -60,7 +60,7 @@ class CheckoutController extends Controller
     /** {items, zip, residential, service} → {url}: Square's hosted checkout. */
     public function start(Request $request, Response $response): Response
     {
-        $in = $this->json();
+        $in = $this->body();
 
         try {
             $out = (new WebOrderService())->start($in['items'] ?? [], (string)($in['zip'] ?? ''), !empty($in['residential']),
@@ -122,7 +122,8 @@ class CheckoutController extends Controller
         return $response->json(['ok' => true]);
     }
 
-    private function json(): array
+    /** The JSON request body. Not json(): the base Controller has a json() of its own. */
+    private function body(): array
     {
         $raw = (string)file_get_contents('php://input');
 
