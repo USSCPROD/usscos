@@ -86,9 +86,10 @@ Each phase ships on its own and is usable when it lands.
    SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY), the same webhook subscription
    made again on the Production side (its own signature key), and USSCOS's FedEx switched from sandbox to production (shipping prices only
    match the shop's on production rates). Use the shop's existing developer app
-   ("StencilsPlus Website"; customers never see its name) but a **new Square location**
-   for USSC Products with the USSC logo and navy: the checkout page's name, logo and color
-   come from the location, and the shop's location keeps its stencil brand until cut-over.
+   ("StencilsPlus Website"; customers never see its name) and the shop's location,
+   **L656RANWFXGRC "US Specialty Coatings"**: its brand already has the USSC Products logo
+   and navy #222b59, and it pays into the Synovus account. No new location is needed. (The
+   StencilsPlus brand is the other location, STNCLPLS, which the website does not use.)
    Sandbox uses location L0ZFJ4P9AEXHD; the test order, customer and payment it made are
    test data. Original plan: The cart, live FedEx rates through the existing cartonizer,
    Square payment, and the order arriving as a USSCOS sales order.
