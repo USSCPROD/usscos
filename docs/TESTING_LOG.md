@@ -616,7 +616,7 @@ lines. Editing an order replaces that line rather than adding to it.
 **Get FedEx quote** prices what is on the form, before the order is saved, using the
 same cartonizer the label screen uses so the quote and the label describe the same
 parcels. Each service shows the carrier price and the charge; the customer sees only
-the charge. Markups are in `config/shipping.php` — $10 parcel, $10 freight, once per shipment.
+the charge. Markups are in `config/shipping.php` — $10 parcel, $20 freight.
 
 Freight is not quoted in the system: Kuebix price it by hand, so an order the cartonizer
 calls freight says so and names the markup to add. (Noted 2026-11-11: Kuebix **does**

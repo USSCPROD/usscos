@@ -27,7 +27,7 @@ class ShippingQuoteService
 
     public function freightMarkup(): float
     {
-        return (float)(Config::get('shipping.freight_markup') ?? 10.00);
+        return (float)(Config::get('shipping.freight_markup') ?? 20.00);
     }
 
     /**

@@ -570,7 +570,7 @@ function soThStyle(): string {
                  || parseFloat(last.querySelector('.f-price')?.value||0)>0;
         if(used) addLine();
     }
-    var FREIGHT_MARKUP = <?= json_encode((float)(\App\Core\Config::get('shipping.freight_markup') ?? 10.0)) ?>;
+    var FREIGHT_MARKUP = <?= json_encode((float)(\App\Core\Config::get('shipping.freight_markup') ?? 20.0)) ?>;
     document.getElementById('lineBody').addEventListener('input',ensureSpareRow);
     document.getElementById('fShipAmount').addEventListener('input',recalcAll);
 
