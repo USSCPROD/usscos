@@ -75,6 +75,8 @@ Each phase ships on its own and is usable when it lands.
    `/webhook/square`) is set up with its signature key in `.env`; Square's test event got
    200, unsigned and wrongly signed requests get 401. A website order shipping to a ZIP
    other than the one shipping was quoted for is flagged on the order and in the email.
+   The deploy user's crontab runs `database/reconcile_web_checkouts.php --commit` every
+   15 minutes (under flock), logging to `storage/logs/reconcile-web-checkouts.log`.
    Cart in the browser, priced on the server (subtotals match the shop to the cent on
    three test carts); the shop's rolled-stencil packing (same boxes as the shop) rated
    through USSCOS's FedEx at the shop's terms (no markup, Home Delivery offered); Square's
@@ -82,8 +84,7 @@ Each phase ships on its own and is usable when it lands.
    created, website channel, SH shipping line, card payment recorded, no tax). Before
    launch: production Square credentials in `.env` (SQUARE_ENVIRONMENT, SQUARE_ACCESS_TOKEN,
    SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY), the same webhook subscription
-   made again on the Production side (its own signature key), cron for `database/reconcile_web_checkouts.php
-   --commit`, and USSCOS's FedEx switched from sandbox to production (shipping prices only
+   made again on the Production side (its own signature key), and USSCOS's FedEx switched from sandbox to production (shipping prices only
    match the shop's on production rates). Use the shop's existing developer app
    ("StencilsPlus Website"; customers never see its name) but a **new Square location**
    for USSC Products with the USSC logo and navy: the checkout page's name, logo and color
