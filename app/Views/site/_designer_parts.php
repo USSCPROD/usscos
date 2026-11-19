@@ -66,6 +66,18 @@ $co   = config('site.company');
     director, school administration or board.</p>
   <a class="dz-btn" href="#request" style="text-align:center;text-decoration:none;box-sizing:border-box">Or send it to us for a quote ↓</a>
 
+<?php elseif ($part === 'gate'): ?>
+  <?php /* The designers need an account (Chip, 19 Nov 2026). $next brings them back here. */ ?>
+  <div class="dz-card" style="max-width:34rem;margin:0 0 3rem">
+    <h2 style="margin:0 0 .4rem;font-size:1.25rem">Sign in to use the designer</h2>
+    <p style="margin:0 0 1rem;color:#374151">It's free. With an account you can design, see your price, save your designs
+      to come back to, and order.</p>
+    <a class="b b-p" href="/account/sign-up?next=<?= e(rawurlencode($next)) ?>">Create a free account</a>
+    <a class="b b-s" href="/account/sign-in?next=<?= e(rawurlencode($next)) ?>" style="margin-left:.4rem">Sign in</a>
+    <p class="dz-sub" style="margin:1rem 0 0">Rather talk to someone? <a href="/contact?about=Custom%20stencil">Send us your project</a>
+      and we'll quote it.</p>
+  </div>
+
 <?php elseif ($part === 'save'): ?>
   <?php /* Saving needs an account: signed out, the button goes to sign in and comes back. */ ?>
   <button class="dz-btn" type="button" data-save-design data-signed-in="<?= !empty($signedIn) ? '1' : '0' ?>" disabled>Save this design</button>

@@ -59,6 +59,8 @@ class DesignerController extends Controller
             'ready'  => $this->endzone->ready(),
             'colors' => self::COLORS,
             'saved'  => self::savedDesign($request, 'endzone'),
+            'gated' => CustomerAccounts::current() === null,
+            'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
             'sent'   => (string)($request->raw('sent') ?? ''),
             'error'  => (string)($request->raw('error') ?? ''),
@@ -85,6 +87,8 @@ class DesignerController extends Controller
             'default'   => $default ?? ($sizes[0]['key'] ?? ''),
             'materials' => TextDesigner::MATERIALS,
             'saved'     => self::savedDesign($request, 'text'),
+            'gated' => CustomerAccounts::current() === null,
+            'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
             'sent'      => (string)($request->raw('sent') ?? ''),
             'error'     => (string)($request->raw('error') ?? ''),
@@ -93,6 +97,10 @@ class DesignerController extends Controller
 
     public function textQuote(Request $request, Response $response): Response
     {
+        if ($r = $this->signInFirst($response)) {
+            return $r;
+        }
+
         try {
             $q = $this->text->quote(
                 (string)$request->raw('text', ''), (string)$request->raw('size', ''), (string)$request->raw('thickness', '')
@@ -111,6 +119,8 @@ class DesignerController extends Controller
             'nav'     => (new SiteController())->navForDesigner(),
             'options' => MidfieldDesigner::options(),
             'saved'   => self::savedDesign($request, 'midfield'),
+            'gated' => CustomerAccounts::current() === null,
+            'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
             'sent'    => (string)($request->raw('sent') ?? ''),
             'error'   => (string)($request->raw('error') ?? ''),
@@ -121,6 +131,10 @@ class DesignerController extends Controller
 
     public function endzoneQuote(Request $request, Response $response): Response
     {
+        if ($r = $this->signInFirst($response)) {
+            return $r;
+        }
+
         try {
             $q = $this->endzone->quote(
                 (string)$request->raw('text', ''), (string)$request->raw('size', ''),
@@ -135,6 +149,10 @@ class DesignerController extends Controller
 
     public function midfieldUpload(Request $request, Response $response): Response
     {
+        if ($r = $this->signInFirst($response)) {
+            return $r;
+        }
+
         $file    = isset($_FILES['logo']) && is_array($_FILES['logo']) ? $_FILES['logo'] : null;
         $preview = isset($_FILES['preview']) && is_array($_FILES['preview']) ? $_FILES['preview'] : null;
 
@@ -151,6 +169,10 @@ class DesignerController extends Controller
 
     public function midfieldQuote(Request $request, Response $response): Response
     {
+        if ($r = $this->signInFirst($response)) {
+            return $r;
+        }
+
         try {
             $q = $this->midfield->quote(
                 (string)$request->raw('logo', ''), (string)$request->raw('field', ''), $request->raw('width')
@@ -185,6 +207,11 @@ class DesignerController extends Controller
     /** The proof, as a print-ready page: the browser's print dialog saves it as PDF. */
     public function proof(Request $request, Response $response): Response
     {
+        // Staff open proofs from a sales order's notes or a lead, so a staff login counts too.
+        if (CustomerAccounts::current() === null && !\App\Core\Auth::check()) {
+            return $response->redirect('/account/sign-in?next=' . rawurlencode((string)($_SERVER['REQUEST_URI'] ?? '/custom')));
+        }
+
         $for = [
             'name'  => mb_substr((string)$request->raw('name', ''), 0, 80),
             'org'   => mb_substr((string)$request->raw('org', ''), 0, 120),
@@ -221,6 +248,10 @@ class DesignerController extends Controller
     {
         $kind = in_array($request->raw('kind'), ['midfield', 'text'], true) ? (string)$request->raw('kind') : 'endzone';
         $back = $kind === 'text' ? '/custom' : '/custom/' . $kind;
+
+        if (CustomerAccounts::current() === null) {
+            return $response->redirect('/account/sign-in?next=' . rawurlencode($back));
+        }
 
         $started = (int)$request->raw('started', 0);
         if (trim((string)$request->raw('website', '')) !== '' || ($started > 0 && time() - $started < 3)) {
@@ -288,6 +319,17 @@ class DesignerController extends Controller
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     /** @throws DesignerError */
+    /**
+     * The designers need an account (Chip, 19 Nov 2026): the pages show a sign-in prompt,
+     * and these endpoints refuse, so the pricing cannot be used around the page either.
+     */
+    private function signInFirst(Response $response): ?Response
+    {
+        return CustomerAccounts::current() === null
+            ? $response->json(['error' => 'Please sign in or create a free account to use the designer.', 'signIn' => true], 401)
+            : null;
+    }
+
     /**
      * A quote as this viewer may see it. The wholesale figure is for distributors only: a
      * signed-in distributor gets it as yourPrice, everyone else never sees it.

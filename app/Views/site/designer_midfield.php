@@ -13,6 +13,9 @@
       We cut it as one stencil with a dot pattern, so every color of your logo paints from the same stencil.</p>
   </div>
 
+ <?php if (!empty($gated)): ?>
+    <?= view('site._designer_parts', ['part' => 'gate', 'next' => $next]) ?>
+  <?php else: ?>
   <div class="dz-grid" id="midfield-designer" data-saved="<?= e(json_encode($saved)) ?>" data-options="<?= e(json_encode($options)) ?>">
     <div class="dz-card">
       <span class="dz-label">Your logo</span>
@@ -45,6 +48,7 @@
   </div>
 
   <?= view('site._designer_parts', ['part' => 'request', 'kind' => 'midfield', 'sent' => $sent, 'error' => $error]) ?>
+  <?php endif; ?>
 </div>
 
 <script src="/assets/js/stencil-designers.js?v=4" defer></script>

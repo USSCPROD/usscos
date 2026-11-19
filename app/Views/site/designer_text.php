@@ -12,7 +12,9 @@
     <p style="margin:.6rem 0 0"><a href="/custom/endzone"><strong>Football end zone?</strong> Design custom endzone lettering →</a></p>
   </div>
 
-  <?php if (!$ready): ?>
+  <?php if (!empty($gated)): ?>
+    <?= view('site._designer_parts', ['part' => 'gate', 'next' => $next]) ?>
+  <?php elseif (!$ready): ?>
     <div class="note" style="margin-bottom:3rem">The custom stencil builder isn't available just now.
       Please <a href="/contact?about=Custom%20stencil">tell us what you need</a> and we'll quote it.</div>
   <?php else: ?>

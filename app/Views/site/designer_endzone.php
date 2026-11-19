@@ -13,7 +13,9 @@
       exact lettering we cut, with the size, number of pieces and price.</p>
   </div>
 
-  <?php if (!$ready || $sizes === []): ?>
+  <?php if (!empty($gated)): ?>
+    <?= view('site._designer_parts', ['part' => 'gate', 'next' => $next]) ?>
+  <?php elseif (!$ready || $sizes === []): ?>
     <div class="note" style="margin-bottom:3rem">The endzone designer isn't available just now.
       Please <a href="/stencils/endzone-stencils">send us your endzone</a> and we'll quote it.</div>
   <?php else: ?>
