@@ -68,17 +68,24 @@ Each phase ships on its own and is usable when it lands.
    made by `database/tools/export_stencil_font.py`. Original plan: Port the sizing and pricing from `drawings.py` and
    `fontsvg.py`. The stencil font stays private on the server. Only outlines leave it,
    exactly as the shop does today.
-3. **Cart and checkout.** 🟡 Built 19 Nov 2026, waiting on Square credentials to test.
+3. **Cart and checkout.** 🟡 Built 19 Nov 2026; tested end to end in Square's sandbox the
+   same day (a $26.63 test order became SO 39, paid, website channel, SH line, card
+   payment, new retail customer; reloading the return page made no second order).
    Cart in the browser, priced on the server (subtotals match the shop to the cent on
    three test carts); the shop's rolled-stencil packing (same boxes as the shop) rated
    through USSCOS's FedEx at the shop's terms (no markup, Home Delivery offered); Square's
    hosted checkout; a paid checkout becomes a sales order (customer matched by email or
    created, website channel, SH shipping line, card payment recorded, no tax). Before
-   launch: Square credentials in `.env` (SQUARE_ENVIRONMENT, SQUARE_ACCESS_TOKEN,
+   launch: production Square credentials in `.env` (SQUARE_ENVIRONMENT, SQUARE_ACCESS_TOKEN,
    SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY), a webhook subscription to
    `/webhook/square` for payment.updated, cron for `database/reconcile_web_checkouts.php
    --commit`, and USSCOS's FedEx switched from sandbox to production (shipping prices only
-   match the shop's on production rates). Original plan: The cart, live FedEx rates through the existing cartonizer,
+   match the shop's on production rates). Use the shop's existing developer app
+   ("StencilsPlus Website"; customers never see its name) but a **new Square location**
+   for USSC Products with the USSC logo and navy: the checkout page's name, logo and color
+   come from the location, and the shop's location keeps its stencil brand until cut-over.
+   Sandbox uses location L0ZFJ4P9AEXHD; the test order, customer and payment it made are
+   test data. Original plan: The cart, live FedEx rates through the existing cartonizer,
    Square payment, and the order arriving as a USSCOS sales order.
 4. **Customer and distributor accounts.** Sign-in, wholesale pricing, saved quotes and
    orders on terms. Includes migrating the shop's existing accounts from
