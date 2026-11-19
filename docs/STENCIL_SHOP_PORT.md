@@ -77,6 +77,13 @@ Each phase ships on its own and is usable when it lands.
    other than the one shipping was quoted for is flagged on the order and in the email.
    The deploy user's crontab runs `database/reconcile_web_checkouts.php --commit` every
    15 minutes (under flock), logging to `storage/logs/reconcile-web-checkouts.log`.
+   FedEx quotes run in production since 19 Nov 2026 on the "USSCOS SHIPPING" project's
+   production key and the USSC account ending 540 (`FEDEX_RATE_*` in `.env`); labels,
+   address checks and tracking stay in sandbox until FedEx certifies labels. On three test
+   carts every service matches the shop to the cent except FedEx 2Day, where the shop is
+   $21.12 higher: the shop asks FedEx for transit times, FedEx then also returns a 2Day
+   price with Saturday delivery, and the shop shows that one. USSCOS's figure is the plain
+   2Day price, which is what a label without Saturday delivery is billed.
    Cart in the browser, priced on the server (subtotals match the shop to the cent on
    three test carts); the shop's rolled-stencil packing (same boxes as the shop) rated
    through USSCOS's FedEx at the shop's terms (no markup, Home Delivery offered); Square's
@@ -84,8 +91,8 @@ Each phase ships on its own and is usable when it lands.
    created, website channel, SH shipping line, card payment recorded, no tax). Before
    launch: production Square credentials in `.env` (SQUARE_ENVIRONMENT, SQUARE_ACCESS_TOKEN,
    SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY), the same webhook subscription
-   made again on the Production side (its own signature key), and USSCOS's FedEx switched from sandbox to production (shipping prices only
-   match the shop's on production rates). Use the shop's existing developer app
+   made again on the Production side (its own signature key), and FedEx labels moved to production once
+   FedEx certifies them (`FEDEX_ENVIRONMENT`; quotes are already production). Use the shop's existing developer app
    ("StencilsPlus Website"; customers never see its name) and the shop's location,
    **L656RANWFXGRC "US Specialty Coatings"**: its brand already has the USSC Products logo
    and navy #222b59, and it pays into the Synovus account. No new location is needed. (The
