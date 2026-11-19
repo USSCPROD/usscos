@@ -111,10 +111,11 @@ Each phase ships on its own and is usable when it lands.
    shown in the cart and designers, never sent to anyone else. Distributors save carts as
    quotes (re-priced whenever opened) and order on terms with a PO number (an unpaid
    sales order, `web_checkouts.paid_by = 'terms'`), or pay by card. Anyone signed in saves
-   designs and reopens them (`?design=ID`). Designers stay open to everyone. The shop's
-   accounts come across with `database/tools/export_shop_accounts.py` (run on the shop's
-   `designer.db`) and `database/import_shop_accounts.php` (dry run, `--commit`), keeping
-   their passwords. Next slice: order and invoice history, paying invoices, reorder.
+   designs and reopens them (`?design=ID`). **The designers need an account** (Chip,
+   19 Nov 2026): signed out, their pages show a sign-in prompt and their endpoints refuse;
+   proofs also open for staff. **USSCOS has its own accounts; nothing is imported** from the
+   stencil shop or StencilsPlus (the USSC shop had none anyway). The importer
+   (`database/import_shop_accounts.php`) is unused. Next slice: order and invoice history, paying invoices, reorder.
 5. **Endzone and midfield designers.** ✅ Built 19 Nov 2026, ahead of phases 2–4 at
    Chip's request, at `/custom/endzone` and `/custom/midfield`. Prices match the shop to
    the cent (checked against endzone.py and midfield.py). Until cart and accounts exist
