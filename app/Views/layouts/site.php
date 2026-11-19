@@ -264,7 +264,7 @@ img{max-width:100%;display:block}
   </div>
 </footer>
 
-<script src="/assets/js/cart.js?v=1" defer></script>
+<script src="/assets/js/cart.js?v=2" defer></script>
 
 </body>
 </html>

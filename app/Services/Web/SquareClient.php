@@ -83,7 +83,7 @@ class SquareClient
                 'ask_for_shipping_address' => true,
                 'allow_tipping'            => false,
                 'shipping_fee'             => [
-                    'name'   => mb_substr($shipping['name'] . ' (to ' . $zip . ')', 0, 255),
+                    'name'   => mb_substr('Shipping & handling, ' . $shipping['name'] . ' (to ' . $zip . ')', 0, 255),
                     'charge' => ['amount' => (int)round($shipping['price'] * 100), 'currency' => 'USD'],
                 ],
             ],

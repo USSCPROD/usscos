@@ -126,7 +126,7 @@
         '<h2 style="margin:0 0 1rem;font-size:1.15rem">Order summary</h2>' +
         '<table style="width:100%;border-collapse:collapse;font-size:.95rem">' +
         '<tr><td>Subtotal</td><td style="text-align:right">' + money(res.subtotal) + '</td></tr>' +
-        '<tr><td>Shipping</td><td style="text-align:right" id="c-ship" class="dz-sub">Enter ZIP</td></tr>' +
+        '<tr><td>Shipping &amp; handling</td><td style="text-align:right" id="c-ship" class="dz-sub">Enter ZIP</td></tr>' +
         '<tr><td style="padding-top:.6rem;font-weight:800">Total</td><td style="padding-top:.6rem;text-align:right;font-weight:800" id="c-total">' + money(res.subtotal) + '</td></tr></table>' +
         '<label class="dz-label" for="c-zip" style="margin-top:1.2rem">Ship to ZIP code</label>' +
         '<table style="width:100%;border-collapse:collapse"><tr><td style="padding-right:.4rem"><input id="c-zip" inputmode="numeric" maxlength="10" placeholder="e.g. 30303" autocomplete="postal-code" value="' + esc(ship.zip || '') + '" style="width:100%;box-sizing:border-box;padding:.55rem;border:1px solid var(--line);border-radius:6px;font:inherit"></td>' +

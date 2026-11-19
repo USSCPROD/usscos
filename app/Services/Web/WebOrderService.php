@@ -62,7 +62,7 @@ class WebOrderService
                                                'height' => $p['dims'][2]], StencilPacking::packages($priced['pieces']));
 
         $res = (new ShippingQuoteService())->rate(['zip' => $zip, 'residential' => $residential], $boxes,
-            (array)(Config::get('shipping.web_services') ?? []), (float)(Config::get('shipping.web_markup') ?? 0));
+            (array)(Config::get('shipping.web_services') ?? []), self::handling());
 
         if (empty($res['ok'])) {
             error_log('web shipping: ' . ($res['message'] ?? 'no rates') . ' for ' . $zip);
@@ -430,6 +430,14 @@ class WebOrderService
         $intake->notify($intake->routing()['stencil_email'], 'Website checkout needs a look',
             '<p>Website checkout ' . htmlspecialchars((string)$c['token']) . ' (Square order ' . htmlspecialchars((string)$c['square_order_id'])
             . ') ' . htmlspecialchars($what) . '.</p><p>Total $' . number_format((float)$c['total'], 2) . '.</p>');
+    }
+
+    /** Handling added to the FedEx rate: shipping.web_markup, else the order desk's parcel markup. */
+    private static function handling(): float
+    {
+        $web = Config::get('shipping.web_markup');
+
+        return $web !== null ? (float)$web : (new ShippingQuoteService())->parcelMarkup();
     }
 
     /** @throws DesignerError */
