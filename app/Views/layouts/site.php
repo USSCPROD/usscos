@@ -142,6 +142,10 @@ img{max-width:100%;display:block}
 
 /* ---- footer ---- */
 /* ---- written copy: category copy, content pages, descriptions ---- */
+/* Form fields, site-wide: the enquiry form, the designers and the account pages. */
+.fl{display:block;font-size:.8rem;font-weight:600;margin-bottom:.3rem;color:var(--ink)}
+.fi{width:100%;box-sizing:border-box;padding:.6rem .7rem;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:.92rem;background:#fff}
+.fi:focus{outline:2px solid var(--blue);outline-offset:-1px;border-color:var(--blue)}
 .rt h1{font-size:1.9rem;letter-spacing:-.025em;margin:0 0 1rem}
 .rt h2{font-size:1.3rem;letter-spacing:-.015em;margin:2rem 0 .6rem}
 .rt h3{font-size:1.05rem;margin:1.4rem 0 .5rem}
