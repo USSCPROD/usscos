@@ -70,15 +70,19 @@ Each phase ships on its own and is usable when it lands.
    exactly as the shop does today.
 3. **Cart and checkout.** 🟡 Built 19 Nov 2026; tested end to end in Square's sandbox the
    same day (a $26.63 test order became SO 39, paid, website channel, SH line, card
-   payment, new retail customer; reloading the return page made no second order).
+   payment, new retail customer; reloading the return page made no second order). The
+   sandbox webhook subscription "USSCOS website orders" (payment.updated →
+   `/webhook/square`) is set up with its signature key in `.env`; Square's test event got
+   200, unsigned and wrongly signed requests get 401. A website order shipping to a ZIP
+   other than the one shipping was quoted for is flagged on the order and in the email.
    Cart in the browser, priced on the server (subtotals match the shop to the cent on
    three test carts); the shop's rolled-stencil packing (same boxes as the shop) rated
    through USSCOS's FedEx at the shop's terms (no markup, Home Delivery offered); Square's
    hosted checkout; a paid checkout becomes a sales order (customer matched by email or
    created, website channel, SH shipping line, card payment recorded, no tax). Before
    launch: production Square credentials in `.env` (SQUARE_ENVIRONMENT, SQUARE_ACCESS_TOKEN,
-   SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY), a webhook subscription to
-   `/webhook/square` for payment.updated, cron for `database/reconcile_web_checkouts.php
+   SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY), the same webhook subscription
+   made again on the Production side (its own signature key), cron for `database/reconcile_web_checkouts.php
    --commit`, and USSCOS's FedEx switched from sandbox to production (shipping prices only
    match the shop's on production rates). Use the shop's existing developer app
    ("StencilsPlus Website"; customers never see its name) but a **new Square location**
