@@ -13,7 +13,7 @@ class WebCheckoutRepository
     {
         Database::insert(
             "INSERT INTO web_checkouts
-                (token, items, lines, subtotal, shipping_service, shipping_name, shipping_amount, total,
+                (token, items, priced_lines, subtotal, shipping_service, shipping_name, shipping_amount, total,
                  ship_zip, residential, square_environment)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [$d['token'], json_encode($d['items']), json_encode($d['lines']), $d['subtotal'], $d['shipping_service'],

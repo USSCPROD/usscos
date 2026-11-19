@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS web_checkouts (
     token                  CHAR(32)       NOT NULL,
     status                 ENUM('open','ordered','failed') NOT NULL DEFAULT 'open',
     items                  JSON           NOT NULL,       -- the cart as sent, for re-pricing
-    lines                  JSON           NOT NULL,       -- the priced lines
+    priced_lines           JSON           NOT NULL,       -- the priced lines (LINES is reserved)
     subtotal               DECIMAL(12,2)  NOT NULL,
     shipping_service       VARCHAR(50)    NOT NULL,
     shipping_name          VARCHAR(120)   NOT NULL,

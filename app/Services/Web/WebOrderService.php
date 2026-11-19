@@ -278,7 +278,7 @@ class WebOrderService
     private function salesOrder(array $c, array $b, int $customerId, string $dupNote, array $paid): int
     {
         $repo   = new SalesOrderRepository();
-        $lines  = json_decode((string)$c['lines'], true) ?: [];
+        $lines  = json_decode((string)$c['priced_lines'], true) ?: [];
         $userId = (int)(((new WebsiteLeadService())->routing()['stencil_user_id'] ?? null) ?: 1);
         $soLines = [];
         $notes = [];
@@ -388,7 +388,7 @@ class WebOrderService
         $routing = $intake->routing();
         $rows = '';
 
-        foreach (json_decode((string)$c['lines'], true) ?: [] as $l) {
+        foreach (json_decode((string)$c['priced_lines'], true) ?: [] as $l) {
             $rows .= $intake->row($l['qty'] . ' ×', $l['name'] . ' — $' . number_format($l['unit'] * $l['qty'], 2));
         }
 
