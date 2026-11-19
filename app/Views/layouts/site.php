@@ -216,7 +216,7 @@ img{max-width:100%;display:block}
             <?php foreach ($kids as $k): ?>
               <a href="/shop/<?= e($s['slug']) ?>/<?= e($k['slug']) ?>">
                 <span><?= e($k['label']) ?></span>
-                <span class="n"><?= (int)$k['count'] ?></span>
+                <span class="n"><?= (int)($k['count'] ?? 0) ?></span>
               </a>
             <?php endforeach; ?>
             <a class="all" href="/shop/<?= e($s['slug']) ?>">
