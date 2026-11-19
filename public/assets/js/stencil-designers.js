@@ -61,12 +61,14 @@
     }
     var send = $('#dz-send');
     if (send) send.disabled = false;
+    document.querySelectorAll('[data-add-design]').forEach(function (b) { b.disabled = false; });
   }
 
   function clearDesign(proofBtn) {
     if (proofBtn) proofBtn.disabled = true;
     var send = $('#dz-send');
     if (send) send.disabled = true;
+    document.querySelectorAll('[data-add-design]').forEach(function (b) { b.disabled = true; });
   }
 
   function bindProof(btn) {

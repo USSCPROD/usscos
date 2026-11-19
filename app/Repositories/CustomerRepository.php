@@ -190,6 +190,15 @@ class CustomerRepository extends Repository
     }
 
     /** Create a customer. quickbooks_name is NOT NULL, so it falls back to the display name. */
+    /** An active customer with exactly this email, the longest-standing first. */
+    public function findActiveByEmail(string $email): array|false
+    {
+        return Database::selectOne(
+            "SELECT id, company_name FROM customers WHERE is_active = 1 AND LOWER(TRIM(email)) = LOWER(TRIM(?)) ORDER BY id LIMIT 1",
+            [$email]
+        );
+    }
+
     public function insertCustomer(array $d): int
     {
         $pdo = Database::connection();

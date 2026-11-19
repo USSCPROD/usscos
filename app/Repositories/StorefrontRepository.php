@@ -705,6 +705,32 @@ class StorefrontRepository extends Repository
         ");
     }
 
+    /**
+     * A stencil SKU the website cart may sell: published, active, and filed under Stencils
+     * (or a category beneath it). Anything else is not for sale online yet.
+     */
+    public function cartProduct(string $sku): array|false
+    {
+        if ($sku === '') {
+            return false;
+        }
+
+        return Database::selectOne("
+            SELECT " . self::PUBLIC_COLUMNS . ", p.net_weight, p.case_weight_gross, p.item_type
+            FROM products p
+            LEFT JOIN product_brands b ON b.id = p.brand_id
+            WHERE " . self::PUBLIC_WHERE . " AND p.sku = ?
+              AND EXISTS (
+                  SELECT 1 FROM product_categories pc
+                  JOIN categories c ON c.id = pc.category_id
+                  LEFT JOIN categories c1 ON c1.id = c.parent_id
+                  LEFT JOIN categories c2 ON c2.id = c1.parent_id
+                  WHERE pc.product_id = p.id AND 'stencils' IN (c.slug, c1.slug, c2.slug)
+              )
+            LIMIT 1
+        ", [$sku]);
+    }
+
     /** A content page by slug: title, description, html. */
     public function sitePage(string $slug): array|false
     {

@@ -31,6 +31,7 @@ use App\Controllers\WebhookController;
 use App\Controllers\ShippingController;
 use App\Controllers\SiteController;
 use App\Controllers\DesignerController;
+use App\Controllers\CheckoutController;
 use App\Controllers\ReceivingController;
 use App\Controllers\VendorController;
 
@@ -438,6 +439,17 @@ Router::post('/custom/midfield/quote',  [DesignerController::class, 'midfieldQuo
 Router::get('/custom/midfield/logo',    [DesignerController::class, 'midfieldLogo'])->name('designer.midfield.logo');
 Router::get('/custom/proof',            [DesignerController::class, 'proof'])->name('designer.proof');
 Router::post('/custom/request',         [DesignerController::class, 'request'])->name('designer.request');
+
+// The cart and checkout. Public. The cart lives in the browser; prices, shipping and the
+// amount handed to Square are all decided on the server (CheckoutController).
+Router::get('/cart',              [CheckoutController::class, 'cart'])->name('cart');
+Router::post('/cart/price',       [CheckoutController::class, 'price'])->name('cart.price');
+Router::post('/cart/shipping',    [CheckoutController::class, 'shipping'])->name('cart.shipping');
+Router::post('/checkout',         [CheckoutController::class, 'start'])->name('checkout.start');
+Router::get('/checkout/thanks',   [CheckoutController::class, 'thanks'])->name('checkout.thanks');
+
+// Square's payment notifications. Public, like the lead webhook; verified by signature.
+Router::post('/webhook/square',   [CheckoutController::class, 'webhook'])->name('webhook.square');
 
 // The contact and quote form. Public, like the webhook: no session, so no CSRF token;
 // a honeypot and a minimum time on the page instead (SiteController::enquire).

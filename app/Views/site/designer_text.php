@@ -40,7 +40,8 @@
       <div class="dz-price" id="c-price">—</div>
       <div class="dz-sub" id="c-breakdown"></div>
       <div id="c-msg"></div>
-      <a class="dz-btn p" href="#request" style="text-align:center;text-decoration:none;box-sizing:border-box">Request this stencil ↓</a>
+      <button class="dz-btn p" type="button" data-add-design disabled>Add to cart</button>
+      <a class="dz-btn" href="#request" style="text-align:center;text-decoration:none;box-sizing:border-box">Or send it to us for a quote ↓</a>
     </div>
 
     <div>
@@ -55,7 +56,7 @@
   <?php endif; ?>
 </div>
 
-<script src="/assets/js/stencil-designers.js?v=2" defer></script>
+<script src="/assets/js/stencil-designers.js?v=3" defer></script>
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/site.php';

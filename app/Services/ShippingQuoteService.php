@@ -74,6 +74,27 @@ class ShippingQuoteService
             ];
         }
 
+        $boxes = [];
+
+        foreach ($packages as $pkg) {
+            $boxes[] = ['weight' => (float)($pkg['weight'] ?? 0), 'length' => $pkg['length'] ?? null,
+                        'width' => $pkg['width'] ?? null, 'height' => $pkg['height'] ?? null];
+        }
+
+        return $this->rate($to, $boxes, (array)(Config::get('shipping.services') ?? []), $this->parcelMarkup());
+    }
+
+    /**
+     * FedEx rates for boxes already worked out: the order screen's cartonizer boxes, or
+     * the website cart's rolled stencils (App\Services\Web\StencilPacking).
+     *
+     * @param array<int,array{weight:float,length?:mixed,width?:mixed,height?:mixed}> $boxes
+     * @param array<string,string> $wanted  service type => label, in the order to show them
+     */
+    public function rate(array $to, array $boxes, array $wanted, float $markup): array
+    {
+        $zip = trim((string)($to['zip'] ?? ''));
+        $packages = $boxes;
         $company = Database::selectOne("SELECT * FROM companies WHERE id = 1") ?: [];
         $fedex   = new FedExClient();
 
@@ -134,9 +155,7 @@ class ShippingQuoteService
             return ['ok' => false, 'message' => 'FedEx could not price it: ' . $fedex->errorOf($res)];
         }
 
-        $wanted = (array)(Config::get('shipping.services') ?? []);
-        $markup = $this->parcelMarkup();
-        $rates  = [];
+                $rates  = [];
 
         foreach ($res['body']['output']['rateReplyDetails'] ?? [] as $d) {
             $type = (string)($d['serviceType'] ?? '');

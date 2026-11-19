@@ -590,6 +590,24 @@ class SalesOrderRepository
         }
     }
 
+    /**
+     * collectPayment() for a caller already inside a transaction: the website checkout
+     * makes the order and records its card payment as one unit, so a failure leaves
+     * neither. Same rule as collectPayment about orders the fulfillment invoice owns.
+     */
+    public function collectPaymentInTransaction(int $id, string $method, string $reference, float $amount, int $userId): void
+    {
+        if (!$this->pdo->inTransaction()) {
+            throw new \LogicException('collectPaymentInTransaction needs an open transaction.');
+        }
+
+        if (FulfillmentRepository::installed() && FulfillmentRepository::orderIsManaged($id)) {
+            throw new \RuntimeException('Use the fulfillment invoice to record payment.');
+        }
+
+        $this->collectPaymentWithin($id, $method, $reference, $amount, $userId);
+    }
+
     private function collectPaymentWithin(int $id, string $method, string $reference, float $amount, int $userId): void
     {
         // Update the SO

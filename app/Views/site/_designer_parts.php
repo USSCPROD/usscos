@@ -59,10 +59,11 @@ $co   = config('site.company');
 </style>
 
 <?php elseif ($part === 'buy'): ?>
+  <button class="dz-btn p" type="button" data-add-design disabled>Add to cart</button>
   <button class="dz-btn" id="dz-proof" type="button" disabled>⤓ Proof to print or save as PDF</button>
   <p class="dz-sub" style="margin:.4rem 0 0">A proof with your design, size and price to share with your athletic
     director, school administration or board.</p>
-  <a class="dz-btn p" href="#request" style="text-align:center;text-decoration:none;box-sizing:border-box">Request this stencil ↓</a>
+  <a class="dz-btn" href="#request" style="text-align:center;text-decoration:none;box-sizing:border-box">Or send it to us for a quote ↓</a>
 
 <?php elseif ($part === 'request'): ?>
   <div id="request" class="dz-card" style="max-width:46rem;margin:0 0 3rem">

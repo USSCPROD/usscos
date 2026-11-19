@@ -257,8 +257,17 @@ $crumbs  = $crumbs ?? [];
       </div>
     <?php endif; ?>
 
+    <?php if (!empty($cartable)): ?>
+      <!-- Into this browser's cart (public/assets/js/cart.js); priced again by the server. -->
+      <div style="display:flex;gap:.6rem;align-items:center;margin-bottom:1rem">
+        <input id="add-qty" type="number" min="1" max="500" value="1" aria-label="Quantity"
+               style="width:5rem;padding:.6rem;border:1px solid var(--line);border-radius:6px;font:inherit">
+        <button type="button" class="b b-p" data-add-sku="<?= e($pr['sku']) ?>" data-qty-input="add-qty">Add to cart</button>
+      </div>
+    <?php endif; ?>
+
     <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.75rem">
-      <a class="b b-p" href="<?= $price <= 0 ? '#enquiry' : '/quote?about=' . e(rawurlencode(trim((string)($pr['website_name'] ?? '')) ?: $pr['name'])) ?>">Request a quote</a>
+      <a class="b <?= !empty($cartable) ? 'b-s' : 'b-p' ?>" href="<?= $price <= 0 ? '#enquiry' : '/quote?about=' . e(rawurlencode(trim((string)($pr['website_name'] ?? '')) ?: $pr['name'])) ?>">Request a quote</a>
       <a class="b b-s" href="tel:<?= e(preg_replace('/\D/','',config('site.company.phone'))) ?>">
         Call <?= e(config('site.company.phone')) ?>
       </a>

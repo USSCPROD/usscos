@@ -31,4 +31,19 @@ return [
         'STANDARD_OVERNIGHT'   => 'FedEx Standard Overnight',
         'PRIORITY_OVERNIGHT'   => 'FedEx Priority Overnight',
     ],
+
+    // The website's stencil checkout. The stencil shop's own settings, carried over so a
+    // stencil costs the same to ship after cut-over as before it: FedEx's account rate
+    // with no markup, and Home Delivery offered, because many stencil buyers are at home.
+    // The order desk's parcel_markup above is a different policy for a different door;
+    // changing this one is a pricing decision, not a technical one.
+    'web_markup' => 0.00,
+    'web_services' => [
+        'FEDEX_GROUND'         => 'FedEx Ground',
+        'GROUND_HOME_DELIVERY' => 'FedEx Home Delivery',
+        'FEDEX_EXPRESS_SAVER'  => 'FedEx Express Saver (3 day)',
+        'FEDEX_2_DAY'          => 'FedEx 2Day',
+        'STANDARD_OVERNIGHT'   => 'FedEx Standard Overnight',
+        'PRIORITY_OVERNIGHT'   => 'FedEx Priority Overnight',
+    ],
 ];

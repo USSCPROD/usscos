@@ -145,6 +145,10 @@ class SiteController extends Controller
             'variants' => $this->shop->variantsOf($product),
             'images'   => $this->shop->imagesOf((int)$product['id']),
             'crumbs'   => $this->shop->crumbsFor((int)$product['id'], 'stencils'),
+            // Sold online: a priced stencil, not aluminum (truck freight, by phone).
+            'cartable' => (float)($product['website_price'] ?? 0) > 0
+                          && $this->shop->cartProduct((string)$product['sku']) !== false
+                          && StorefrontRepository::materialSlug((string)($product['variant_label'] ?? '')) !== 'aluminum',
             'sent'     => (string)($request->raw('sent') ?? ''),
             'error'    => (string)($request->raw('error') ?? ''),
             'docs'     => $this->shop->documentsFor((int)$product['id']),
