@@ -15,6 +15,10 @@ $errBox  = static fn(string $m) => $m === '' ? '' :
   <?php if ($mode === 'signin'): ?>
     <p style="margin:0 0 1.2rem;color:var(--mut)">Save your designs, and see your company's pricing once your account is set up.</p>
     <?php if ($out): ?><div class="note" style="margin-bottom:1rem">You're signed out.</div><?php endif; ?>
+    <?php if ($staff !== ''): ?>
+      <div class="note" style="margin-bottom:1rem">You're signed in to USSCOS as staff (<?= e($staff) ?>), so the
+        <a href="/custom">designers</a> are open to you. A customer account, for saving designs and customer prices, is separate.</div>
+    <?php endif; ?>
     <?= $errBox($error) ?>
     <form method="POST" action="/account/sign-in<?= e($nextQs) ?>">
       <label class="fl" for="a-email">Email</label>

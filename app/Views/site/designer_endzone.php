@@ -36,7 +36,7 @@
       <div class="dz-price" id="ez-price">—</div>
       <div class="dz-sub" id="ez-breakdown"></div>
       <div id="ez-msg"></div>
-      <?= view('site._designer_parts', ['part' => 'buy', 'signedIn' => $signedIn]) ?>
+      <?= view('site._designer_parts', ['part' => 'buy', 'signedIn' => $signedIn, 'staffOnly' => $staffOnly]) ?>
     </div>
 
     <div>

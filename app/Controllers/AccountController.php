@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
@@ -50,9 +51,20 @@ class AccountController extends Controller
             return $this->page('signin', 'Sign in', $request, 'Please try again.');
         }
 
+        $email = (string)$request->raw('email', '');
+        $password = (string)$request->raw('password', '');
+
         try {
-            $this->accounts->signIn((string)$request->raw('email', ''), (string)$request->raw('password', ''), $request->ip());
+            $this->accounts->signIn($email, $password, $request->ip());
         } catch (AccountError $e) {
+            // Not a customer: staff may sign in here with their USSCOS login, which opens
+            // the designers for them. It signs them in to USSCOS itself, exactly as /login
+            // does; it is not a customer account and carries no prices or saved work.
+            if ($e->status() === 401 && Auth::attempt($email, $password)) {
+                (new \App\Repositories\CustomerLoginRepository())->clearFailures($request->ip(), strtolower(trim($email)));
+                return $response->redirect(self::next($request, '/custom'));
+            }
+
             return $this->page('signin', 'Sign in', $request, $e->getMessage(), $e->status());
         }
 
@@ -342,6 +354,7 @@ class AccountController extends Controller
                          'phone' => (string)$request->raw('phone', ''), 'organization' => (string)$request->raw('organization', ''),
                          'buyer_type' => (string)$request->raw('buyer_type', '')],
             'out'    => $request->raw('out') !== null,
+            'staff'  => CustomerAccounts::current() === null && Auth::check() ? (string)(Auth::user()['first_name'] ?? 'staff') : '',
             'types'  => CustomerAccounts::BUYER_TYPES,
         ] + $extra, $status);
     }

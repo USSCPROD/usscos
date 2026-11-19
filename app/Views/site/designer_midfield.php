@@ -35,7 +35,7 @@
       <div class="dz-price" id="mf-price">—</div>
       <div class="dz-sub" id="mf-breakdown">Upload your logo to see the price.</div>
       <div id="mf-msg"></div>
-      <?= view('site._designer_parts', ['part' => 'buy', 'signedIn' => $signedIn]) ?>
+      <?= view('site._designer_parts', ['part' => 'buy', 'signedIn' => $signedIn, 'staffOnly' => $staffOnly]) ?>
     </div>
 
     <div>

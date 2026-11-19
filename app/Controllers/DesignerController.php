@@ -59,7 +59,8 @@ class DesignerController extends Controller
             'ready'  => $this->endzone->ready(),
             'colors' => self::COLORS,
             'saved'  => self::savedDesign($request, 'endzone'),
-            'gated' => CustomerAccounts::current() === null,
+            'gated' => !self::mayDesign(),
+            'staffOnly' => CustomerAccounts::current() === null && \App\Core\Auth::check(),
             'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
             'sent'   => (string)($request->raw('sent') ?? ''),
@@ -87,7 +88,8 @@ class DesignerController extends Controller
             'default'   => $default ?? ($sizes[0]['key'] ?? ''),
             'materials' => TextDesigner::MATERIALS,
             'saved'     => self::savedDesign($request, 'text'),
-            'gated' => CustomerAccounts::current() === null,
+            'gated' => !self::mayDesign(),
+            'staffOnly' => CustomerAccounts::current() === null && \App\Core\Auth::check(),
             'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
             'sent'      => (string)($request->raw('sent') ?? ''),
@@ -119,7 +121,8 @@ class DesignerController extends Controller
             'nav'     => (new SiteController())->navForDesigner(),
             'options' => MidfieldDesigner::options(),
             'saved'   => self::savedDesign($request, 'midfield'),
-            'gated' => CustomerAccounts::current() === null,
+            'gated' => !self::mayDesign(),
+            'staffOnly' => CustomerAccounts::current() === null && \App\Core\Auth::check(),
             'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
             'sent'    => (string)($request->raw('sent') ?? ''),
@@ -208,7 +211,7 @@ class DesignerController extends Controller
     public function proof(Request $request, Response $response): Response
     {
         // Staff open proofs from a sales order's notes or a lead, so a staff login counts too.
-        if (CustomerAccounts::current() === null && !\App\Core\Auth::check()) {
+        if (!self::mayDesign()) {
             return $response->redirect('/account/sign-in?next=' . rawurlencode((string)($_SERVER['REQUEST_URI'] ?? '/custom')));
         }
 
@@ -249,7 +252,7 @@ class DesignerController extends Controller
         $kind = in_array($request->raw('kind'), ['midfield', 'text'], true) ? (string)$request->raw('kind') : 'endzone';
         $back = $kind === 'text' ? '/custom' : '/custom/' . $kind;
 
-        if (CustomerAccounts::current() === null) {
+        if (!self::mayDesign()) {
             return $response->redirect('/account/sign-in?next=' . rawurlencode($back));
         }
 
@@ -325,9 +328,15 @@ class DesignerController extends Controller
      */
     private function signInFirst(Response $response): ?Response
     {
-        return CustomerAccounts::current() === null
+        return !self::mayDesign()
             ? $response->json(['error' => 'Please sign in or create a free account to use the designer.', 'signIn' => true], 401)
             : null;
+    }
+
+    /** A signed-in customer, or USSCOS staff. */
+    private static function mayDesign(): bool
+    {
+        return CustomerAccounts::current() !== null || \App\Core\Auth::check();
     }
 
     /**
