@@ -70,6 +70,8 @@ class SalesOrderController extends Controller
             'qaChecklist'   => $binder->checklist((int)$id),
             'qaSummary'     => $binder->qaSummary((int)$id),
             'noteTypes'     => \App\Services\JobBinderService::NOTE_TYPES,
+            // The website checkout it came from, if any: shipping was quoted to its ZIP.
+            'webCheckout'   => (new \App\Repositories\WebCheckoutRepository())->forSalesOrder((int)$id),
             ...$data,
         ]);
     }

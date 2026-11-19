@@ -151,6 +151,27 @@ function soTh(): string  { return 'padding:.6rem .75rem;font-size:.7rem;font-wei
     </div>
 <?php endif; ?>
 
+<?php
+    /* A website order's shipping was priced for the ZIP typed into the cart, but the buyer
+       enters the real address on Square's page afterwards and can type a different one.
+       When the order now ships somewhere other than where it was quoted, the charge may be
+       wrong: say so before anyone ships it. Compared live, so correcting the address back
+       clears it. */
+    $webZip  = (string)($webCheckout['ship_zip'] ?? '');
+    $shipZip = substr(preg_replace('/\D/', '', (string)($so['ship_zip'] ?? '')), 0, 5);
+?>
+<?php if ($webZip !== '' && $shipZip !== $webZip): ?>
+    <div style="border:1px solid #fca5a5;background:#fef2f2;border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.25rem">
+        <div style="font-size:.9rem;line-height:1.55;color:#7f1d1d">
+            <strong style="display:block;margin-bottom:.15rem">Shipping was quoted for a different ZIP. Check the charge before shipping.</strong>
+            The customer was charged <?= money((float)$webCheckout['shipping_amount']) ?> for
+            <?= e($webCheckout['shipping_name']) ?> to ZIP <strong><?= e($webZip) ?></strong>, but this order ships to
+            <strong><?= $shipZip !== '' ? e($shipZip) : 'no ZIP' ?></strong>. Square let them enter a new
+            address after the price was set.
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Ship & Invoice Modal -->
 <div id="shipModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:10px;padding:28px 32px;width:460px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.25)">

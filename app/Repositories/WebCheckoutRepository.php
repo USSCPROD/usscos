@@ -41,6 +41,13 @@ class WebCheckoutRepository
         return Database::selectOne("SELECT * FROM web_checkouts WHERE square_order_id = ?", [$orderId]);
     }
 
+    /** The checkout a sales order was made from: what shipping was quoted, to which ZIP. */
+    public function forSalesOrder(int $soId): array|false
+    {
+        return Database::selectOne(
+            "SELECT ship_zip, shipping_name, shipping_amount FROM web_checkouts WHERE sales_order_id = ? LIMIT 1", [$soId]);
+    }
+
     /** The row, locked for the rest of the current transaction: one order per payment. */
     public function lock(int $id): array|false
     {

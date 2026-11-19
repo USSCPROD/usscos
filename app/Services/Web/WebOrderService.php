@@ -304,6 +304,7 @@ class WebOrderService
                       'line_total' => (float)$c['shipping_amount']];
 
         $internal = array_filter([
+            self::zipWarning($c, $b),
             'Website order, paid by card through Square (' . $c['square_environment'] . '). Square order ' . $c['square_order_id']
                 . ', payment ' . $paid['payment_id'] . '.',
             $b['email'] !== '' ? 'Buyer: ' . $b['name'] . ' <' . $b['email'] . '>' . ($b['phone'] !== '' ? ', ' . $b['phone'] : '') : '',
@@ -392,13 +393,35 @@ class WebOrderService
             $rows .= $intake->row($l['qty'] . ' ×', $l['name'] . ' — $' . number_format($l['unit'] * $l['qty'], 2));
         }
 
-        $intake->notify($routing['stencil_email'], 'New website order ' . $number . ' — $' . number_format((float)$c['total'], 2),
-            '<table style="width:100%;border-collapse:collapse">'
+        $warning = self::zipWarning($c, $b);
+
+        $intake->notify($routing['stencil_email'], 'New website order ' . $number . ' — $' . number_format((float)$c['total'], 2)
+                . ($warning !== '' ? ' — CHECK SHIPPING' : ''),
+            ($warning !== '' ? '<p style="color:#b91c1c;font-weight:bold">' . htmlspecialchars($warning) . '</p>' : '')
+            . '<table style="width:100%;border-collapse:collapse">'
             . $intake->row('Sales order', (string)$number) . $intake->row('Buyer', trim($b['name'] . ' ' . $b['email']))
             . $intake->row('Ship to', trim(implode(', ', array_filter([$b['line1'], $b['line2'], $b['city'], $b['state'] . ' ' . $b['zip']]))))
             . $rows . $intake->row('Shipping', $c['shipping_name'] . ' — $' . number_format((float)$c['shipping_amount'], 2))
             . $intake->row('Paid', '$' . number_format((float)$c['total'], 2) . ' by card (Square)')
             . '</table>');
+    }
+
+    /**
+     * Shipping is quoted for the ZIP typed into the cart, but the buyer enters the real
+     * address on Square's page and can type a different one there. Empty when they match,
+     * or when Square sent no ZIP to compare.
+     */
+    private static function zipWarning(array $c, array $b): string
+    {
+        $paidZip = substr(preg_replace('/\D/', '', $b['zip']), 0, 5);
+
+        if ($paidZip === '' || $paidZip === (string)$c['ship_zip']) {
+            return '';
+        }
+
+        return 'CHECK SHIPPING: ' . $c['shipping_name'] . ' ($' . number_format((float)$c['shipping_amount'], 2)
+            . ') was quoted to ZIP ' . $c['ship_zip'] . ', but the customer gave Square a ' . $paidZip
+            . ' address. The shipping charge may be wrong.';
     }
 
     private function alert(array $c, string $what): void
