@@ -56,8 +56,8 @@ class DesignerController extends Controller
             'sizes'  => $this->endzone->sizes(),
             'ready'  => $this->endzone->ready(),
             'colors' => self::COLORS,
-            'sent'   => (string)($request->query('sent') ?? ''),
-            'error'  => (string)($request->query('error') ?? ''),
+            'sent'   => (string)($request->raw('sent') ?? ''),
+            'error'  => (string)($request->raw('error') ?? ''),
         ]);
     }
 
@@ -80,8 +80,8 @@ class DesignerController extends Controller
             'sizes'     => $sizes,
             'default'   => $default ?? ($sizes[0]['key'] ?? ''),
             'materials' => TextDesigner::MATERIALS,
-            'sent'      => (string)($request->query('sent') ?? ''),
-            'error'     => (string)($request->query('error') ?? ''),
+            'sent'      => (string)($request->raw('sent') ?? ''),
+            'error'     => (string)($request->raw('error') ?? ''),
         ]);
     }
 
@@ -89,7 +89,7 @@ class DesignerController extends Controller
     {
         try {
             return $response->json($this->text->quote(
-                (string)$request->post('text', ''), (string)$request->post('size', ''), (string)$request->post('thickness', '')
+                (string)$request->raw('text', ''), (string)$request->raw('size', ''), (string)$request->raw('thickness', '')
             ));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
@@ -102,8 +102,8 @@ class DesignerController extends Controller
             'title'   => 'Custom Midfield Logo',
             'nav'     => (new SiteController())->navForDesigner(),
             'options' => MidfieldDesigner::options(),
-            'sent'    => (string)($request->query('sent') ?? ''),
-            'error'   => (string)($request->query('error') ?? ''),
+            'sent'    => (string)($request->raw('sent') ?? ''),
+            'error'   => (string)($request->raw('error') ?? ''),
         ]);
     }
 
@@ -113,8 +113,8 @@ class DesignerController extends Controller
     {
         try {
             return $response->json($this->endzone->quote(
-                (string)$request->post('text', ''), (string)$request->post('size', ''),
-                (string)$request->post('style', ''), (string)$request->post('format', '')
+                (string)$request->raw('text', ''), (string)$request->raw('size', ''),
+                (string)$request->raw('style', ''), (string)$request->raw('format', '')
             ));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
@@ -141,7 +141,7 @@ class DesignerController extends Controller
     {
         try {
             return $response->json($this->midfield->quote(
-                (string)$request->post('logo', ''), (string)$request->post('field', ''), $request->post('width')
+                (string)$request->raw('logo', ''), (string)$request->raw('field', ''), $request->raw('width')
             ));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
@@ -154,7 +154,7 @@ class DesignerController extends Controller
      */
     public function midfieldLogo(Request $request, Response $response): Response
     {
-        $file = MidfieldDesigner::path((string)$request->query('id', ''), 'logo.png');
+        $file = MidfieldDesigner::path((string)$request->raw('id', ''), 'logo.png');
 
         if ($file === null) {
             return $response->status(404)->body('Not found');
@@ -172,21 +172,21 @@ class DesignerController extends Controller
     public function proof(Request $request, Response $response): Response
     {
         $for = [
-            'name'  => mb_substr((string)$request->query('name', ''), 0, 80),
-            'org'   => mb_substr((string)$request->query('org', ''), 0, 120),
-            'email' => mb_substr((string)$request->query('email', ''), 0, 120),
-            'phone' => mb_substr((string)$request->query('phone', ''), 0, 40),
+            'name'  => mb_substr((string)$request->raw('name', ''), 0, 80),
+            'org'   => mb_substr((string)$request->raw('org', ''), 0, 120),
+            'email' => mb_substr((string)$request->raw('email', ''), 0, 120),
+            'phone' => mb_substr((string)$request->raw('phone', ''), 0, 40),
         ];
 
         try {
-            if ($request->query('kind') === 'midfield') {
-                $q    = $this->midfield->quote((string)$request->query('logo', ''), (string)$request->query('field', ''), $request->query('width'));
+            if ($request->raw('kind') === 'midfield') {
+                $q    = $this->midfield->quote((string)$request->raw('logo', ''), (string)$request->raw('field', ''), $request->raw('width'));
                 $logo = (string)file_get_contents((string)MidfieldDesigner::path($q['logo'], 'logo.png'));
                 $svg  = StencilProof::midfield($q, $logo, $for);
                 $name = 'Midfield logo proof';
             } else {
                 $q   = $this->endzoneFromQuery($request);
-                $svg = StencilProof::endzone($q, self::color($request->query('fill'), '#c8102e'), self::color($request->query('line'), '#f6f6f2'), $for);
+                $svg = StencilProof::endzone($q, self::color($request->raw('fill'), '#c8102e'), self::color($request->raw('line'), '#f6f6f2'), $for);
                 $name = 'Endzone proof — ' . $q['text'];
             }
         } catch (DesignerError $e) {
@@ -205,20 +205,20 @@ class DesignerController extends Controller
      */
     public function request(Request $request, Response $response): Response
     {
-        $kind = in_array($request->post('kind'), ['midfield', 'text'], true) ? (string)$request->post('kind') : 'endzone';
+        $kind = in_array($request->raw('kind'), ['midfield', 'text'], true) ? (string)$request->raw('kind') : 'endzone';
         $back = $kind === 'text' ? '/custom' : '/custom/' . $kind;
 
-        $started = (int)$request->post('started', 0);
-        if (trim((string)$request->post('website', '')) !== '' || ($started > 0 && time() - $started < 3)) {
+        $started = (int)$request->raw('started', 0);
+        if (trim((string)$request->raw('website', '')) !== '' || ($started > 0 && time() - $started < 3)) {
             return $response->redirect($back . '?sent=1#request');
         }
 
         $d = [
-            'name'  => trim((string)$request->post('name', '')),
-            'email' => trim((string)$request->post('email', '')),
-            'phone' => trim((string)$request->post('phone', '')),
-            'org'   => trim((string)$request->post('org', '')),
-            'note'  => trim((string)$request->post('message', '')),
+            'name'  => trim((string)$request->raw('name', '')),
+            'email' => trim((string)$request->raw('email', '')),
+            'phone' => trim((string)$request->raw('phone', '')),
+            'org'   => trim((string)$request->raw('org', '')),
+            'note'  => trim((string)$request->raw('message', '')),
         ];
 
         $problem = $d['name'] === '' ? 'Please tell us your name.'
@@ -230,7 +230,7 @@ class DesignerController extends Controller
             }
 
             if ($kind === 'text') {
-                $q = $this->text->quote((string)$request->post('text', ''), (string)$request->post('size', ''), (string)$request->post('thickness', ''));
+                $q = $this->text->quote((string)$request->raw('text', ''), (string)$request->raw('size', ''), (string)$request->raw('thickness', ''));
                 $summary = sprintf("Custom stencil: “%s”\n%s letters, %s · lettering %s\" × %s\"\n%s · ships %s lbs\nOnline price: $%s",
                     implode(' / ', $q['lines']), $q['size'], $q['material'], $q['text']['width'], $q['text']['height'],
                     isset($q['sheets']) ? $q['pieces'] . ' letter stencils' : sprintf('Sheet %s" × %s"%s', $q['plate']['width'], $q['plate']['height'], $q['pieces'] > 1 ? ', ' . $q['pieces'] . ' pieces' : ''),
@@ -238,7 +238,7 @@ class DesignerController extends Controller
                 $proof = '';
                 $attach = null;
             } elseif ($kind === 'midfield') {
-                $q = $this->midfield->quote((string)$request->post('logo', ''), (string)$request->post('field', ''), $request->post('width'));
+                $q = $this->midfield->quote((string)$request->raw('logo', ''), (string)$request->raw('field', ''), $request->raw('width'));
                 $summary = sprintf("Custom midfield logo — %s field\nLogo %s wide × %s tall (%s)\nOne stencil, %d panels · ships %d lbs in %d box(es)\nOnline price: $%s",
                     $q['fieldLabel'], EndzoneDesigner::ft($q['width']), EndzoneDesigner::ft($q['height']), $q['name'] ?: 'uploaded logo',
                     $q['panels'], $q['weight'], $q['boxes'], number_format($q['price'], 2));
@@ -254,8 +254,8 @@ class DesignerController extends Controller
                         EndzoneDesigner::ft($q['sheet']['width']), EndzoneDesigner::ft($q['sheet']['height']), $q['panels'], $q['sections']),
                     $q['weight'], $q['boxes'], number_format($q['price'], 2));
                 $proof = '/custom/proof?' . http_build_query(['kind' => 'endzone', 'text' => $q['text'], 'size' => $q['sizeKey'], 'style' => $q['style'],
-                                                              'format' => $q['format'], 'fill' => self::color($request->post('fill'), '#c8102e'),
-                                                              'line' => self::color($request->post('line'), '#f6f6f2'),
+                                                              'format' => $q['format'], 'fill' => self::color($request->raw('fill'), '#c8102e'),
+                                                              'line' => self::color($request->raw('line'), '#f6f6f2'),
                                                               'name' => $d['name'], 'org' => $d['org']]);
                 $attach = null;
             }
@@ -276,15 +276,15 @@ class DesignerController extends Controller
     /** @throws DesignerError */
     private function endzoneFromQuery(Request $r): array
     {
-        return $this->endzone->quote((string)$r->query('text', ''), (string)$r->query('size', ''),
-                                     (string)$r->query('style', ''), (string)$r->query('format', ''));
+        return $this->endzone->quote((string)$r->raw('text', ''), (string)$r->raw('size', ''),
+                                     (string)$r->raw('style', ''), (string)$r->raw('format', ''));
     }
 
     /** @throws DesignerError */
     private function endzoneFromRequest(Request $r): array
     {
-        return $this->endzone->quote((string)$r->post('text', ''), (string)$r->post('size', ''),
-                                     (string)$r->post('style', ''), (string)$r->post('format', ''));
+        return $this->endzone->quote((string)$r->raw('text', ''), (string)$r->raw('size', ''),
+                                     (string)$r->raw('style', ''), (string)$r->raw('format', ''));
     }
 
     /** A preview color, only from the list. */

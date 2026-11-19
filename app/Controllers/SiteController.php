@@ -145,8 +145,8 @@ class SiteController extends Controller
             'variants' => $this->shop->variantsOf($product),
             'images'   => $this->shop->imagesOf((int)$product['id']),
             'crumbs'   => $this->shop->crumbsFor((int)$product['id'], 'stencils'),
-            'sent'     => (string)($request->query('sent') ?? ''),
-            'error'    => (string)($request->query('error') ?? ''),
+            'sent'     => (string)($request->raw('sent') ?? ''),
+            'error'    => (string)($request->raw('error') ?? ''),
             'docs'     => $this->shop->documentsFor((int)$product['id']),
             'videos'   => $this->shop->videosFor($product),
         ]);
@@ -159,7 +159,7 @@ class SiteController extends Controller
      */
     public function stencil(Request $request, Response $response, string $slug = '', string $size = ''): Response
     {
-        $sku = $this->shop->skuForListing($slug, $size, (string)($request->query('material') ?? ''));
+        $sku = $this->shop->skuForListing($slug, $size, (string)($request->raw('material') ?? ''));
 
         if ($sku === null) {
             return $this->view('site.404', ['title' => 'Not found', 'nav' => $this->stockedNav()], 404);
@@ -177,24 +177,24 @@ class SiteController extends Controller
      */
     public function enquire(Request $request, Response $response): Response
     {
-        $back  = (string)($request->post('back') ?? '/contact');
+        $back  = (string)($request->raw('back') ?? '/contact');
         $back  = str_starts_with($back, '/') && !str_starts_with($back, '//') ? $back : '/contact';
         $sep   = str_contains($back, '?') ? '&' : '?';
 
-        $started = (int)($request->post('started') ?? 0);
+        $started = (int)($request->raw('started') ?? 0);
 
-        if (trim((string)($request->post('website') ?? '')) !== '' || ($started > 0 && time() - $started < 3)) {
+        if (trim((string)($request->raw('website') ?? '')) !== '' || ($started > 0 && time() - $started < 3)) {
             return $response->redirect($back . $sep . 'sent=1#enquiry');
         }
 
         $d = [
-            'name'    => trim((string)($request->post('name') ?? '')),
-            'email'   => trim((string)($request->post('email') ?? '')),
-            'phone'   => trim((string)($request->post('phone') ?? '')),
-            'org'     => trim((string)($request->post('org') ?? '')),
-            'topic'   => trim((string)($request->post('topic') ?? '')),
-            'message' => trim((string)($request->post('message') ?? '')),
-            'about'   => mb_substr(trim((string)($request->post('about') ?? '')), 0, 200),
+            'name'    => trim((string)($request->raw('name') ?? '')),
+            'email'   => trim((string)($request->raw('email') ?? '')),
+            'phone'   => trim((string)($request->raw('phone') ?? '')),
+            'org'     => trim((string)($request->raw('org') ?? '')),
+            'topic'   => trim((string)($request->raw('topic') ?? '')),
+            'message' => trim((string)($request->raw('message') ?? '')),
+            'about'   => mb_substr(trim((string)($request->raw('about') ?? '')), 0, 200),
         ];
 
         $file    = isset($_FILES['artwork']) && is_array($_FILES['artwork']) ? $_FILES['artwork'] : null;
@@ -214,7 +214,7 @@ class SiteController extends Controller
 
     public function search(Request $request, Response $response): Response
     {
-        $q = trim((string)($request->query('q') ?? ''));
+        $q = trim((string)($request->raw('q') ?? ''));
 
         return $this->view('site.search', [
             'title'    => $q === '' ? 'Search' : 'Search: ' . $q,
@@ -264,7 +264,7 @@ class SiteController extends Controller
 
         // Contact and quote are the enquiry form.
         if ($slug === 'contact' || $slug === 'quote') {
-            $about = trim((string)($request->query('about') ?? $request->query('sku') ?? ''));
+            $about = trim((string)($request->raw('about') ?? $request->raw('sku') ?? ''));
 
             return $this->view('site.contact', [
                 'title' => $slug === 'quote' ? 'Request a quote' : 'Contact us',
@@ -272,8 +272,8 @@ class SiteController extends Controller
                 'quote' => $slug === 'quote',
                 'about' => $about,
                 'back'  => '/' . $slug . ($about !== '' ? '?about=' . rawurlencode($about) : ''),
-                'sent'  => (string)($request->query('sent') ?? ''),
-                'error' => (string)($request->query('error') ?? ''),
+                'sent'  => (string)($request->raw('sent') ?? ''),
+                'error' => (string)($request->raw('error') ?? ''),
             ]);
         }
 
@@ -286,7 +286,7 @@ class SiteController extends Controller
             'nav'     => $nav,
             'heading' => $pages[$slug][0],
             'blurb'   => $pages[$slug][1],
-            'sku'     => trim((string)($request->query('sku') ?? '')),
+            'sku'     => trim((string)($request->raw('sku') ?? '')),
         ]);
     }
     /**
