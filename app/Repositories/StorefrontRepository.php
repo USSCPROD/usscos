@@ -50,6 +50,9 @@ class StorefrontRepository extends Repository
             AND vp.variant_group = p.variant_group
           LIMIT 1) AS listing_image";
 
+    /** Category trees that are ours, not mirrored from WooCommerce. See treeChildren(). */
+    private const OWN_TREES = ['stencils'];
+
     /** Products never shown publicly, whatever category they are filed under. */
     private const PUBLIC_WHERE = "
         p.is_active = 1
@@ -505,23 +508,25 @@ class StorefrontRepository extends Repository
     {
         // A tree mirrored from the old WooCommerce site carries its slug in external_ref;
         // a tree of our own (Stencils) is found by its slug.
+        // Our own trees, two levels deep with short addresses: Endzone under Sports,
+        // each chain under Retail, /shop/stencils/retail-target. Named rather than
+        // detected - Stencils still carries the WC: marker from the old site's mirror.
+        if (in_array($parentSlug, self::OWN_TREES, true)) {
+            $own = Database::selectOne(
+                "SELECT id, slug FROM categories WHERE slug = ? AND parent_id IS NULL AND is_active = 1 LIMIT 1",
+                [$parentSlug]
+            );
+
+            return $own ? $this->childrenOf((int)$own['id'], (string)$own['slug'], 2) : [];
+        }
+
+        // The paint trees mirrored from WooCommerce: one level, addresses as they were.
         $wc = Database::selectOne(
-            "SELECT id, slug FROM categories WHERE external_ref = ? AND is_active = 1 LIMIT 1",
+            "SELECT id FROM categories WHERE external_ref = ? AND is_active = 1 LIMIT 1",
             ['WC:' . $parentSlug]
         );
 
-        if ($wc) {
-            // The paint trees: one level, as they have always been shown.
-            return $this->childrenOf((int)$wc['id'], '', 1);
-        }
-
-        $own = Database::selectOne(
-            "SELECT id, slug FROM categories WHERE slug = ? AND parent_id IS NULL AND is_active = 1 LIMIT 1",
-            [$parentSlug]
-        );
-
-        // Two levels for our own tree: Endzone under Sports, each chain under Retail.
-        return $own ? $this->childrenOf((int)$own['id'], (string)$own['slug'], 2) : [];
+        return $wc ? $this->childrenOf((int)$wc['id'], '', 1) : [];
     }
 
     /**
