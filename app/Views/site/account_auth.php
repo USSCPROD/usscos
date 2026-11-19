@@ -82,6 +82,12 @@ $errBox  = static fn(string $m) => $m === '' ? '' :
       <p style="margin:1.1rem 0 0"><button class="b b-p" type="submit" style="width:100%">Save new password</button></p>
     </form>
 
+  <?php elseif ($mode === 'staff'): ?>
+    <p>You're signed in to USSCOS as <strong><?= e($staff) ?></strong>. On the website that opens the
+      <a href="/custom">custom stencil</a>, <a href="/custom/endzone">endzone</a> and <a href="/custom/midfield">midfield</a> designers.</p>
+    <p>Saving designs and customer prices belong to customer accounts, which are separate from staff logins.</p>
+    <p style="margin-top:1.2rem"><a class="b b-p" href="/dashboard">Go to USSCOS</a></p>
+
   <?php else: ?>
     <p>This reset link has expired or was already used. <a href="/account/forgot">Ask for a new one</a>.</p>
   <?php endif; ?>

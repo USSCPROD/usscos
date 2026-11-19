@@ -461,6 +461,7 @@ Router::post('/checkout/terms',   [CheckoutController::class, 'terms'])->name('c
 // through the staff auth middleware. Each action checks for a customer itself, and every
 // POST must come from this site (CustomerAccounts::sameOrigin) instead of a CSRF session.
 Router::get('/account',                       [AccountController::class, 'show'])->name('account');
+Router::get('/account/status',                [AccountController::class, 'status'])->name('account.status');
 Router::get('/account/sign-in',               [AccountController::class, 'signInPage'])->name('account.signin');
 Router::post('/account/sign-in',              [AccountController::class, 'signIn'])->name('account.signin.post');
 Router::get('/account/sign-up',               [AccountController::class, 'signUpPage'])->name('account.signup');

@@ -269,7 +269,7 @@ img{max-width:100%;display:block}
   </div>
 </footer>
 
-<script src="/assets/js/cart.js?v=3" defer></script>
+<script src="/assets/js/cart.js?v=4" defer></script>
 
 </body>
 </html>

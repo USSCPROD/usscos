@@ -273,8 +273,14 @@
   });
 
   badge();
-  if (/(?:^|;\s*)ussc_signed_in=1/.test(document.cookie)) {
-    document.querySelectorAll('[data-account-link]').forEach(function (a) { a.textContent = 'My account'; });
+  // The header's account link: "My account" for a signed-in customer or staff member.
+  // The cookie answers at once for customers; the server answers for staff too.
+  var links = document.querySelectorAll('[data-account-link]');
+  var mine = function () { links.forEach(function (a) { a.textContent = 'My account'; }); };
+  if (/(?:^|;\s*)ussc_signed_in=1/.test(document.cookie)) mine();
+  else if (links.length) {
+    fetch('/account/status', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); }).then(function (j) { if (j.state !== 'none') mine(); }).catch(function () { /* */ });
   }
   window.usscCart = { add: add, load: load };
 }());

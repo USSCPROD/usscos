@@ -104,6 +104,14 @@ class AccountController extends Controller
         return $response->redirect(self::next($request, '/account?welcome=1'));
     }
 
+    /** Who is signed in, for the header link: customer | staff | none. Never cached. */
+    public function status(Request $request, Response $response): Response
+    {
+        $state = CustomerAccounts::current() ? 'customer' : (Auth::check() ? 'staff' : 'none');
+
+        return $response->header('Cache-Control', 'no-store')->json(['state' => $state]);
+    }
+
     public function signOut(Request $request, Response $response): Response
     {
         if (CustomerAccounts::sameOrigin($request)) {
@@ -166,6 +174,10 @@ class AccountController extends Controller
     public function show(Request $request, Response $response): Response
     {
         $login = CustomerAccounts::current();
+
+        if (!$login && Auth::check()) {
+            return $this->page('staff', 'Signed in as staff', $request);
+        }
 
         if (!$login) {
             return $response->redirect('/account/sign-in?next=' . rawurlencode('/account'));
