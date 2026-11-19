@@ -110,8 +110,10 @@ return [
              * (database/sync_stencils_from_shop.php keeps the category rows in step).
              * Moving a product between them is a change in USSCOS, not a deploy.
              *
-             * A child listing nothing simply does not appear: Rooftop, Yard & Lawn and
-             * the three sports designers are quote-only and hold no SKUs yet.
+             * A child listed here shows in the menu even when empty, and its page then
+             * says "Nothing is filed under this section yet". So Rooftop and Yard & Lawn,
+             * quote-only on the shop with no SKUs, are left out until the storefront can
+             * show a quote listing; their categories exist, with descriptions and photos.
              */
             'children' => [
                 ['slug' => 'words',   'label' => 'Word Stencils',
@@ -132,8 +134,6 @@ return [
                 ['slug' => 'ribbons', 'label' => 'Ribbon Stencils',
                  'blurb' => 'Large-format awareness ribbon stencils for fields and lots.',
                  'categories' => ['Ribbon Stencils']],
-                ['slug' => 'rooftop', 'label' => 'Rooftop Stencils', 'categories' => ['Rooftop Stencils']],
-                ['slug' => 'yard',    'label' => 'Yard & Lawn Stencils', 'categories' => ['Yard & Lawn Stencils']],
             ],
         ],
         [
