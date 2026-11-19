@@ -55,6 +55,11 @@ $rows = Database::select("
     LEFT JOIN categories c          ON c.id = pc.category_id
     WHERE p.is_active = 1
       AND (c.name = 'Stencils' OR p.name LIKE '%stencil%')
+      -- Listings grouped some other way are not ours to regroup. Since 19 Nov 2026 most
+      -- stencils follow the shop, one listing per product with axis 'Size & thickness'
+      -- (import_stencil_content.php); regrouping them by thickness would split every
+      -- one of those back into a card per size.
+      AND COALESCE(p.variant_axis, 'Thickness') = 'Thickness'
     ORDER BY p.sku
 ");
 
