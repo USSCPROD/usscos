@@ -80,13 +80,13 @@ Each phase ships on its own and is usable when it lands.
    FedEx quotes run in production since 19 Nov 2026 on the "USSCOS SHIPPING" project's
    production key and the USSC account ending 540 (`FEDEX_RATE_*` in `.env`); labels,
    address checks and tracking stay in sandbox until FedEx certifies labels. On three test
-   carts every service matches the shop to the cent except FedEx 2Day, where the shop is
+   carts every service's FedEx rate (before handling) matches the shop to the cent except FedEx 2Day, where the shop is
    $21.12 higher: the shop asks FedEx for transit times, FedEx then also returns a 2Day
    price with Saturday delivery, and the shop shows that one. USSCOS's figure is the plain
    2Day price, which is what a label without Saturday delivery is billed.
    Cart in the browser, priced on the server (subtotals match the shop to the cent on
    three test carts); the shop's rolled-stencil packing (same boxes as the shop) rated
-   through USSCOS's FedEx at the shop's terms (no markup, Home Delivery offered); Square's
+   through USSCOS's FedEx as shipping & handling: FedEx's account rate plus USSC's $10 handling (`parcel_markup`, the same as the order desk; the old shop added none), Home Delivery offered; Square's
    hosted checkout; a paid checkout becomes a sales order (customer matched by email or
    created, website channel, SH shipping line, card payment recorded, no tax). Before
    launch: production Square credentials in `.env` (SQUARE_ENVIRONMENT, SQUARE_ACCESS_TOKEN,
