@@ -243,8 +243,10 @@ foreach ($catalog['categories'] as $c) {
     $key = (string)$c['id'];
     $order += 10;
 
-    $reuseId = isset(REUSE[$key]) ? ($treeBySlug[REUSE[$key]] ?? null) : null;
-    $slug    = 'stencils-' . $key;
+    $slug = 'stencils-' . $key;
+
+    // Its own slug first, so a second run finds the rows the first one made or renamed.
+    $reuseId = $treeBySlug[$slug] ?? (isset(REUSE[$key]) ? ($treeBySlug[REUSE[$key]] ?? null) : null);
 
     $catPlan[$key] = [
         'id'          => $reuseId,
@@ -276,7 +278,17 @@ $keptIds   = array_filter(array_column($catPlan, 'id'));
 $retireCat = [];
 
 foreach ($tree as $id => $r) {
-    if (!in_array($id, $keptIds, true)) {
+    $stillLinked = false;
+
+    foreach ($linksOf as $have) {
+        if (isset($have[$id])) {
+            $stillLinked = true;
+            break;
+        }
+    }
+
+    // Already hidden and empty: retired by an earlier run, nothing left to do.
+    if (!in_array($id, $keptIds, true) && ((int)$r['is_active'] || (int)$r['show_on_website'] || $stillLinked)) {
         $retireCat[$id] = $r;
     }
 }
