@@ -104,28 +104,36 @@ return [
             'name_like'  => ['stencil'],
 
             /*
-             * Subcategories. Each one narrows the section, and points at the child
-             * categories created under 'Stencils' from the listing plan's own
-             * Category column — so moving a product between them is a change in
-             * USSCOS, not a deploy.
+             * Subcategories: the stencil shop's own categories, in its order, with its
+             * slugs so /shop/stencils/words here answers what /shop/words did there.
+             * Chip, 19 Nov 2026: the shop's categories are the approved listings
+             * (database/sync_stencils_from_shop.php keeps the category rows in step).
+             * Moving a product between them is a change in USSCOS, not a deploy.
              *
-             * A child listing nothing simply does not appear, which is why a bucket
-             * can be defined before the products that belong in it are loaded.
+             * A child listing nothing simply does not appear: Rooftop, Yard & Lawn and
+             * the three sports designers are quote-only and hold no SKUs yet.
              */
             'children' => [
-                ['slug' => 'parking-lot', 'label' => 'Parking lot',
-                 'categories' => ['Words', 'EV parking', 'Bike lane', 'Lines & stop bars']],
-                ['slug' => 'retail',      'label' => 'Retail stores',
-                 'blurb' => 'Drive-thru, curbside and store-lot marking, including branded layouts.',
-                 'categories' => ['Retail stores']],
-                ['slug' => 'handicap',    'label' => 'Handicap',  'categories' => ['Handicap']],
-                ['slug' => 'arrows',      'label' => 'Arrows',    'categories' => ['Arrows']],
-                ['slug' => 'numbers',     'label' => 'Numbers',   'categories' => ['Number kits']],
-                ['slug' => 'alphabets',   'label' => 'Alphabets',
-                 'categories' => ['Alphabet kits']],
-                ['slug' => 'characters',  'label' => 'Single characters',
-                 'categories' => ['Single characters']],
-                ['slug' => 'sports',      'label' => 'Sports fields', 'categories' => ['Sports fields']],
+                ['slug' => 'words',   'label' => 'Word Stencils',
+                 'blurb' => 'NO PARKING, FIRE LANE, STOP, RESERVED and dozens more, in 4" to 96" letters.',
+                 'categories' => ['Word Stencils']],
+                ['slug' => 'symbols', 'label' => 'Symbols & Arrows',
+                 'blurb' => 'Handicap, EV, bike lane, DOT arrows, lines and stop bars.',
+                 'categories' => ['Symbols & Arrows']],
+                ['slug' => 'kits',    'label' => 'Letter & Number Kits',
+                 'blurb' => 'Alphabet and number kits for stall numbers and custom messages.',
+                 'categories' => ['Letter & Number Kits']],
+                ['slug' => 'retail',  'label' => 'Retail Chain Stencils',
+                 'blurb' => 'Ready-made stencils made to the site specifications of national retail and restaurant chains.',
+                 'categories' => ['Retail Chain Stencils']],
+                ['slug' => 'sports',  'label' => 'Sports & Athletics',
+                 'blurb' => 'Field numbers, hashmarks, courts, track lanes and more.',
+                 'categories' => ['Sports & Athletics', 'Endzone Stencils', 'Midfield Logo Stencils', 'Custom Field Stencils']],
+                ['slug' => 'ribbons', 'label' => 'Ribbon Stencils',
+                 'blurb' => 'Large-format awareness ribbon stencils for fields and lots.',
+                 'categories' => ['Ribbon Stencils']],
+                ['slug' => 'rooftop', 'label' => 'Rooftop Stencils', 'categories' => ['Rooftop Stencils']],
+                ['slug' => 'yard',    'label' => 'Yard & Lawn Stencils', 'categories' => ['Yard & Lawn Stencils']],
             ],
         ],
         [
