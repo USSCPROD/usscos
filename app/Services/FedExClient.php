@@ -13,6 +13,13 @@ use App\Core\Logger;
  * in one project: shipping (labels, rates, address validation) and tracking (Basic
  * Integrated Visibility, which carries transaction quotas).
  *
+ * Rates can optionally have a third set (FEDEX_RATE_API_KEY, FEDEX_RATE_SECRET_KEY,
+ * FEDEX_RATE_ACCOUNT_NUMBER, FEDEX_RATE_ENVIRONMENT, which defaults to production). That
+ * lets quotes use the real account's negotiated rates while labels stay in sandbox until
+ * FedEx certifies them: the website must charge what shipping really costs, but a test
+ * label must not become a real shipment. Without FEDEX_RATE_API_KEY, rates use the
+ * shipping project exactly as before.
+ *
  * Tokens last an hour and are cached on disk, so a busy afternoon at the bench costs one
  * token call rather than one per label. The tracking quota is the reason this matters:
  * spending calls on authentication would be spending them on nothing.
@@ -25,24 +32,35 @@ class FedExClient
 {
     public const PROJECT_SHIP  = 'ship';
     public const PROJECT_TRACK = 'track';
+    public const PROJECT_RATE  = 'rate';
 
-    public function environment(): string
+    public function environment(string $project = self::PROJECT_SHIP): string
     {
-        return strtolower(trim((string)($_ENV['FEDEX_ENVIRONMENT'] ?? 'sandbox'))) === 'production'
-            ? 'production'
-            : 'sandbox';
+        $setting = $this->hasOwnRateKeys($project)
+            ? (string)($_ENV['FEDEX_RATE_ENVIRONMENT'] ?? 'production')
+            : (string)($_ENV['FEDEX_ENVIRONMENT'] ?? 'sandbox');
+
+        return strtolower(trim($setting)) === 'production' ? 'production' : 'sandbox';
     }
 
-    public function baseUrl(): string
+    public function baseUrl(string $project = self::PROJECT_SHIP): string
     {
-        return $this->environment() === 'production'
+        return $this->environment($project) === 'production'
             ? 'https://apis.fedex.com'
             : 'https://apis-sandbox.fedex.com';
     }
 
-    public function accountNumber(): string
+    public function accountNumber(string $project = self::PROJECT_SHIP): string
     {
-        return trim((string)($_ENV['FEDEX_ACCOUNT_NUMBER'] ?? ''));
+        return trim((string)($this->hasOwnRateKeys($project)
+            ? ($_ENV['FEDEX_RATE_ACCOUNT_NUMBER'] ?? '')
+            : ($_ENV['FEDEX_ACCOUNT_NUMBER'] ?? '')));
+    }
+
+    /** Rates with credentials of their own; otherwise they borrow the shipping project's. */
+    private function hasOwnRateKeys(string $project): bool
+    {
+        return $project === self::PROJECT_RATE && trim((string)($_ENV['FEDEX_RATE_API_KEY'] ?? '')) !== '';
     }
 
     /** Whether a project has credentials at all — absent means the feature simply stays off. */
@@ -78,7 +96,7 @@ class FedExClient
             'grant_type'    => 'client_credentials',
             'client_id'     => $key,
             'client_secret' => $secret,
-        ], null, true);
+        ], null, $project, true);
 
         if (!$res['ok'] || empty($res['body']['access_token'])) {
             Logger::error('FedEx auth failed (' . $project . '): ' . $this->errorOf($res));
@@ -107,7 +125,7 @@ class FedExClient
             return ['ok' => false, 'status' => 0, 'body' => [], 'error' => 'FedEx is not configured, or authentication failed.'];
         }
 
-        $res = $this->request($method, $path, $payload, $token);
+        $res = $this->request($method, $path, $payload, $token, $project);
 
         if (!$res['ok']) {
             Logger::error('FedEx ' . $path . ' failed: ' . $this->errorOf($res));
@@ -202,6 +220,10 @@ class FedExClient
     /** @return array{0:string, 1:string} */
     private function credentials(string $project): array
     {
+        if ($this->hasOwnRateKeys($project)) {
+            return [trim((string)$_ENV['FEDEX_RATE_API_KEY']), trim((string)($_ENV['FEDEX_RATE_SECRET_KEY'] ?? ''))];
+        }
+
         return $project === self::PROJECT_TRACK
             ? [trim((string)($_ENV['FEDEX_TRACK_API_KEY'] ?? '')), trim((string)($_ENV['FEDEX_TRACK_SECRET_KEY'] ?? ''))]
             : [trim((string)($_ENV['FEDEX_API_KEY'] ?? '')),       trim((string)($_ENV['FEDEX_SECRET_KEY'] ?? ''))];
@@ -210,9 +232,10 @@ class FedExClient
     /**
      * @return array{ok:bool, status:int, body:array, error:?string}
      */
-    private function request(string $method, string $path, array $payload, ?string $token, bool $form = false): array
+    private function request(string $method, string $path, array $payload, ?string $token,
+                             string $project = self::PROJECT_SHIP, bool $form = false): array
     {
-        $ch = curl_init($this->baseUrl() . $path);
+        $ch = curl_init($this->baseUrl($project) . $path);
 
         $headers = ['Accept: application/json'];
 
@@ -267,7 +290,10 @@ class FedExClient
 
     private function cachePath(string $project): string
     {
-        return BASE_PATH . '/storage/cache/fedex_token_' . $project . '_' . $this->environment() . '.json';
+        // The rate project borrowing the shipping keys shares the shipping project's token.
+        $name = $project === self::PROJECT_RATE && !$this->hasOwnRateKeys($project) ? self::PROJECT_SHIP : $project;
+
+        return BASE_PATH . '/storage/cache/fedex_token_' . $name . '_' . $this->environment($project) . '.json';
     }
 
     private function readCache(string $file): ?string

@@ -98,7 +98,7 @@ class ShippingQuoteService
         $company = Database::selectOne("SELECT * FROM companies WHERE id = 1") ?: [];
         $fedex   = new FedExClient();
 
-        if (!$fedex->configured()) {
+        if (!$fedex->configured(FedExClient::PROJECT_RATE)) {
             return ['ok' => false, 'message' => 'FedEx is not configured on this server.'];
         }
 
@@ -128,7 +128,7 @@ class ShippingQuoteService
         }
 
         $res = $fedex->call('POST', '/rate/v1/rates/quotes', [
-            'accountNumber'     => ['value' => trim((string)($_ENV['FEDEX_ACCOUNT_NUMBER'] ?? ''))],
+            'accountNumber'     => ['value' => $fedex->accountNumber(FedExClient::PROJECT_RATE)],
             'requestedShipment' => [
                 // postal_code, not zip: that is what the companies table calls it, and
                 // guessing the column name sent FedEx an empty origin.
@@ -149,7 +149,7 @@ class ShippingQuoteService
                 'rateRequestType'           => ['ACCOUNT', 'LIST'],
                 'requestedPackageLineItems' => $items,
             ],
-        ]);
+        ], FedExClient::PROJECT_RATE);
 
         if (!$res['ok']) {
             return ['ok' => false, 'message' => 'FedEx could not price it: ' . $fedex->errorOf($res)];
@@ -219,7 +219,7 @@ class ShippingQuoteService
             'boxes'     => count($items),
             'weight'    => round($weight, 2),
             'markup'    => $markup,
-            'sandbox'   => $fedex->environment() === 'sandbox',
+            'sandbox'   => $fedex->environment(FedExClient::PROJECT_RATE) === 'sandbox',
             'rate_type' => $rates[0]['rate_type'] ?? null,
             'rates'     => $rates,
         ];
