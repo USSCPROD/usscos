@@ -61,7 +61,11 @@ Each phase ships on its own and is usable when it lands.
      USSCOS lead, the way the website forms already do.
    - About, Returns and Contact copy.
    - The shop's look for the stencil pages.
-2. **Custom text calculator.** Port the sizing and pricing from `drawings.py` and
+2. **Custom text calculator.** ✅ Built 19 Nov 2026 at `/custom`. Prices, sheet sizes,
+   pieces and the drawn outlines match the live shop byte for byte (7 designs compared,
+   road letters included). Ends in "Request this stencil" until the cart exists. Font
+   outlines: `storage/stencil-data/stencil_font.json` and `road_letters.json`, server only,
+   made by `database/tools/export_stencil_font.py`. Original plan: Port the sizing and pricing from `drawings.py` and
    `fontsvg.py`. The stencil font stays private on the server. Only outlines leave it,
    exactly as the shop does today.
 3. **Cart and checkout.** The cart, live FedEx rates through the existing cartonizer,
