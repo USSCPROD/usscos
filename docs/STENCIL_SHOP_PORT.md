@@ -100,9 +100,21 @@ Each phase ships on its own and is usable when it lands.
    Sandbox uses location L0ZFJ4P9AEXHD; the test order, customer and payment it made are
    test data. Original plan: The cart, live FedEx rates through the existing cartonizer,
    Square payment, and the order arriving as a USSCOS sales order.
-4. **Customer and distributor accounts.** Sign-in, wholesale pricing, saved quotes and
-   orders on terms. Includes migrating the shop's existing accounts from
-   `/opt/usscstencils/var`.
+4. **Customer and distributor accounts.** 🟡 First slice built 19 Nov 2026, waiting on a
+   real sign-up to test end to end. `/account` (sign up, sign in, password reset by
+   Mailgun email, change password), in `customer_logins` with its own cookie, never the
+   staff `users` table. **Staff link each login to its customer** (Website accounts in the
+   sidebar), never by email: thousands of addresses are shared. Linking to a parent covers
+   its sub-stores (a sub-store login sees only itself; Chip, 19 Nov 2026). The linked
+   customer's type sets the price: Distributor and Stocking Distributor buy at the shop's
+   wholesale (retail × 2 / 2.75; endzone letters per letter; calculator jobs cost × 1.75),
+   shown in the cart and designers, never sent to anyone else. Distributors save carts as
+   quotes (re-priced whenever opened) and order on terms with a PO number (an unpaid
+   sales order, `web_checkouts.paid_by = 'terms'`), or pay by card. Anyone signed in saves
+   designs and reopens them (`?design=ID`). Designers stay open to everyone. The shop's
+   accounts come across with `database/tools/export_shop_accounts.py` (run on the shop's
+   `designer.db`) and `database/import_shop_accounts.php` (dry run, `--commit`), keeping
+   their passwords. Next slice: order and invoice history, paying invoices, reorder.
 5. **Endzone and midfield designers.** ✅ Built 19 Nov 2026, ahead of phases 2–4 at
    Chip's request, at `/custom/endzone` and `/custom/midfield`. Prices match the shop to
    the cent (checked against endzone.py and midfield.py). Until cart and accounts exist

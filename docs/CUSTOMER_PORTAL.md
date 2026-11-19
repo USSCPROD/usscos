@@ -2,6 +2,12 @@
 
 **Status: decided in principle, not designed, not built. Written 12 November 2026.**
 
+**19 November 2026: the first slice is built** for the website: customer sign-in, staff
+linking of each login to its customer (parent covers sub-stores), price tier from the
+linked customer, orders on terms, saved designs and quotes. See phase 4 in
+[STENCIL_SHOP_PORT.md](STENCIL_SHOP_PORT.md). Order history, paying invoices and reorder
+are not built yet; the decisions below still stand for them.
+
 Chip's intent, in his words: *"allow customers to have a login so they can view their past
 orders, have the ability to pay online and also order again from a past order."*
 
