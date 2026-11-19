@@ -68,7 +68,17 @@ Each phase ships on its own and is usable when it lands.
    made by `database/tools/export_stencil_font.py`. Original plan: Port the sizing and pricing from `drawings.py` and
    `fontsvg.py`. The stencil font stays private on the server. Only outlines leave it,
    exactly as the shop does today.
-3. **Cart and checkout.** The cart, live FedEx rates through the existing cartonizer,
+3. **Cart and checkout.** 🟡 Built 19 Nov 2026, waiting on Square credentials to test.
+   Cart in the browser, priced on the server (subtotals match the shop to the cent on
+   three test carts); the shop's rolled-stencil packing (same boxes as the shop) rated
+   through USSCOS's FedEx at the shop's terms (no markup, Home Delivery offered); Square's
+   hosted checkout; a paid checkout becomes a sales order (customer matched by email or
+   created, website channel, SH shipping line, card payment recorded, no tax). Before
+   launch: Square credentials in `.env` (SQUARE_ENVIRONMENT, SQUARE_ACCESS_TOKEN,
+   SQUARE_LOCATION_ID, SQUARE_WEBHOOK_SIGNATURE_KEY), a webhook subscription to
+   `/webhook/square` for payment.updated, cron for `database/reconcile_web_checkouts.php
+   --commit`, and USSCOS's FedEx switched from sandbox to production (shipping prices only
+   match the shop's on production rates). Original plan: The cart, live FedEx rates through the existing cartonizer,
    Square payment, and the order arriving as a USSCOS sales order.
 4. **Customer and distributor accounts.** Sign-in, wholesale pricing, saved quotes and
    orders on terms. Includes migrating the shop's existing accounts from
