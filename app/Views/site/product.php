@@ -15,9 +15,48 @@ $spec = function (string $label, $value, string $suffix = '') {
 };
 ?>
 
+<?php
+/*
+ * A stencil listing varies by size AND thickness (axis 'Size & thickness', labels like
+ * '4" letters · 1/8"'). The shop showed that as two pickers, sizes then thickness, and so
+ * does this. Every choice is still its own SKU with its own address.
+ *
+ * $sizes:  size slug => ['label', 'variants' => [material slug => variant row]]
+ */
+$sized  = strcasecmp((string)($pr['variant_axis'] ?? ''), 'Size & thickness') === 0 && count($variants) > 1;
+$sizes  = [];
+$mats   = [];
+$curMat = \App\Repositories\StorefrontRepository::materialSlug((string)($pr['variant_label'] ?? ''));
+
+if ($sized) {
+    foreach ($variants as $v) {
+        $parts = explode(' · ', (string)$v['variant_label']);
+        $sz    = (string)($v['website_size_slug'] ?? '') ?: '-';
+        $multi = count(array_unique(array_column($variants, 'website_size_slug'))) > 1;
+        $sizeLabel = $multi ? (count($parts) > 1 ? implode(' · ', array_slice($parts, 0, -1)) : $parts[0]) : '';
+        $matLabel  = $multi ? (count($parts) > 1 ? end($parts) : '') : $parts[0];
+        $mat = $matLabel === '' ? '' : \App\Repositories\StorefrontRepository::materialSlug($matLabel);
+
+        $sizes[$sz]['label'] ??= $sizeLabel;
+        $sizes[$sz]['variants'][$mat] = $v + ['mat_label' => $matLabel];
+        $mats[$mat] = $matLabel;
+    }
+}
+
+$curSize = (string)($pr['website_size_slug'] ?? '') ?: '-';
+$hereUrl = \App\Repositories\StorefrontRepository::urlFor($pr, true);
+$crumbs  = $crumbs ?? [];
+?>
+
 <div class="wrap" style="padding-top:1.5rem">
   <div style="font-size:.8rem;color:var(--mut);margin-bottom:1.5rem">
     <a href="/shop">Home</a> &nbsp;/&nbsp;
+    <?php if ($crumbs !== []): ?>
+      <a href="/shop/stencils">Stencils</a> &nbsp;/&nbsp;
+      <?php foreach ($crumbs as $c): ?>
+        <a href="<?= e($c['href']) ?>"><?= e($c['label']) ?></a> &nbsp;/&nbsp;
+      <?php endforeach; ?>
+    <?php endif; ?>
     <?= e(trim((string)($pr['website_name'] ?? '')) ?: $pr['name']) ?>
   </div>
 </div>
@@ -88,7 +127,53 @@ $spec = function (string $label, $value, string $suffix = '') {
       </div>
     <?php endif; ?>
 
-    <?php if (count($variants) > 1): ?>
+    <?php if ($sized): ?>
+      <!-- Two pickers, size then thickness. Real links: each choice has its own address. -->
+      <?php if (count($sizes) > 1): ?>
+        <div style="margin-bottom:1.1rem">
+          <div style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:.5rem">Size</div>
+          <div style="display:flex;gap:.45rem;flex-wrap:wrap">
+            <?php foreach ($sizes as $sz => $info): ?>
+              <?php
+                $on   = $sz === $curSize;
+                // Keep the thickness already chosen where this size comes in it.
+                $pick = $info['variants'][$curMat] ?? reset($info['variants']);
+                $low  = min(array_map(static fn($x) => (float)$x['website_price'] > 0 ? (float)$x['website_price'] : INF, $info['variants']));
+                $href = \App\Repositories\StorefrontRepository::urlFor($pick, true)
+                      . (isset($info['variants'][$curMat]) && $curMat !== '' ? '?material=' . rawurlencode($curMat) : '');
+              ?>
+              <a href="<?= e($href) ?>" aria-current="<?= $on ? 'true' : 'false' ?>"
+                 style="display:block;padding:.5rem .8rem;border-radius:7px;text-decoration:none;text-align:center;
+                        border:2px solid <?= $on ? 'var(--blue)' : 'var(--line)' ?>;background:<?= $on ? '#eff4ff' : '#fff' ?>">
+                <div style="font-weight:700;font-size:.9rem;color:<?= $on ? 'var(--blue)' : 'var(--ink)' ?>"><?= e($info['label']) ?></div>
+                <?php if (is_finite($low)): ?>
+                  <div style="font-size:.74rem;color:var(--mut)">from <?= money($low) ?></div>
+                <?php endif; ?>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php $here = $sizes[$curSize]['variants'] ?? []; ?>
+      <?php if (count($here) > 1 || (count($sizes) === 1 && count($here) >= 1 && array_key_first($here) !== '')): ?>
+        <div style="margin-bottom:1.5rem">
+          <div style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:.5rem">Material</div>
+          <div style="display:flex;gap:.45rem;flex-wrap:wrap">
+            <?php foreach ($here as $mat => $v): ?>
+              <?php $on = $v['sku'] === $pr['sku']; ?>
+              <a href="<?= e(\App\Repositories\StorefrontRepository::urlFor($v, true) . ($mat !== '' ? '?material=' . rawurlencode($mat) : '')) ?>"
+                 aria-current="<?= $on ? 'true' : 'false' ?>"
+                 style="display:block;padding:.5rem .9rem;border-radius:7px;text-decoration:none;text-align:center;min-width:5.5rem;
+                        border:2px solid <?= $on ? 'var(--blue)' : 'var(--line)' ?>;background:<?= $on ? '#eff4ff' : '#fff' ?>">
+                <div style="font-weight:700;font-size:.92rem;color:<?= $on ? 'var(--blue)' : 'var(--ink)' ?>"><?= e($v['mat_label']) ?></div>
+                <div style="font-size:.76rem;color:var(--mut)"><?= (float)$v['website_price'] > 0 ? money((float)$v['website_price']) : 'ask' ?></div>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+    <?php elseif (count($variants) > 1): ?>
       <!--
           Real links, one per thickness, not a <select> that needs JavaScript to do
           anything. Each thickness is a separate product with its own SKU and price,
@@ -173,7 +258,7 @@ $spec = function (string $label, $value, string $suffix = '') {
     <?php endif; ?>
 
     <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1.75rem">
-      <a class="b b-p" href="/quote?sku=<?= e(rawurlencode((string)$pr['sku'])) ?>">Request a quote</a>
+      <a class="b b-p" href="<?= $price <= 0 ? '#enquiry' : '/quote?about=' . e(rawurlencode(trim((string)($pr['website_name'] ?? '')) ?: $pr['name'])) ?>">Request a quote</a>
       <a class="b b-s" href="tel:<?= e(preg_replace('/\D/','',config('site.company.phone'))) ?>">
         Call <?= e(config('site.company.phone')) ?>
       </a>
@@ -188,12 +273,66 @@ $spec = function (string $label, $value, string $suffix = '') {
       <p style="font-size:.95rem;color:#374151;margin:0 0 1.25rem"><?= e($pr['short_description']) ?></p>
     <?php endif; ?>
 
-    <?php if (!empty($pr['description']) && $pr['description'] !== ($pr['short_description'] ?? '')): ?>
+    <?php if (!$sized && !empty($pr['description']) && $pr['description'] !== ($pr['short_description'] ?? '')): ?>
       <p style="font-size:.9rem;color:var(--mut);margin:0 0 1.5rem"><?= nl2br(e($pr['description'])) ?></p>
+    <?php endif; ?>
+
+    <?php if ($price <= 0): ?>
+      <!-- Priced with the customer: the form is the way to start, artwork and all. -->
+      <?= view('site._enquiry_form', [
+          'about' => trim((string)($pr['website_name'] ?? '')) ?: $pr['name'],
+          'back'  => $hereUrl,
+          'sent'  => $sent ?? '',
+          'error' => $error ?? '',
+          'quote' => true,
+      ]) ?>
     <?php endif; ?>
 
   </div>
 </div>
+
+<?php if ($sized): ?>
+  <!-- Every size and thickness on one table, as the shop had it: the quickest way to compare. -->
+  <div class="wrap" style="padding-bottom:2.5rem">
+    <h2 style="font-size:1.3rem;margin:0 0 .8rem">All sizes &amp; pricing</h2>
+    <div style="overflow-x:auto">
+      <table style="border-collapse:collapse;width:100%;min-width:30rem;font-size:.9rem">
+        <thead>
+          <tr style="border-bottom:2px solid var(--line);text-align:left">
+            <th style="padding:.55rem .8rem .55rem 0"><?= count($sizes) > 1 ? 'Size' : 'Stencil' ?></th>
+            <th style="padding:.55rem .8rem">Dimensions</th>
+            <?php foreach ($mats as $mat => $ml): ?>
+              <th style="padding:.55rem .8rem;text-align:right"><?= e($ml !== '' ? $ml : 'Price') ?></th>
+            <?php endforeach; ?>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($sizes as $sz => $info): ?>
+            <?php $first = reset($info['variants']); ?>
+            <tr style="border-bottom:1px solid var(--line);<?= $sz === $curSize ? 'background:#f5f8ff' : '' ?>">
+              <td style="padding:.55rem .8rem .55rem 0;font-weight:600"><?= e($info['label'] !== '' ? $info['label'] : (trim((string)($pr['website_name'] ?? '')) ?: $pr['name'])) ?></td>
+              <td style="padding:.55rem .8rem;color:var(--mut)">
+                <?= e(preg_replace('/\s*·\s*[^·]*(thick|mil|Aluminum|LDPE)\s*$/u', '', html_entity_decode(strip_tags((string)$first['website_short_description'])))) ?>
+              </td>
+              <?php foreach ($mats as $mat => $ml): ?>
+                <td style="padding:.55rem .8rem;text-align:right">
+                  <?php if (isset($info['variants'][$mat])): ?>
+                    <?php $v = $info['variants'][$mat]; ?>
+                    <a href="<?= e(\App\Repositories\StorefrontRepository::urlFor($v, true) . ($mat !== '' ? '?material=' . rawurlencode($mat) : '')) ?>">
+                      <?= (float)$v['website_price'] > 0 ? money((float)$v['website_price']) : 'ask' ?>
+                    </a>
+                  <?php else: ?>
+                    <span style="color:var(--mut)">—</span>
+                  <?php endif; ?>
+                </td>
+              <?php endforeach; ?>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<?php endif; ?>
 
 <?php
 /*

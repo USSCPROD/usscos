@@ -28,6 +28,20 @@ declare(strict_types=1);
  *   website_description                     the shop's description, as paragraphs
  *   product_images                          the shop's photos, the stencil picture of the
  *                                           SKU's size and its measurement drawing
+ *   website_slug / website_size_slug        the shop's address for the listing and size,
+ *                                           so /stencils/no-parking/4-inch-letters works here
+ *
+ * AND, OUTSIDE PRODUCTS
+ *   the five quote listings (endzone, midfield, custom field, rooftop, yard): name,
+ *     description, the made-to-order note and every photo
+ *   categories.website_copy                 the long copy under each category's products;
+ *                                           the Stencils landing gets the shop's home copy
+ *   site_pages                              Shipping & Returns, and stencil materials & sizing
+ *
+ * ONE SITE. Chip, 19 Nov 2026: usscproducts.com will point at USSCOS and there is no
+ * separate stencil site. So no copy may send a customer elsewhere: links in the shop's
+ * copy are rewritten to their address here (siteLinks), and a link to the WordPress paint
+ * pages becomes the paint section of this same site.
  *
  * One image per listing is marked is_listing: the shop's first photo, or else the stencil
  * picture of the size the shop shows on its own card. That is the card picture.
@@ -71,6 +85,18 @@ const THICKNESS = [
 ];
 
 /** Shop category => the USSCOS category whose hero image its call-for-quote listing supplies. */
+/** Shop call-for-pricing listing => SKU. The same list as sync_stencils_from_shop.php. */
+const QUOTE_SKU = [
+    'cf-endzone-lettering'           => 'STEN-CUSTOM-ENDZONE',
+    'cf-midfield-logo'               => 'STEN-CUSTOM-MIDFIELD',
+    'cf-custom-field'                => 'STEN-CUSTOM-FIELD',
+    'ussc-custom-rooftop-stencils'   => 'STEN-CUSTOM-ROOFTOP',
+    'ussc-custom-yard-lawn-stencils' => 'STEN-CUSTOM-YARD',
+];
+
+/** The shop's made-to-order note, where a quote listing has none of its own. */
+const QUOTE_NOTE = '<strong>Made to order.</strong> Every one of these is cut for your field, team or design, so we price it with you. Send us your artwork or logo and the size you need, and we\'ll quote it and send a proof before cutting.';
+
 const HERO = [
     'endzone'      => 'stencils-endzone',
     'midfield'     => 'stencils-midfield',
@@ -218,6 +244,8 @@ foreach ($listings as $pi => $members) {
             'website_name'              => $title,
             'website_short_description' => sizeLine($v, $tl),
             'website_description'       => $desc,
+            'website_slug'              => (string)$p['slug'],
+            'website_size_slug'         => (string)($v['slug'] ?? ''),
         ];
 
         // Pictures, in gallery order.
@@ -254,6 +282,61 @@ foreach ($listings as $pi => $members) {
         $images[$m['id']] = $pics;
     }
 }
+
+// The quote listings. One product each, no sizes.
+$quoteRows = 0;
+
+foreach ($catalog['products'] as $p) {
+    $qsku = QUOTE_SKU[$p['id']] ?? null;
+
+    if ($qsku === null || !isset($os[$qsku])) {
+        continue;
+    }
+
+    $id    = (int)$os[$qsku]['id'];
+    $title = trim((string)$p['name']);
+    $quoteRows++;
+
+    $rows[$id] = [
+        'variant_group'             => null,
+        'variant_label'             => null,
+        'variant_order'             => 0,
+        'variant_axis'              => null,
+        'variant_title'             => null,
+        'website_name'              => $title,
+        'website_short_description' => '<p>' . siteLinks((string)($p['quoteNote'] ?? '') ?: QUOTE_NOTE) . '</p>',
+        'website_description'       => paragraphs((string)($p['description'] ?? '')),
+        'website_slug'              => (string)$p['slug'],
+        'website_size_slug'         => null,
+    ];
+
+    $images[$id] = [];
+
+    foreach (array_values(array_filter((array)($p['images'] ?? []), 'is_string')) as $u) {
+        $images[$id][] = [photoPath($u), $title, 0];
+        $need[photoPath($u)] = SHOP . $u;
+    }
+}
+
+// Category copy, keyed by USSCOS category slug.
+$catCopy = [];
+
+foreach ((array)($catalog['categoryCopy'] ?? []) as $key => $html) {
+    $catCopy['stencils-' . $key] = siteLinks((string)$html);
+}
+
+$catCopy['stencils'] = stencilsLanding((array)($catalog['homeCopy'] ?? []));
+
+// Content pages.
+$pages = [];
+
+foreach ((array)($catalog['pages'] ?? []) as $slug => $pg) {
+    $pages[$slug] = [(string)$pg['title'], (string)($pg['description'] ?? ''), siteLinks((string)$pg['html'])];
+}
+
+$pages['stencil-materials'] = ['Stencil Materials & Sizing',
+    'Which stencil plastic to choose, how stencil sizes are measured, curb stencils and multi-piece stencils.',
+    MATERIALS_PAGE];
 
 // Call-for-quote listings (endzone, rooftop …) have no SKU, but their photos make the
 // category pages they stand for.
@@ -294,6 +377,23 @@ printf("Descriptions       %d  replace a different description already in USSCOS
 printf("Image rows         %d  (%d now under %s, replaced)\n", array_sum(array_map('count', $images)), $existing, WEB_DIR);
 printf("Card pictures      %d  of %d listings\n", count(array_filter($images, static fn($p) => in_array(1, array_column($p, 2), true))), count($listings));
 printf("Category heroes    %d  %s\n", count($heroes), implode(', ', array_keys($heroes)));
+printf("Quote listings     %d\n", $quoteRows);
+printf("Category copy      %d  %s\n", count($catCopy), implode(', ', array_keys($catCopy)));
+printf("Pages              %d  %s\n", count($pages), implode(', ', array_keys($pages)));
+
+$outside = [];
+
+foreach ([...array_values($catCopy), ...array_column($pages, 2), ...array_column($rows, 'website_short_description')] as $html) {
+    // sales@usscproducts.com is the company's address, not another site: the @ excuses it.
+    if (preg_match_all('#(?:href|src)="(https?:)?//[^"]*"|(?<!@)usscproducts\.com|stencilsplus#i', (string)$html, $m)) {
+        array_push($outside, ...$m[0]);
+    }
+}
+
+if ($outside !== []) {
+    fwrite(STDERR, "Refusing: copy still points at another site: " . implode(', ', array_unique($outside)) . "\n");
+    exit(1);
+}
 printf("Files              %d  (%d to fetch: %d photos, %d stencil pictures, %d drawings)\n",
     count($need), count($missing),
     count(array_filter($missing, static fn($w) => str_contains($w, '/photos/'))),
@@ -365,7 +465,8 @@ $pdo->beginTransaction();
 try {
     $upd = $pdo->prepare(
         "UPDATE products SET variant_group = ?, variant_label = ?, variant_order = ?, variant_axis = ?,
-                variant_title = ?, website_name = ?, website_short_description = ?, website_description = ?
+                variant_title = ?, website_name = ?, website_short_description = ?, website_description = ?,
+                website_slug = ?, website_size_slug = ?
          WHERE id = ?"
     );
 
@@ -407,8 +508,24 @@ try {
         }
     }
 
+    $copy = $pdo->prepare("UPDATE categories SET website_copy = ? WHERE slug = ?");
+
+    foreach ($catCopy as $slug => $html) {
+        $copy->execute([$html, $slug]);
+    }
+
+    $page = $pdo->prepare(
+        "INSERT INTO site_pages (slug, title, description, html) VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description), html = VALUES(html)"
+    );
+
+    foreach ($pages as $slug => [$t, $d, $h]) {
+        $page->execute([$slug, $t, $d ?: null, $h]);
+    }
+
     $pdo->commit();
-    printf("\nWrote %d listing row(s) and %d image row(s); %d category hero(es).\n", count($rows), $imageRows, count($heroes));
+    printf("\nWrote %d listing row(s) and %d image row(s); %d category hero(es), %d category copy, %d page(s).\n",
+        count($rows), $imageRows, count($heroes), count($catCopy), count($pages));
 } catch (\Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -573,3 +690,95 @@ function cardVariant(array $p): int
 
     return $plain[0] ?? 0;
 }
+
+/**
+ * The shop's links, as addresses on this site. Anything left pointing elsewhere is
+ * refused before writing (see the check after the plan).
+ *
+ *   /shop, /shop/words           → /shop/stencils, /shop/stencils/words
+ *   /brand/mcdonalds             → /shop/stencils/retail-mcdonalds
+ *   /custom/endzone, /midfield   → the endzone and midfield quote listings, until the
+ *                                  designers are built here (docs/STENCIL_SHOP_PORT.md)
+ *   /custom                      → the contact form, until the custom stencil builder is
+ *   /about, /returns             → /stencil-materials, /returns
+ *   usscproducts.com paint pages → this site's paint sections
+ */
+function siteLinks(string $html): string
+{
+    // Order matters. The paint links are rewritten LAST: done first, the /shop/x rule
+    // would then turn /shop/field-marking-paint into a stencil category.
+    $map = [
+        '#href="/shop"#'                         => 'href="/shop/stencils"',
+        '#href="/shop/([a-z0-9-]+)"#'            => 'href="/shop/stencils/$1"',
+        '#href="/brand/([a-z0-9-]+)"#'           => 'href="/shop/stencils/retail-$1"',
+        '#href="/custom/endzone"#'               => 'href="/stencils/endzone-stencils"',
+        '#href="/custom/midfield"#'              => 'href="/stencils/midfield-logo-stencil"',
+        '#href="/custom"#'                       => 'href="/contact?about=Custom%20stencil"',
+        '#href="/about"#'                        => 'href="/stencil-materials"',
+        '#href="https?://(?:www\.)?usscproducts\.com/product-category/field-marking-paints/?"#' => 'href="/shop/field-marking-paint"',
+        '#href="https?://(?:www\.)?usscproducts\.com/product-category/traffic-paints/?"#'       => 'href="/shop/traffic-paint"',
+        '#href="https?://(?:www\.)?usscproducts\.com/?"#'                                       => 'href="/shop/stencils"',
+    ];
+
+    $html = (string)preg_replace(array_keys($map), array_values($map), $html);
+
+    // A sentence that names the old address as text rather than linking it.
+    return str_replace('Shop them at usscproducts.com', 'Shop them <a href="/shop">here</a>', $html);
+}
+
+/** The Stencils landing copy, from the shop's home page: the about block and the FAQ. */
+function stencilsLanding(array $hc): string
+{
+    $phone = (string)(config('site.company.phone') ?? '');
+    $about = (array)($hc['about'] ?? []);
+    $out   = '';
+
+    if (!empty($about['title'])) {
+        $out .= '<h2>' . htmlspecialchars((string)$about['title']) . '</h2>';
+    }
+
+    if (!empty($about['lead'])) {
+        $out .= '<p class="lead">' . htmlspecialchars((string)$about['lead']) . '</p>';
+    }
+
+    foreach ((array)($about['sections'] ?? []) as $sec) {
+        $href = siteLinks('href="' . ($sec['href'] ?? '') . '"');
+        $out .= '<h3><a ' . $href . '>' . htmlspecialchars((string)$sec['title']) . '</a></h3>'
+              . '<p>' . siteLinks((string)$sec['html']) . '</p>';
+    }
+
+    if (!empty($hc['faq'])) {
+        $out .= '<h2>Frequently asked questions</h2>';
+
+        foreach ((array)$hc['faq'] as [$q, $a]) {
+            $a = str_replace('{phone}', $phone, htmlspecialchars((string)$a));
+            $out .= '<h3>' . htmlspecialchars((string)$q) . '</h3><p>' . siteLinks($a) . '</p>';
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * The shop's Materials & Sizing page. On the shop it is written into the page code, not
+ * the catalog, so it is carried here as text, with the shop's name taken out.
+ */
+const MATERIALS_PAGE = <<<'HTML'
+<h1>Stencil Materials &amp; Sizing</h1>
+<p>Every US Specialty Coatings stencil is CNC-cut from durable, reusable plastic sheet so you get clean, consistent lines job after job.</p>
+<h2>Choosing a material</h2>
+<table>
+  <thead><tr><th>Material</th><th>Best for</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1/8" Heavy-Duty</strong></td><td>Contractors and frequent reuse. Stays flat in wind and stands up to rough handling.</td></tr>
+    <tr><td><strong>3/32" Standard</strong></td><td>Occasional use and lower cost. Lighter to ship and easier to roll for storage.</td></tr>
+    <tr><td><strong>10-mil Polyethylene</strong></td><td>Very large layouts such as football field letters and awareness ribbons. Foldable and reusable, so it folds up small to ship and store.</td></tr>
+  </tbody>
+</table>
+<h2>Reading our sizes</h2>
+<p><strong>Word stencils</strong> are listed by letter height. The overall stencil width is shown on each product page. <strong>Kits</strong> list letter height and character width (e.g. 18" × 9"). <strong>Symbols and arrows</strong> are listed by overall length.</p>
+<h2>Curb stencils</h2>
+<p>Items marked <em>curb</em> use 4" letters placed 1" above the bottom edge of the stencil. Line the bottom of the stencil up with the bottom of the curb and the letters sit centered on a standard 6" curb face.</p>
+<h2>Multi-piece stencils</h2>
+<p>Very large stencils are cut in multiple pieces so they can ship and be handled on site. The piece count is listed on each product page.</p>
+HTML;

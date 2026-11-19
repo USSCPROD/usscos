@@ -65,6 +65,9 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/leads',                  [LeadController::class, 'index'])->name('leads');
     Router::get('/leads/create',           [LeadController::class, 'create'])->name('leads.create');
     Router::post('/leads',                 [LeadController::class, 'store'])->name('leads.store');
+    // Artwork a customer attached on the website. Stored outside the web root, so this
+    // signed-in route is the only way to it. Before /leads/{id} so 'files' is not an id.
+    Router::get('/leads/files/{name}',     [LeadController::class, 'file'])->name('leads.file');
     Router::get('/leads/{id}',             [LeadController::class, 'show'])->name('leads.show');
     Router::get('/leads/{id}/edit',        [LeadController::class, 'edit'])->name('leads.edit');
     Router::post('/leads/{id}/edit',       [LeadController::class, 'update'])->name('leads.update');
@@ -415,8 +418,17 @@ Router::get('/shop/{slug}',     [SiteController::class, 'section'])->name('site.
 Router::get('/shop/{slug}/{child}', [SiteController::class, 'section'])->name('site.subsection');
 Router::get('/page/{slug}',     [SiteController::class, 'page'])->name('site.page');
 
+// Stencils by listing address, as the stencil shop had them: /stencils/no-parking and
+// /stencils/no-parking/4-inch-letters. ?material=3-32 picks the thickness.
+Router::get('/stencils/{slug}',        [SiteController::class, 'stencil'])->name('site.stencil');
+Router::get('/stencils/{slug}/{size}', [SiteController::class, 'stencil'])->name('site.stencil.size');
+
+// The contact and quote form. Public, like the webhook: no session, so no CSRF token;
+// a honeypot and a minimum time on the page instead (SiteController::enquire).
+Router::post('/enquire', [SiteController::class, 'enquire'])->name('site.enquire');
+
 // Flat pages the shell links to directly.
-foreach (['about', 'contact', 'quote', 'catalogs', 'privacy', 'terms'] as $siteSlug) {
+foreach (['about', 'contact', 'quote', 'catalogs', 'privacy', 'terms', 'returns', 'stencil-materials'] as $siteSlug) {
     Router::get('/' . $siteSlug, [SiteController::class, 'page'])->name('site.page.' . $siteSlug);
 }
 

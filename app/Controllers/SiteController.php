@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
 use App\Repositories\StorefrontRepository;
+use App\Services\WebsiteLeadService;
 
 /**
  * The public website. No authentication: everything here is served to strangers.
@@ -63,11 +64,23 @@ class SiteController extends Controller
         // because a child is defined by what it contains, not by its parent's net.
         $active = null;
 
+        $parent = null;
+
         if ($child !== '') {
+            // A child, or a child's child: Endzone sits under Sports and each chain under
+            // Retail, but every one has its own flat address, /shop/stencils/endzone.
             foreach ($children as $c) {
                 if ($c['slug'] === $child) {
                     $active = $c;
                     break;
+                }
+
+                foreach ($c['children'] ?? [] as $g) {
+                    if ($g['slug'] === $child) {
+                        $active = $g;
+                        $parent = $c;
+                        break 2;
+                    }
                 }
             }
 
@@ -79,9 +92,20 @@ class SiteController extends Controller
                 'categories' => $active['categories'] ?? [],
                 'brands'     => $active['brands'] ?? [],
                 'name_like'  => $active['name_like'] ?? [],
-                'blurb'      => $active['blurb'] ?? $section['blurb'] ?? '',
+                'blurb'      => ($active['blurb'] ?? '') !== '' ? $active['blurb'] : ($section['blurb'] ?? ''),
             ]);
         }
+
+        // Long copy under the products: the category's own, or on a section's landing
+        // page the copy of the tree it is built from.
+        $root = $active === null && !empty($section['tree']) ? $this->shop->categoryCopy((string)$section['tree']) : [];
+        $copy = $active !== null ? (string)($active['copy'] ?? '') : (string)($root['website_copy'] ?? '');
+
+        // A category whose listings all sit in its own children (Retail Chain Stencils:
+        // every stencil is filed under its chain) shows those children as cards, the
+        // way the shop showed a card per chain, rather than one long undivided list.
+        $groups = $active !== null && !empty($active['children']) && (int)($active['own'] ?? 0) === 0
+            ? $active['children'] : [];
 
         // The total, not the size of the page. count($products) is the LIMIT, so a
         // 208-product section was telling customers it held 60.
@@ -91,6 +115,9 @@ class SiteController extends Controller
             'section'  => $section,
             'children' => $children,
             'active'   => $active,
+            'parent'   => $parent,
+            'copy'     => $copy,
+            'groups'   => $groups,
             'total'    => $this->shop->sectionCount(
                 $section['categories'] ?? [], $section['brands'] ?? [], $section['name_like'] ?? []
             ),
@@ -117,9 +144,72 @@ class SiteController extends Controller
             'product'  => $product,
             'variants' => $this->shop->variantsOf($product),
             'images'   => $this->shop->imagesOf((int)$product['id']),
+            'crumbs'   => $this->shop->crumbsFor((int)$product['id'], 'stencils'),
+            'sent'     => (string)($request->query('sent') ?? ''),
+            'error'    => (string)($request->query('error') ?? ''),
             'docs'     => $this->shop->documentsFor((int)$product['id']),
             'videos'   => $this->shop->videosFor($product),
         ]);
+    }
+
+    /**
+     * A stencil by its listing address: /stencils/no-parking, /stencils/no-parking/4-inch-letters,
+     * and ?material=3-32 for the thickness. The addresses the stencil shop used, so its
+     * copy links and its old URLs land here one-for-one.
+     */
+    public function stencil(Request $request, Response $response, string $slug = '', string $size = ''): Response
+    {
+        $sku = $this->shop->skuForListing($slug, $size, (string)($request->query('material') ?? ''));
+
+        if ($sku === null) {
+            return $this->view('site.404', ['title' => 'Not found', 'nav' => $this->stockedNav()], 404);
+        }
+
+        return $this->product($request, $response, $sku);
+    }
+
+    /**
+     * The contact and quote form, posted. Becomes a lead, routed like every website lead.
+     *
+     * Spam: a honeypot field and a minimum time on the page, the same two checks the old
+     * usscos.com forms use. Both fail open in the sense that matters - a bot is told it
+     * worked, and nothing is written.
+     */
+    public function enquire(Request $request, Response $response): Response
+    {
+        $back  = (string)($request->post('back') ?? '/contact');
+        $back  = str_starts_with($back, '/') && !str_starts_with($back, '//') ? $back : '/contact';
+        $sep   = str_contains($back, '?') ? '&' : '?';
+
+        $started = (int)($request->post('started') ?? 0);
+
+        if (trim((string)($request->post('website') ?? '')) !== '' || ($started > 0 && time() - $started < 3)) {
+            return $response->redirect($back . $sep . 'sent=1#enquiry');
+        }
+
+        $d = [
+            'name'    => trim((string)($request->post('name') ?? '')),
+            'email'   => trim((string)($request->post('email') ?? '')),
+            'phone'   => trim((string)($request->post('phone') ?? '')),
+            'org'     => trim((string)($request->post('org') ?? '')),
+            'topic'   => trim((string)($request->post('topic') ?? '')),
+            'message' => trim((string)($request->post('message') ?? '')),
+            'about'   => mb_substr(trim((string)($request->post('about') ?? '')), 0, 200),
+        ];
+
+        $file    = isset($_FILES['artwork']) && is_array($_FILES['artwork']) ? $_FILES['artwork'] : null;
+        $problem = $d['name'] === '' ? 'Please tell us your name.'
+            : (!filter_var($d['email'], FILTER_VALIDATE_EMAIL) ? 'Please give an email address we can reply to.'
+            : ($d['message'] === '' ? 'Please tell us what you need.'
+            : WebsiteLeadService::fileProblem($file)));
+
+        if ($problem !== null) {
+            return $response->redirect($back . $sep . 'error=' . rawurlencode($problem) . '#enquiry');
+        }
+
+        (new WebsiteLeadService())->siteEnquiry($d, $file);
+
+        return $response->redirect($back . $sep . 'sent=1#enquiry');
     }
 
     public function search(Request $request, Response $response): Response
@@ -158,6 +248,34 @@ class SiteController extends Controller
         }
 
         $nav = $this->stockedNav();
+
+        // Written content first: a page in site_pages is the real thing.
+        $stored = $this->shop->sitePage($slug);
+
+        if ($stored !== false) {
+            return $this->view('site.page', [
+                'title'   => $stored['title'],
+                'nav'     => $nav,
+                'heading' => $stored['title'],
+                'blurb'   => '',
+                'html'    => $stored['html'],
+            ]);
+        }
+
+        // Contact and quote are the enquiry form.
+        if ($slug === 'contact' || $slug === 'quote') {
+            $about = trim((string)($request->query('about') ?? $request->query('sku') ?? ''));
+
+            return $this->view('site.contact', [
+                'title' => $slug === 'quote' ? 'Request a quote' : 'Contact us',
+                'nav'   => $nav,
+                'quote' => $slug === 'quote',
+                'about' => $about,
+                'back'  => '/' . $slug . ($about !== '' ? '?about=' . rawurlencode($about) : ''),
+                'sent'  => (string)($request->query('sent') ?? ''),
+                'error' => (string)($request->query('error') ?? ''),
+            ]);
+        }
 
         if (!isset($pages[$slug])) {
             return $this->view('site.404', ['title' => 'Not found', 'nav' => $nav], 404);

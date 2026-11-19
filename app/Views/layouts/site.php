@@ -141,6 +141,18 @@ img{max-width:100%;display:block}
 .pill p{margin:0;color:var(--mut);font-size:.9rem}
 
 /* ---- footer ---- */
+/* ---- written copy: category copy, content pages, descriptions ---- */
+.rt h1{font-size:1.9rem;letter-spacing:-.025em;margin:0 0 1rem}
+.rt h2{font-size:1.3rem;letter-spacing:-.015em;margin:2rem 0 .6rem}
+.rt h3{font-size:1.05rem;margin:1.4rem 0 .5rem}
+.rt p{margin:0 0 .9rem}
+.rt p.lead{font-size:1.05rem;color:var(--ink)}
+.rt ul,.rt ol{margin:0 0 .9rem;padding-left:1.3rem}
+.rt li{margin:.25rem 0}
+.rt a{color:var(--blue)}
+.rt table{border-collapse:collapse;width:100%;margin:0 0 1.2rem;font-size:.92rem}
+.rt th,.rt td{text-align:left;padding:.55rem .8rem .55rem 0;border-bottom:1px solid var(--line);vertical-align:top}
+.rt .seo-grid > div{margin-bottom:.4rem}
 .foot{background:var(--navy);color:#c7d2fe;margin-top:3rem;padding:2.5rem 0 1.5rem;font-size:.86rem}
 .foot .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;margin-bottom:2rem}
 .foot h4{margin:0 0 .7rem;color:#fff;font-size:.74rem;text-transform:uppercase;letter-spacing:.08em}
@@ -232,6 +244,7 @@ img{max-width:100%;display:block}
         <h4>Company</h4>
         <a href="/about">About us</a><a href="/catalogs">Catalogs</a>
         <a href="/quote">Request a quote</a><a href="/contact">Contact</a>
+        <a href="/returns">Shipping &amp; returns</a><a href="/stencil-materials">Stencil materials &amp; sizing</a>
       </div>
       <div>
         <h4>Contact</h4>

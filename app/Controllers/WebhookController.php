@@ -8,9 +8,18 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\WebsiteLeadService;
 
 class WebhookController extends Controller
 {
+    private WebsiteLeadService $intake;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->intake = new WebsiteLeadService();
+    }
+
     public function lead(Request $request, Response $response): Response
     {
         /*
@@ -67,9 +76,9 @@ class WebhookController extends Controller
 
     private function handleContact(array $d): void
     {
-        $routing = $this->getRouting();
+        $routing = $this->intake->routing();
 
-        $leadId = $this->createLead([
+        $leadId = $this->intake->createLead([
             'first_name' => $d['first_name'],
             'last_name'  => $d['last_name'],
             'email'      => $d['email'],
@@ -79,7 +88,7 @@ class WebhookController extends Controller
             'assigned_to'=> $routing['general_user_id'] ?? null,
         ]);
 
-        $this->sendNotification(
+        $this->intake->notify(
             $routing['general_email'],
             'New Contact Form Submission — ' . ($d['first_name'] . ' ' . $d['last_name']),
             $this->buildContactEmail($d)
@@ -88,10 +97,10 @@ class WebhookController extends Controller
 
     private function handlePaintQuote(array $d): void
     {
-        $routing    = $this->getRouting();
+        $routing    = $this->intake->routing();
         $assignedTo = $this->nextPaintRep($routing);
 
-        $leadId = $this->createLead([
+        $leadId = $this->intake->createLead([
             'first_name'   => $d['first_name'],
             'last_name'    => $d['last_name'],
             'company'      => $d['company'] ?? null,
@@ -114,7 +123,7 @@ class WebhookController extends Controller
             if ($rep) $notifyEmail = $rep['email'];
         }
 
-        $this->sendNotification(
+        $this->intake->notify(
             $notifyEmail,
             'New Paint Quote Request — ' . ($d['first_name'] . ' ' . $d['last_name']),
             $this->buildPaintEmail($d)
@@ -146,9 +155,9 @@ class WebhookController extends Controller
 
     private function handleStencilQuote(array $d): void
     {
-        $routing = $this->getRouting();
+        $routing = $this->intake->routing();
 
-        $leadId = $this->createLead([
+        $leadId = $this->intake->createLead([
             'first_name'   => $d['first_name'],
             'last_name'    => $d['last_name'],
             'company'      => $d['company'] ?? null,
@@ -165,7 +174,7 @@ class WebhookController extends Controller
             'attachment'   => $d['attachment'] ?? null,
         ]);
 
-        $this->sendNotification(
+        $this->intake->notify(
             $routing['stencil_email'],
             'New Stencil Quote Request — ' . ($d['first_name'] . ' ' . $d['last_name']),
             $this->buildStencilEmail($d)
@@ -182,68 +191,6 @@ class WebhookController extends Controller
     // Lead creation
     // -------------------------------------------------------------------------
 
-    private function createLead(array $d): int
-    {
-        // Build notes — prepend address block if present, then content notes
-        $notes = '';
-
-        /*
-         * The city line is assembled before it is tested, so an empty address produced
-         * a bare "," — truthy, kept by array_filter, and printed at the top of every
-         * contact-form lead. Every website lead in the system opens with a stray comma
-         * because of it. Build the line, then keep it only if there is something in it.
-         */
-        $cityLine = trim(trim(
-            ($d['city'] ?? '') . ', ' . ($d['state'] ?? '') . ' ' . ($d['postal_code'] ?? '')
-        ), " ,");
-
-        $addressParts = array_filter([
-            trim((string)($d['address_line1'] ?? '')),
-            trim((string)($d['address_line2'] ?? '')),
-            $cityLine,
-        ], static fn ($part) => $part !== '');
-
-        if ($addressParts) {
-            $notes .= implode("\n", $addressParts) . "\n\n";
-        }
-        $notes .= $d['notes'] ?? '';
-        if (!empty($d['attachment'])) {
-            $notes .= "\n\nAttachment: " . $d['attachment'];
-        }
-
-        /*
-         * Which form it came from, kept.
-         *
-         * Every handler sets a descriptive source — "Website — Contact Form",
-         * "Website — Paint Quote Request" — and this threw it away and wrote the enum
-         * 'web' instead. So a contact-form enquiry and somebody asking to be quoted for
-         * a pallet looked identical in the list, and the only way to tell them apart
-         * was to open each one and read the notes.
-         *
-         * source stays the enum, because the channel filters are built on it.
-         * source_detail carries the form.
-         */
-        Database::insert(
-            'INSERT INTO leads
-                (first_name, last_name, company_name, email, phone,
-                 source, source_detail, notes, status, rep_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-            [
-                $d['first_name'],
-                $d['last_name'],
-                ($d['company'] ?? '') ?: ($d['first_name'] . ' ' . $d['last_name']),
-                $d['email'],
-                $d['phone']       ?? null,
-                'web',
-                ($d['source'] ?? '') ?: null,
-                trim($notes)      ?: null,
-                'new',
-                $d['assigned_to'] ?? null,
-            ]
-        );
-
-        return (int) Database::lastInsertId();
-    }
 
     private function createPaintFollowUpTask(int $leadId, string $contactName, string $gallons, array $routing): void
     {
@@ -267,51 +214,12 @@ class WebhookController extends Controller
     // Routing settings
     // -------------------------------------------------------------------------
 
-    private function getRouting(): array
-    {
-        $settings = Database::select("SELECT setting_key, setting_value FROM settings WHERE setting_key LIKE 'lead_routing_%'");
-
-        $map = [];
-        foreach ($settings as $row) {
-            $map[$row['setting_key']] = $row['setting_value'];
-        }
-
-        return [
-            'stencil_email'    => $map['lead_routing_stencil_email']       ?? 'chip@usscproducts.com',
-            'stencil_user_id'  => !empty($map['lead_routing_stencil_user_id'])  ? (int)$map['lead_routing_stencil_user_id']  : null,
-            'paint_email'      => $map['lead_routing_paint_email']         ?? 'sales@usscproducts.com',
-            'paint_pool'       => $map['lead_routing_paint_pool']          ?? '',
-            'paint_next_index' => $map['lead_routing_paint_next_index']    ?? '0',
-            'general_email'    => $map['lead_routing_general_email']       ?? 'sales@usscproducts.com',
-            'general_user_id'  => !empty($map['lead_routing_general_user_id']) ? (int)$map['lead_routing_general_user_id'] : null,
-        ];
-    }
 
     // -------------------------------------------------------------------------
     // Email sending
     // -------------------------------------------------------------------------
 
-    private function sendNotification(string $to, string $subject, string $body): void
-    {
-        $headers  = "MIME-Version: 1.0\r\n";
-        $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: USSCOS <noreply@usscproducts.com>\r\n";
 
-        mail($to, $subject, $this->wrapEmail($subject, $body), $headers);
-    }
-
-    private function wrapEmail(string $title, string $body): string
-    {
-        return '<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#111827;max-width:600px;margin:0 auto;padding:20px">
-            <div style="background:#222b59;padding:16px 20px;border-radius:8px 8px 0 0">
-                <h2 style="color:#fff;margin:0;font-size:1.1rem">' . htmlspecialchars($title) . '</h2>
-            </div>
-            <div style="border:1px solid #d1d5db;border-top:none;padding:20px;border-radius:0 0 8px 8px">
-                ' . $body . '
-                <p style="margin-top:24px;font-size:.8rem;color:#9ca3af">This lead was created automatically from a website form submission. Log in to USSCOS to view and manage it.</p>
-            </div>
-        </body></html>';
-    }
 
     // -------------------------------------------------------------------------
     // Notes builders
@@ -350,21 +258,15 @@ class WebhookController extends Controller
     // Email body builders
     // -------------------------------------------------------------------------
 
-    private function row(string $label, string $value): string
-    {
-        if ($value === '') return '';
-        return '<tr><td style="padding:6px 12px 6px 0;font-weight:600;color:#374151;white-space:nowrap;vertical-align:top">' . htmlspecialchars($label) . '</td>'
-             . '<td style="padding:6px 0;color:#111827">' . nl2br(htmlspecialchars($value)) . '</td></tr>';
-    }
 
     private function buildContactEmail(array $d): string
     {
         return '<table style="width:100%;border-collapse:collapse">'
-            . $this->row('Name',    $d['first_name'] . ' ' . $d['last_name'])
-            . $this->row('Email',   $d['email'])
-            . $this->row('Phone',   $d['phone'] ?? '')
-            . $this->row('Subject', $d['subject'] ?? '')
-            . $this->row('Message', $d['message'] ?? '')
+            . $this->intake->row('Name',    $d['first_name'] . ' ' . $d['last_name'])
+            . $this->intake->row('Email',   $d['email'])
+            . $this->intake->row('Phone',   $d['phone'] ?? '')
+            . $this->intake->row('Subject', $d['subject'] ?? '')
+            . $this->intake->row('Message', $d['message'] ?? '')
             . '</table>';
     }
 
@@ -372,16 +274,16 @@ class WebhookController extends Controller
     {
         $products = implode(', ', (array)($d['products'] ?? []));
         return '<table style="width:100%;border-collapse:collapse">'
-            . $this->row('Name',           $d['first_name'] . ' ' . $d['last_name'])
-            . $this->row('Company',        $d['company'] ?? '')
-            . $this->row('Email',          $d['email'])
-            . $this->row('Phone',          $d['phone'] ?? '')
-            . $this->row('Address',        trim(($d['address_line1'] ?? '') . ' ' . ($d['address_line2'] ?? '') . ' ' . ($d['city'] ?? '') . ', ' . ($d['state'] ?? '') . ' ' . ($d['postal_code'] ?? '')))
-            . $this->row('Uses paint?',    $d['uses_paint'] ?? '')
-            . $this->row('Current brand',  $d['current_brand'] ?? '')
-            . $this->row('Products',       $products)
-            . $this->row('How heard',      $d['hear_about_us'] ?? '')
-            . $this->row('Notes',          $d['notes'] ?? '')
+            . $this->intake->row('Name',           $d['first_name'] . ' ' . $d['last_name'])
+            . $this->intake->row('Company',        $d['company'] ?? '')
+            . $this->intake->row('Email',          $d['email'])
+            . $this->intake->row('Phone',          $d['phone'] ?? '')
+            . $this->intake->row('Address',        trim(($d['address_line1'] ?? '') . ' ' . ($d['address_line2'] ?? '') . ' ' . ($d['city'] ?? '') . ', ' . ($d['state'] ?? '') . ' ' . ($d['postal_code'] ?? '')))
+            . $this->intake->row('Uses paint?',    $d['uses_paint'] ?? '')
+            . $this->intake->row('Current brand',  $d['current_brand'] ?? '')
+            . $this->intake->row('Products',       $products)
+            . $this->intake->row('How heard',      $d['hear_about_us'] ?? '')
+            . $this->intake->row('Notes',          $d['notes'] ?? '')
             . '</table>';
     }
 
@@ -391,16 +293,16 @@ class WebhookController extends Controller
             ? '<tr><td style="padding:6px 12px 6px 0;font-weight:600;color:#374151">Attachment</td><td style="padding:6px 0"><em>File uploaded — see USSCOS lead record</em></td></tr>'
             : '';
         return '<table style="width:100%;border-collapse:collapse">'
-            . $this->row('Name',        $d['first_name'] . ' ' . $d['last_name'])
-            . $this->row('Company',     $d['company'] ?? '')
-            . $this->row('Email',       $d['email'])
-            . $this->row('Phone',       $d['phone'] ?? '')
-            . $this->row('Address',     trim(($d['address_line1'] ?? '') . ' ' . ($d['address_line2'] ?? '') . ' ' . ($d['city'] ?? '') . ', ' . ($d['state'] ?? '') . ' ' . ($d['postal_code'] ?? '')))
-            . $this->row('Project',     $d['project_description'] ?? '')
-            . $this->row('Needed by',   $d['needed_by'] ?? '')
-            . $this->row('Needs paint?',$d['needs_paint'] ?? '')
-            . $this->row('Est. gallons',$d['paint_gallons'] ?? '')
-            . $this->row('How heard',   $d['hear_about_us'] ?? '')
+            . $this->intake->row('Name',        $d['first_name'] . ' ' . $d['last_name'])
+            . $this->intake->row('Company',     $d['company'] ?? '')
+            . $this->intake->row('Email',       $d['email'])
+            . $this->intake->row('Phone',       $d['phone'] ?? '')
+            . $this->intake->row('Address',     trim(($d['address_line1'] ?? '') . ' ' . ($d['address_line2'] ?? '') . ' ' . ($d['city'] ?? '') . ', ' . ($d['state'] ?? '') . ' ' . ($d['postal_code'] ?? '')))
+            . $this->intake->row('Project',     $d['project_description'] ?? '')
+            . $this->intake->row('Needed by',   $d['needed_by'] ?? '')
+            . $this->intake->row('Needs paint?',$d['needs_paint'] ?? '')
+            . $this->intake->row('Est. gallons',$d['paint_gallons'] ?? '')
+            . $this->intake->row('How heard',   $d['hear_about_us'] ?? '')
             . $attachment
             . '</table>';
     }

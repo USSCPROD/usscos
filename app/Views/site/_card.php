@@ -6,6 +6,11 @@
  * $p is one row from StorefrontRepository, which never selects cost.
  */
 $price = (float)($p['website_price'] ?? 0);
+$url   = \App\Repositories\StorefrontRepository::urlFor($p);
+// A listing of sizes (a stencil) is priced 'From' its cheapest. A listing of thicknesses
+// or colors is not: there the card's own variant is the one people buy.
+$sized = strcasecmp((string)($p['variant_axis'] ?? ''), 'Size & thickness') === 0 && (int)($p['variant_count'] ?? 1) > 1;
+$from  = $sized && !empty($p['min_price']) ? (float)$p['min_price'] : null;
 ?>
 <div class="card">
     <?php $img = \App\Repositories\StorefrontRepository::imageFor($p); ?>
@@ -17,7 +22,7 @@ $price = (float)($p['website_price'] ?? 0);
         <div class="ph">No photo yet</div>
     <?php endif; ?>
     <div class="card-b">
-        <h3><a href="/product/<?= e(rawurlencode((string)$p['sku'])) ?>"><?= e(\App\Repositories\StorefrontRepository::listingName($p)) ?></a></h3>
+        <h3><a href="<?= e($url) ?>"><?= e(\App\Repositories\StorefrontRepository::listingName($p)) ?></a></h3>
         <div class="sku"><?= e($p['sku']) ?><?php if (!empty($p['brand_name'])): ?> · <?= e($p['brand_name']) ?><?php endif; ?></div>
         <?php if (!empty($p['short_description'])): ?>
             <p class="desc"><?= e($p['short_description']) ?></p>
@@ -27,8 +32,13 @@ $price = (float)($p['website_price'] ?? 0);
                 No 'from'. The card leads with 1/8", the thickest and dearest cut, so
                 'from' would promise a price below the one printed next to it.
             -->
+            <?php if ($from !== null): ?>
+                <div class="price"><small style="font-size:.72rem;font-weight:600;color:var(--mut)">From</small> <?= money($from) ?></div>
+                <div style="font-size:.74rem;color:var(--mut);margin-top:.2rem"><?= (int)$p['variant_count'] ?> sizes &amp; thicknesses</div>
+            <?php else: ?>
             <div class="price"><?= money($price) ?></div>
-            <?php if ((int)($p['variant_count'] ?? 1) > 1): ?>
+            <?php endif; ?>
+            <?php if (!$sized && (int)($p['variant_count'] ?? 1) > 1): ?>
                 <?php
                     // 'thicknesses' was hardcoded when stencils were the only grouped
                     // thing. A card for paint read '7 thicknesses' over a row of colors.

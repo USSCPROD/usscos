@@ -34,6 +34,7 @@ class StorefrontRepository extends Repository
         p.short_description, p.website_price, p.website_image_url,
         p.gross_weight, p.weight_unit, p.uom_code, p.units_per_case, p.qty_on_hand,
         p.variant_group, p.variant_label, p.variant_order, p.variant_title, p.variant_axis,
+        p.website_slug, p.website_size_slug,
         b.name AS brand_name,
         (SELECT pi.file_path FROM product_images pi
           WHERE pi.product_id = p.id
@@ -123,11 +124,18 @@ class StorefrontRepository extends Repository
             $price = (float)($r['website_price'] ?? 0);
 
             if (!isset($out[$key])) {
-                $out[$key] = $r + ['variant_count' => 1];
+                $out[$key] = $r + ['variant_count' => 1, 'min_price' => $price > 0 ? $price : null];
                 continue;
             }
 
             $out[$key]['variant_count']++;
+
+            // The lowest price in the listing, for a 'From' on cards whose variants are
+            // sizes: a NO PARKING card leading with 4" letters at $16.67 would otherwise
+            // hide that 4" letters in 3/32" is $14.89.
+            if ($price > 0 && ($out[$key]['min_price'] === null || $price < $out[$key]['min_price'])) {
+                $out[$key]['min_price'] = $price;
+            }
 
             $curPrice = (float)($out[$key]['website_price'] ?? 0);
             $curOrder = (int)($out[$key]['variant_order'] ?? PHP_INT_MAX);
@@ -140,7 +148,7 @@ class StorefrontRepository extends Repository
                 : ($price > 0 && $order < $curOrder);
 
             if ($better) {
-                $out[$key] = $r + ['variant_count' => $out[$key]['variant_count']];
+                $out[$key] = $r + ['variant_count' => $out[$key]['variant_count'], 'min_price' => $out[$key]['min_price']];
             }
         }
 
@@ -250,21 +258,91 @@ class StorefrontRepository extends Repository
      */
     public function searchProducts(string $term, int $limit = 60): array
     {
-        $like = '%' . $term . '%';
+        /*
+         * The stencil shop's rules, because they are the ones customers learned there.
+         *
+         *   Every word must match: 'no parking 8' finds the 8" NO PARKING, not every
+         *   stencil with a NO in it.
+         *   96 inch, 96 in, 96" and 96” all mean 96"; 8 ft and 8' both mean 8'.
+         *   A number matches whole: 6" does not find 96".
+         *   A word matches the name, the listing title, the category, the size or
+         *   the SKU.
+         *   Products whose own name holds every word come first.
+         *
+         * Filtered in PHP rather than SQL: those rules are not LIKE, and the published
+         * catalogue is a couple of thousand rows, read once per search.
+         */
+        $words = self::searchWords($term);
 
-        // Collapsed like a section listing. Searching 'compact' and getting the same
-        // stencil twice, once per thickness, is the duplication the grouping exists
-        // to remove — it should not come back through a different door.
+        if ($words === []) {
+            return [];
+        }
+
         $rows = Database::select("
-            SELECT " . self::PUBLIC_COLUMNS . "
+            SELECT " . self::PUBLIC_COLUMNS . ", p.short_description AS sd,
+                   (SELECT GROUP_CONCAT(c.name SEPARATOR ' ') FROM product_categories pc
+                      JOIN categories c ON c.id = pc.category_id WHERE pc.product_id = p.id) AS cats
             FROM products p
             LEFT JOIN product_brands b ON b.id = p.brand_id
             WHERE " . self::PUBLIC_WHERE . "
-              AND (p.name LIKE ? OR p.sku LIKE ? OR p.short_description LIKE ?)
             ORDER BY (COALESCE(p.website_price,0) > 0) DESC, p.name
-        ", [$like, $like, $like]);
+        ");
 
-        return array_slice($this->collapseVariants($rows), 0, $limit);
+        $hits = [];
+
+        foreach ($rows as $r) {
+            $text = mb_strtolower(implode(' ', [
+                $r['name'], $r['website_name'], $r['variant_title'], $r['variant_label'],
+                $r['sku'], $r['cats'], $r['brand_name'], $r['sd'],
+            ]));
+
+            foreach ($words as $w) {
+                if (!self::wordIn($text, $w)) {
+                    continue 2;
+                }
+            }
+
+            $title = mb_strtolower((string)($r['website_name'] ?: $r['name']));
+            $named = true;
+
+            foreach ($words as $w) {
+                if (!preg_match('/^\d/', $w) && !self::wordIn($title, $w)) {
+                    $named = false;
+                    break;
+                }
+            }
+
+            $r['_score'] = $named ? 0 : 1;
+            $hits[] = $r;
+        }
+
+        $listings = $this->collapseVariants($hits);
+
+        usort($listings, static fn($a, $b) =>
+            [$a['_score'], mb_strlen((string)($a['website_name'] ?: $a['name']))]
+            <=> [$b['_score'], mb_strlen((string)($b['website_name'] ?: $b['name']))]);
+
+        return array_slice($listings, 0, $limit);
+    }
+
+    /** '96 inch no parking' → ['96"', 'no', 'parking']. */
+    public static function searchWords(string $q): array
+    {
+        $q = mb_strtolower($q);
+        $q = (string)preg_replace('/(\d)\s*(?:inches|inch|in\b|["“”″])/u', '$1"', $q);
+        $q = (string)preg_replace("/(\d)\s*(?:feet|foot|ft\b|['‘’′])/u", "$1'", $q);
+
+        return array_values(array_filter(preg_split('/[\s,]+/u', $q) ?: [], static fn($w) => $w !== ''));
+    }
+
+    private static function wordIn(string $text, string $w): bool
+    {
+        if (preg_match('/^\d/', $w)) {
+            return (bool)preg_match('/(^|[^\d.\/])' . preg_quote($w, '/') . '/u', $text);
+        }
+
+        return str_contains($text, $w)
+            || (mb_strlen($w) > 3 && str_ends_with($w, 's') && str_contains($text, mb_substr($w, 0, -1)));
     }
     /**
      * Is this value actually usable as an <img src>?
@@ -301,7 +379,8 @@ class StorefrontRepository extends Repository
         }
 
         return Database::select("
-            SELECT p.sku, p.name, p.website_price, p.variant_label, p.variant_order, p.variant_title, p.variant_axis
+            SELECT p.sku, p.name, p.website_price, p.variant_label, p.variant_order, p.variant_title, p.variant_axis,
+                   p.website_slug, p.website_size_slug, p.website_short_description
             FROM products p
             WHERE " . self::PUBLIC_WHERE . " AND p.variant_group = ?
             ORDER BY p.variant_order, p.sku
@@ -424,35 +503,188 @@ class StorefrontRepository extends Repository
      */
     public function treeChildren(string $parentSlug): array
     {
-        $parent = Database::selectOne(
-            "SELECT id FROM categories WHERE external_ref = ? AND is_active = 1 LIMIT 1",
+        // A tree mirrored from the old WooCommerce site carries its slug in external_ref;
+        // a tree of our own (Stencils) is found by its slug.
+        $wc = Database::selectOne(
+            "SELECT id, slug FROM categories WHERE external_ref = ? AND is_active = 1 LIMIT 1",
             ['WC:' . $parentSlug]
         );
 
-        if (!$parent) {
-            return [];
+        if ($wc) {
+            // The paint trees: one level, as they have always been shown.
+            return $this->childrenOf((int)$wc['id'], '', 1);
         }
 
+        $own = Database::selectOne(
+            "SELECT id, slug FROM categories WHERE slug = ? AND parent_id IS NULL AND is_active = 1 LIMIT 1",
+            [$parentSlug]
+        );
+
+        // Two levels for our own tree: Endzone under Sports, each chain under Retail.
+        return $own ? $this->childrenOf((int)$own['id'], (string)$own['slug'], 2) : [];
+    }
+
+    /**
+     * The children of a category that hold something, with their own children.
+     *
+     * Sorted by sort_order, then name: the stencil categories are in the order the
+     * stencil shop showed them, and the WooCommerce trees (all sort_order 0) stay A-Z.
+     *
+     * URL slugs drop the root's slug from the front, so the stencil category
+     * stencils-words is /shop/stencils/words and the chain stencils-retail-target is
+     * /shop/stencils/retail-target.
+     */
+    private function childrenOf(int $parentId, string $rootSlug, int $depth): array
+    {
         $out = [];
 
         foreach (Database::select(
-            "SELECT id, name, slug FROM categories WHERE parent_id = ? AND is_active = 1 ORDER BY name",
-            [(int)$parent['id']]
+            "SELECT id, name, slug, description, website_copy, image_path FROM categories
+             WHERE parent_id = ? AND is_active = 1 ORDER BY sort_order, name",
+            [$parentId]
         ) as $child) {
             $seen = [];
             $n = $this->categoryReach((int)$child['id'], $seen);
 
-            if ($n > 0) {
-                $out[] = [
-                    'slug'       => $child['slug'],
-                    'label'      => $child['name'],
-                    'categories' => $this->categoryNamesBeneath((int)$child['id']),
-                    'count'      => $n,
-                ];
+            if ($n <= 0) {
+                continue;
             }
+
+            $slug = (string)$child['slug'];
+
+            // Only for our own tree; the paint trees keep the addresses they have.
+            if ($rootSlug !== '' && str_starts_with($slug, $rootSlug . '-')) {
+                $slug = substr($slug, strlen($rootSlug) + 1);
+            }
+
+            $out[] = [
+                'id'         => (int)$child['id'],
+                'slug'       => $slug,
+                'label'      => $child['name'],
+                'blurb'      => (string)($child['description'] ?? ''),
+                'copy'       => (string)($child['website_copy'] ?? ''),
+                'image'      => (string)($child['image_path'] ?? ''),
+                'categories' => $this->categoryNamesBeneath((int)$child['id']),
+                'own'        => $this->ownCount((int)$child['id']),
+                'count'      => $n,
+                'children'   => $depth > 1 ? $this->childrenOf((int)$child['id'], $rootSlug, $depth - 1) : [],
+            ];
         }
 
         return $out;
+    }
+
+    /** Listings filed directly in a category, not beneath it. */
+    private function ownCount(int $id): int
+    {
+        $row = Database::selectOne("
+            SELECT COUNT(DISTINCT COALESCE(NULLIF(p.variant_group, ''), CONCAT('#', p.id))) n
+            FROM product_categories pc JOIN products p ON p.id = pc.product_id
+            WHERE pc.category_id = ? AND " . self::PUBLIC_WHERE, [$id]);
+
+        return (int)($row['n'] ?? 0);
+    }
+
+    /** A root category's long copy and blurb, for a section's landing page. */
+    public function categoryCopy(string $slug): array
+    {
+        return Database::selectOne(
+            "SELECT name, description, website_copy, image_path FROM categories WHERE slug = ? AND is_active = 1 LIMIT 1",
+            [$slug]
+        ) ?: [];
+    }
+
+    /**
+     * The SKU a /stencils/{slug}[/{size}] address shows.
+     *
+     * Without a size, the listing's first variant (its smallest size, 1/8"). With a
+     * material — the thickness picker's ?material=3-32 — the variant of that size cut in
+     * that material, falling back to the size's first.
+     */
+    public function skuForListing(string $slug, string $size = '', string $material = ''): ?string
+    {
+        $rows = Database::select("
+            SELECT p.sku, p.website_size_slug, p.variant_label
+            FROM products p
+            WHERE " . self::PUBLIC_WHERE . " AND p.website_slug = ?
+            ORDER BY p.variant_order, p.sku
+        ", [$slug]);
+
+        if ($size !== '') {
+            $rows = array_values(array_filter($rows, static fn($r) => $r['website_size_slug'] === $size));
+        }
+
+        if ($material !== '') {
+            foreach ($rows as $r) {
+                if (self::materialSlug((string)$r['variant_label']) === $material) {
+                    return $r['sku'];
+                }
+            }
+        }
+
+        return $rows[0]['sku'] ?? null;
+    }
+
+    /** '4" letters · 3/32"' → '3-32'; '10 mil' → '10-mil'. The thickness part of a label. */
+    public static function materialSlug(string $label): string
+    {
+        $parts = explode(' · ', $label);
+
+        return trim((string)preg_replace('/[^a-z0-9]+/', '-', strtolower(str_replace(['"', '”', '″'], '', end($parts)))), '-');
+    }
+
+    /** Where a row's page is: the listing address for a stencil, else /product/{sku}. */
+    public static function urlFor(array $row, bool $withSize = false): string
+    {
+        $slug = trim((string)($row['website_slug'] ?? ''));
+
+        if ($slug === '') {
+            return '/product/' . rawurlencode((string)$row['sku']);
+        }
+
+        $size = trim((string)($row['website_size_slug'] ?? ''));
+
+        return '/stencils/' . rawurlencode($slug) . ($withSize && $size !== '' ? '/' . rawurlencode($size) : '');
+    }
+
+    /** The innermost stencil category a product sits in, for its breadcrumb. */
+    public function crumbsFor(int $productId, string $rootSlug): array
+    {
+        $root = Database::selectOne("SELECT id, name FROM categories WHERE slug = ? AND parent_id IS NULL", [$rootSlug]);
+
+        if (!$root) {
+            return [];
+        }
+
+        $row = Database::selectOne("
+            SELECT c.id, c.name, c.slug, c.parent_id, pa.name AS parent_name, pa.slug AS parent_slug, pa.parent_id AS grand
+            FROM product_categories pc
+            JOIN categories c   ON c.id = pc.category_id AND c.is_active = 1
+            LEFT JOIN categories pa ON pa.id = c.parent_id
+            WHERE pc.product_id = ? AND c.id <> ?
+            ORDER BY pc.is_primary DESC LIMIT 1
+        ", [$productId, (int)$root['id']]);
+
+        if (!$row) {
+            return [];
+        }
+
+        $short = static fn(string $s) => str_starts_with($s, $rootSlug . '-') ? substr($s, strlen($rootSlug) + 1) : $s;
+        $out   = [];
+
+        if ((int)$row['grand'] === (int)$root['id']) {
+            $out[] = ['label' => $row['parent_name'], 'href' => '/shop/' . $rootSlug . '/' . $short((string)$row['parent_slug'])];
+        }
+
+        $out[] = ['label' => $row['name'], 'href' => '/shop/' . $rootSlug . '/' . $short((string)$row['slug'])];
+
+        return $out;
+    }
+
+    /** A content page by slug: title, description, html. */
+    public function sitePage(string $slug): array|false
+    {
+        return Database::selectOne("SELECT slug, title, description, html FROM site_pages WHERE slug = ?", [$slug]);
     }
 
     /**

@@ -98,43 +98,18 @@ return [
             // Children come from this live-tree category, not from a list here.
             'tree'  => 'stencils',
             'label' => 'Stencils',
-            'blurb' => 'Endzone, midfield and numbering stencils. Most are made to order — ask for a quote.',
+            // The stencil shop's own opening line.
+            'blurb' => 'Reusable pavement marking stencils from US Specialty Coatings, an American manufacturer of field and traffic marking paint since 1989.',
             // No internal category gathers these; the name is what identifies them.
             'categories' => ['Stencils'],
             'name_like'  => ['stencil'],
 
             /*
-             * Subcategories: the stencil shop's own categories, in its order, with its
-             * slugs so /shop/stencils/words here answers what /shop/words did there.
-             * Chip, 19 Nov 2026: the shop's categories are the approved listings
-             * (database/sync_stencils_from_shop.php keeps the category rows in step).
-             * Moving a product between them is a change in USSCOS, not a deploy.
-             *
-             * A child listed here shows in the menu even when empty, and its page then
-             * says "Nothing is filed under this section yet". So Rooftop and Yard & Lawn,
-             * quote-only on the shop with no SKUs, are left out until the storefront can
-             * show a quote listing; their categories exist, with descriptions and photos.
+             * No 'children' here: they come from the Stencils category tree (the 'tree'
+             * key above), which holds the stencil shop's categories in its order, chains
+             * under Retail and Endzone, Midfield and Custom Field under Sports.
+             * database/sync_stencils_from_shop.php keeps that tree in step with the shop.
              */
-            'children' => [
-                ['slug' => 'words',   'label' => 'Word Stencils',
-                 'blurb' => 'NO PARKING, FIRE LANE, STOP, RESERVED and dozens more, in 4" to 96" letters.',
-                 'categories' => ['Word Stencils']],
-                ['slug' => 'symbols', 'label' => 'Symbols & Arrows',
-                 'blurb' => 'Handicap, EV, bike lane, DOT arrows, lines and stop bars.',
-                 'categories' => ['Symbols & Arrows']],
-                ['slug' => 'kits',    'label' => 'Letter & Number Kits',
-                 'blurb' => 'Alphabet and number kits for stall numbers and custom messages.',
-                 'categories' => ['Letter & Number Kits']],
-                ['slug' => 'retail',  'label' => 'Retail Chain Stencils',
-                 'blurb' => 'Ready-made stencils made to the site specifications of national retail and restaurant chains.',
-                 'categories' => ['Retail Chain Stencils']],
-                ['slug' => 'sports',  'label' => 'Sports & Athletics',
-                 'blurb' => 'Field numbers, hashmarks, courts, track lanes and more.',
-                 'categories' => ['Sports & Athletics', 'Endzone Stencils', 'Midfield Logo Stencils', 'Custom Field Stencils']],
-                ['slug' => 'ribbons', 'label' => 'Ribbon Stencils',
-                 'blurb' => 'Large-format awareness ribbon stencils for fields and lots.',
-                 'categories' => ['Ribbon Stencils']],
-            ],
         ],
         [
             'slug' => 'specialty-coatings',

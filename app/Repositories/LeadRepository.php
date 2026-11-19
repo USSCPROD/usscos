@@ -183,4 +183,33 @@ class LeadRepository
             FROM leads
         ") ?: [];
     }
+
+    /** A lead from a website form. See App\Services\WebsiteLeadService. */
+    public function insertWebsiteLead(array $d): int
+    {
+        Database::insert(
+            'INSERT INTO leads
+                (first_name, last_name, company_name, email, phone,
+                 source, source_detail, notes, status, rep_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, \'web\', ?, ?, \'new\', ?, NOW(), NOW())',
+            [
+                $d['first_name'], $d['last_name'], $d['company_name'], $d['email'],
+                $d['phone'], $d['source_detail'], $d['notes'], $d['rep_id'],
+            ]
+        );
+
+        return (int)Database::lastInsertId();
+    }
+
+    /** The lead_routing_* settings, key => value. */
+    public function routingSettings(): array
+    {
+        $map = [];
+
+        foreach (Database::select("SELECT setting_key, setting_value FROM settings WHERE setting_key LIKE 'lead_routing_%'") as $row) {
+            $map[$row['setting_key']] = $row['setting_value'];
+        }
+
+        return $map;
+    }
 }

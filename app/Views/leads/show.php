@@ -63,7 +63,11 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
 
             <?php if ($lead['notes']): ?>
                 <h3 class="card__section-title" style="margin-top:1.25rem">Notes</h3>
-                <p style="font-size:.9rem;color:#374151;line-height:1.6;white-space:pre-wrap"><?= e($lead['notes']) ?></p>
+                <p style="font-size:.9rem;color:#374151;line-height:1.6;white-space:pre-wrap"><?php
+                    // A website enquiry's artwork is noted as /leads/files/{name}: make
+                    // that a link. Escaped first, so nothing else in the notes is trusted.
+                    echo preg_replace('#(/leads/files/[0-9a-f]{32}\.[a-z0-9]{2,4})#', '<a href="$1">$1</a>', e($lead['notes']));
+                ?></p>
             <?php endif; ?>
         </div>
     </div>

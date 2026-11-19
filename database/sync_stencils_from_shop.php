@@ -33,6 +33,13 @@ declare(strict_types=1);
  *   4. SHOP-ONLY SKUs are inserted under their shop category.
  *   5. RETIRE: superseded SKUs are deactivated and unpublished. Never deleted: products
  *      are referenced from seven tables (CLAUDE.md, Destructive operations).
+ *   6. CHAINS. The shop's retail stencils have a page per chain (/brand/mcdonalds). Here
+ *      each chain is a category under Retail Chain Stencils, its blurb the shop's chain
+ *      copy, and a retail stencil is filed under its chain.
+ *   7. QUOTE LISTINGS. Endzone, Midfield, Custom Field, Rooftop and Yard & Lawn are
+ *      call-for-pricing on the shop: no SKU, a page of photos and a quote form. Each
+ *      becomes one non-inventory product with no price (QUOTE_SKU), so it has a page,
+ *      a card and a category like everything else.
  *
  * WHAT IT DOES NOT DO
  *   - Retire a USSCOS-only SKU that is not in RETIRE. Those are reported and left; whether
@@ -84,6 +91,15 @@ const REUSE = [
 ];
 
 const KEEP_NAME = ['ribbons' => 'Ribbon Stencils'];
+
+/** Shop call-for-pricing listing => the SKU it has here. Chosen, not derived: they are permanent. */
+const QUOTE_SKU = [
+    'cf-endzone-lettering'           => 'STEN-CUSTOM-ENDZONE',
+    'cf-midfield-logo'               => 'STEN-CUSTOM-MIDFIELD',
+    'cf-custom-field'                => 'STEN-CUSTOM-FIELD',
+    'ussc-custom-rooftop-stencils'   => 'STEN-CUSTOM-ROOFTOP',
+    'ussc-custom-yard-lawn-stencils' => 'STEN-CUSTOM-YARD',
+];
 
 /**
  * USSCOS-only SKUs with no other thickness on the shop to file beside: SKU prefix => shop
@@ -149,6 +165,7 @@ foreach ($catalog['products'] as $p) {
                 'sku'     => $sku,
                 'product' => (string)$p['id'],
                 'section' => (string)($p['category'] ?? ''),
+                'file'    => fileKey($p),
                 'group'   => (string)($p['group'] ?? ''),
                 'name'    => (string)$p['name'],
                 'size'    => (string)($v['label'] ?? ''),
@@ -157,8 +174,22 @@ foreach ($catalog['products'] as $p) {
                 'weight'  => isset($o['weight']) && $o['weight'] !== null ? round((float)$o['weight'], 2) : null,
             ];
 
-            $shopBase[skuBase($sku)] = (string)($p['category'] ?? '');
+            $shopBase[skuBase($sku)] = fileKey($p);
         }
+    }
+}
+
+/** Quote listings: SKU (upper) => shop product. */
+$quotes = [];
+
+foreach ($catalog['products'] as $p) {
+    if (!empty($p['callForPricing'])) {
+        if (!isset(QUOTE_SKU[$p['id']])) {
+            fwrite(STDERR, "Shop quote listing '{$p['id']}' has no SKU in QUOTE_SKU. Add one.\n");
+            exit(1);
+        }
+
+        $quotes[QUOTE_SKU[$p['id']]] = $p;
     }
 }
 
@@ -255,6 +286,33 @@ foreach ($catalog['categories'] as $c) {
         'slug'        => $slug,
         'description' => isset($c['blurb']) ? (string)$c['blurb'] : null,
         'parent'      => isset($c['parent']) ? (string)$c['parent'] : null,
+        'sort_order'  => $order,
+    ];
+}
+
+// Chains, A to Z, under Retail Chain Stencils.
+$chains = [];
+
+foreach ($catalog['products'] as $p) {
+    if (($p['category'] ?? '') === 'retail' && trim((string)($p['brand'] ?? '')) !== '') {
+        $chains[chainSlug($p['brand'])] = trim((string)$p['brand']);
+    }
+}
+
+asort($chains, SORT_NATURAL | SORT_FLAG_CASE);
+
+foreach ($chains as $cs => $chain) {
+    $key  = 'chain:' . $cs;
+    $slug = 'stencils-retail-' . $cs;
+    $order += 10;
+
+    $catPlan[$key] = [
+        'id'          => $treeBySlug[$slug] ?? null,
+        'was'         => isset($treeBySlug[$slug]) ? $tree[$treeBySlug[$slug]]['name'] : null,
+        'name'        => $chain . ' Stencils',
+        'slug'        => $slug,
+        'description' => isset($catalog['brandCopy'][$chain]) ? (string)$catalog['brandCopy'][$chain] : null,
+        'parent'      => 'retail',
         'sort_order'  => $order,
     ];
 }
@@ -378,7 +436,12 @@ foreach ($os as $key => $cur) {
     $id = (int)$cur['id'];
 
     if (isset($shop[$key])) {
-        $fileAs[$id] = $shop[$key]['section'];
+        $fileAs[$id] = $shop[$key]['file'];
+        continue;
+    }
+
+    if (isset($quotes[$key])) {
+        $fileAs[$id] = (string)$quotes[$key]['category'];
         continue;
     }
 
@@ -429,7 +492,22 @@ foreach ($fileAs as $pid => $section) {
 }
 
 foreach ($inserts as $s) {
-    $perCat[$s['section']] = ($perCat[$s['section']] ?? 0) + 1;
+    $perCat[$s['file']] = ($perCat[$s['file']] ?? 0) + 1;
+}
+
+// Quote listings not yet in USSCOS.
+$quoteInserts = [];
+
+foreach ($quotes as $qsku => $p) {
+    if (!isset($os[$qsku])) {
+        if (isset($allSkus[$qsku])) {
+            $clashes[] = $qsku;
+            continue;
+        }
+
+        $quoteInserts[$qsku] = $p;
+        $perCat[(string)$p['category']] = ($perCat[(string)$p['category']] ?? 0) + 1;
+    }
 }
 
 // Links from products that are not stencils at all, into categories about to be retired.
@@ -509,8 +587,14 @@ foreach ($inserts as $s) {
         $s['price'],
         $s['weight'] === null ? '—' : number_format($s['weight'], 2),
         insertName($s),
-        $catPlan[$s['section']]['name'] ?? 'Stencils only'
+        $catPlan[$s['file']]['name'] ?? 'Stencils only'
     );
+}
+
+printf("\n── Insert %d quote listing(s)\n", count($quoteInserts));
+
+foreach ($quoteInserts as $qsku => $p) {
+    printf("   %-22s %-40s → %s\n", $qsku, $p['name'], $catPlan[(string)$p['category']]['name'] ?? '?');
 }
 
 if ($noPrice !== []) {
@@ -621,7 +705,18 @@ try {
             $s['weight'] === null ? null : 'Pounds',
         ]);
 
-        $fileAs[(int)$pdo->lastInsertId()] = $s['section'];
+        $fileAs[(int)$pdo->lastInsertId()] = $s['file'];
+    }
+
+    // Quote listings: no price, no weight, not stocked. The page asks for a quote.
+    $insQ = $pdo->prepare(
+        "INSERT INTO products (sku, name, quickbooks_item, item_type, pack_level, brand_id, publish_to_website, is_active)
+         VALUES (?, ?, ?, 'non_inventory_part', 'Each', ?, 1, 1)"
+    );
+
+    foreach ($quoteInserts as $qsku => $p) {
+        $insQ->execute([$qsku, (string)$p['name'], 'US SPECIALTY COATINGS:' . $qsku, $brand ? (int)$brand['id'] : null]);
+        $fileAs[(int)$pdo->lastInsertId()] = (string)$p['category'];
     }
 
     $off = $pdo->prepare("UPDATE products SET is_active = 0, publish_to_website = 0 WHERE id = ?");
@@ -656,8 +751,8 @@ try {
     }
 
     $pdo->commit();
-    printf("\nCategories: %d set, %d retired. Products: updated %d, inserted %d, deactivated %d, %d filed.\n",
-        count($catPlan), count($retireCat), count($updates), count($inserts), count($retire), count($fileAs));
+    printf("\nCategories: %d set, %d retired. Products: updated %d, inserted %d + %d quote, deactivated %d, %d filed.\n",
+        count($catPlan), count($retireCat), count($updates), count($inserts), count($quoteInserts), count($retire), count($fileAs));
 } catch (\Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -669,6 +764,20 @@ try {
 
 if ($inserts !== []) {
     echo "\nRun database/group_stencil_variants.php (dry run, then --commit) to group the new thicknesses.\n";
+}
+
+/** Where a shop product is filed here: its chain for a retail stencil, else its category. */
+function fileKey(array $p): string
+{
+    $brand = trim((string)($p['brand'] ?? ''));
+
+    return ($p['category'] ?? '') === 'retail' && $brand !== '' ? 'chain:' . chainSlug($brand) : (string)($p['category'] ?? '');
+}
+
+/** The shop's brand slug rule: 'Zaxby’s' → 'zaxby-s'. */
+function chainSlug(string $name): string
+{
+    return trim((string)preg_replace('/[^a-z0-9]+/', '-', strtolower($name)), '-');
 }
 
 /** A SKU with its thickness segment (-8, -32, -16) removed: ST-STOPBAR-18x8-32 → ST-STOPBAR-18x8. */

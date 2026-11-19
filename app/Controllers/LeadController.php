@@ -59,6 +59,22 @@ class LeadController extends Controller
         return $response->redirect('/leads/' . $id);
     }
 
+    /**
+     * A file a customer attached to a website enquiry, for staff. Sent as a download,
+     * never shown inline: it is the customer's file, and an SVG opened in the browser
+     * would run with this application's origin.
+     */
+    public function file(Request $request, Response $response, string $name = ''): Response
+    {
+        $path = \App\Services\WebsiteLeadService::filePath($name);
+
+        if ($path === null) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        return $response->download($path, $name);
+    }
+
     public function show(Request $request, Response $response, string $id = '0'): Response
     {
         $lead = $this->leads->find((int)$id);
