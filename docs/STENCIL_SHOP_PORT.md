@@ -2,8 +2,11 @@
 
 Started 19 November 2026. **Goal, from Chip:** USSCOS shows and sells stencils *just like*
 stencils.usscproducts.com does: the same categories, pages, calculators and designers.
-The usscos site replaces WordPress usscproducts.com and the stencil shop, so this is one
-site and one database.
+
+**One site.** Chip, 19 Nov 2026: the usscproducts.com WordPress site will be deleted and
+the domain pointed at USSCOS. There is no separate stencil site and no stencil subdomain.
+Stencils are one section of the same navigation, and nothing on the site links to
+another site. The stencil shop is only a data source until cut-over.
 
 The shop is a Python app (`USSCPROD/stencilsplus-website`, local clone
 `~/Documents/StencilsPlus Website/site`) running as the `usscstencils` service on
@@ -46,7 +49,8 @@ the designers**.
 
 Each phase ships on its own and is usable when it lands.
 
-1. **Browse like the shop.**
+1. **Browse like the shop.** ✅ Done 19 Nov 2026. Quote listings link `/custom` and
+   `/custom/endzone|midfield` to the quote forms until phases 2 and 5 build the tools.
    - All 11 categories, with Sports' three children.
    - Category copy.
    - Chain pages.
