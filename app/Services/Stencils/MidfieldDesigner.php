@@ -105,7 +105,7 @@ class MidfieldDesigner
                 'weight' => (int)ceil($height * $length * $e::LBS_PER_SQ_FT),
                 'columns' => $columns, 'rows' => $rows, 'panels' => $panels,
                 'panelWidth' => round($height / $columns, 2), 'panelLength' => round($panelL, 2),
-                'boxes' => $boxes, 'price' => round($cost * $e::RETAIL, 2)];
+                'boxes' => $boxes, 'price' => round($cost * $e::RETAIL, 2), 'wholesale' => round($cost * $e::WHOLESALE, 2)];
     }
 
     /** @throws DesignerError */
@@ -142,7 +142,7 @@ class MidfieldDesigner
                 'fieldLabel' => self::FIELDS[$field]['label'], 'width' => $w, 'height' => $h, 'aspect' => $m['aspect'],
                 'hash' => round(self::FIELDS[$field]['hash'], 2), 'hashGap' => round($gap, 2), 'insideHashes' => $h <= $gap + 0.05,
                 'fieldSize' => ['length' => $length, 'width' => $fieldW, 'endZone' => self::END_ZONE], 'material' => self::MATERIAL,
-                'price' => $c['price'], 'panels' => $c['panels'], 'columns' => $c['columns'], 'rows' => $c['rows'],
+                'price' => $c['price'], 'wholesale' => $c['wholesale'], 'panels' => $c['panels'], 'columns' => $c['columns'], 'rows' => $c['rows'],
                 'panelWidth' => $c['panelWidth'], 'panelLength' => $c['panelLength'],
                 'sheet' => ['width' => round($w + $b, 2), 'height' => round($h + $b, 2)], 'border' => $b / 2,
                 'weight' => $c['weight'], 'boxes' => (int)ceil($c['panels'] / EndzoneDesigner::PANELS_PER_BOX),

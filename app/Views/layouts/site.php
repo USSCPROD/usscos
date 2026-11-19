@@ -196,7 +196,8 @@ img{max-width:100%;display:block}
              value="<?= e($q ?? '') ?>" aria-label="Search products">
       <button type="submit">Search</button>
     </form>
-    <a href="/cart" style="font-weight:700;color:var(--navy);white-space:nowrap;margin-left:auto">Cart <span data-cart-count></span></a>
+    <a href="/account" data-account-link style="font-weight:600;color:var(--navy);white-space:nowrap;margin-left:auto;margin-right:1rem">Sign in</a>
+    <a href="/cart" style="font-weight:700;color:var(--navy);white-space:nowrap">Cart <span data-cart-count></span></a>
     <div class="mast-cta">
       <div class="tel"><?= e($co['phone']) ?></div>
       <div class="lb"><?= e($co['hours']) ?></div>
@@ -264,7 +265,7 @@ img{max-width:100%;display:block}
   </div>
 </footer>
 
-<script src="/assets/js/cart.js?v=2" defer></script>
+<script src="/assets/js/cart.js?v=3" defer></script>
 
 </body>
 </html>

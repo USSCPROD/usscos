@@ -16,7 +16,7 @@
     <div class="note" style="margin-bottom:3rem">The custom stencil builder isn't available just now.
       Please <a href="/contact?about=Custom%20stencil">tell us what you need</a> and we'll quote it.</div>
   <?php else: ?>
-  <div class="dz-grid" id="custom-designer" data-sizes="<?= e(json_encode($sizes)) ?>"
+  <div class="dz-grid" id="custom-designer" data-saved="<?= e(json_encode($saved)) ?>" data-sizes="<?= e(json_encode($sizes)) ?>"
        data-materials="<?= e(json_encode($materials)) ?>" data-default="<?= e($default) ?>">
     <div class="dz-card">
       <label class="dz-label" for="c-text">Your text <span style="text-transform:none;letter-spacing:0;font-weight:400">(up to 3 lines)</span></label>
@@ -41,6 +41,7 @@
       <div class="dz-sub" id="c-breakdown"></div>
       <div id="c-msg"></div>
       <button class="dz-btn p" type="button" data-add-design disabled>Add to cart</button>
+      <?= view('site._designer_parts', ['part' => 'save', 'signedIn' => $signedIn]) ?>
       <a class="dz-btn" href="#request" style="text-align:center;text-decoration:none;box-sizing:border-box">Or send it to us for a quote ↓</a>
     </div>
 
@@ -56,7 +57,7 @@
   <?php endif; ?>
 </div>
 
-<script src="/assets/js/stencil-designers.js?v=3" defer></script>
+<script src="/assets/js/stencil-designers.js?v=4" defer></script>
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/site.php';

@@ -13,7 +13,7 @@
       We cut it as one stencil with a dot pattern, so every color of your logo paints from the same stencil.</p>
   </div>
 
-  <div class="dz-grid" id="midfield-designer" data-options="<?= e(json_encode($options)) ?>">
+  <div class="dz-grid" id="midfield-designer" data-saved="<?= e(json_encode($saved)) ?>" data-options="<?= e(json_encode($options)) ?>">
     <div class="dz-card">
       <span class="dz-label">Your logo</span>
       <label class="dz-drop" id="mf-drop">
@@ -32,7 +32,7 @@
       <div class="dz-price" id="mf-price">—</div>
       <div class="dz-sub" id="mf-breakdown">Upload your logo to see the price.</div>
       <div id="mf-msg"></div>
-      <?= view('site._designer_parts', ['part' => 'buy']) ?>
+      <?= view('site._designer_parts', ['part' => 'buy', 'signedIn' => $signedIn]) ?>
     </div>
 
     <div>
@@ -47,7 +47,7 @@
   <?= view('site._designer_parts', ['part' => 'request', 'kind' => 'midfield', 'sent' => $sent, 'error' => $error]) ?>
 </div>
 
-<script src="/assets/js/stencil-designers.js?v=3" defer></script>
+<script src="/assets/js/stencil-designers.js?v=4" defer></script>
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/site.php';

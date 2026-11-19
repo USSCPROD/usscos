@@ -268,12 +268,14 @@ class EndzoneDesigner
                 $weight += ($g['width'] + self::BORDER) * ($h + self::BORDER) * self::LBS_PER_SQ_FT;
             }
 
+            // Wholesale as the shop did it: each letter at the price sheet's wholesale.
             $out += ['price' => round($n * $size['letterPrice'], 2), 'letterPrice' => $size['letterPrice'],
+                     'wholesale' => round($n * round($size['letterPrice'] * 2 / 2.75, 2), 2),
                      'pieces' => $n, 'weight' => (int)ceil($weight), 'boxes' => (int)ceil($n / self::LETTERS_PER_BOX),
                      'border' => self::BORDER / 2];
         } else {
             $c = self::calculator($lay['width'], $h);
-            $out += ['price' => $c['price'], 'pieces' => self::sections($c['panels']),
+            $out += ['price' => $c['price'], 'wholesale' => $c['wholesale'], 'pieces' => self::sections($c['panels']),
                      'sections' => self::sections($c['panels']), 'sectionPanels' => self::sectionPanels($c['panels'], $c['tall']),
                      'panels' => $c['panels'], 'tall' => $c['tall'], 'along' => $c['along'],
                      'panelWidth' => $c['panelWidth'], 'panelHeight' => $c['panelHeight'],

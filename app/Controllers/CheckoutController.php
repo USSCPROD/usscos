@@ -10,6 +10,7 @@ use App\Core\Response;
 use App\Repositories\WebCheckoutRepository;
 use App\Services\Stencils\DesignerError;
 use App\Services\Web\CartService;
+use App\Services\Web\CustomerAccounts;
 use App\Services\Web\SquareClient;
 use App\Services\Web\WebOrderService;
 
@@ -25,11 +26,16 @@ class CheckoutController extends Controller
 {
     public function cart(Request $request, Response $response): Response
     {
+        $login = CustomerAccounts::current();
+
         return $this->view('site.cart', [
             'title'   => 'Your Cart',
             'nav'     => (new SiteController())->navForDesigner(),
             'enabled' => (new WebOrderService())->enabled(),
             'sandbox' => (new SquareClient())->environment() === 'sandbox',
+            'login'   => $login,
+            'trade'   => CustomerAccounts::isTrade($login),
+            'tier'    => CustomerAccounts::tier($login),
         ]);
     }
 
@@ -37,12 +43,12 @@ class CheckoutController extends Controller
     public function price(Request $request, Response $response): Response
     {
         try {
-            $priced = (new CartService())->price($this->body()['items'] ?? []);
+            $priced = (new CartService())->price($this->body()['items'] ?? [], CustomerAccounts::tier(CustomerAccounts::current()));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
         }
 
-        return $response->json(['lines' => $priced['lines'], 'subtotal' => $priced['subtotal']]);
+        return $response->json(['lines' => $priced['lines'], 'subtotal' => $priced['subtotal'], 'tier' => $priced['tier']]);
     }
 
     /** {items, zip, residential} → {zip, options: [{id, name, price}]} */
@@ -51,7 +57,8 @@ class CheckoutController extends Controller
         $in = $this->body();
 
         try {
-            return $response->json((new WebOrderService())->shipping($in['items'] ?? [], (string)($in['zip'] ?? ''), !empty($in['residential'])));
+            return $response->json((new WebOrderService())->shipping($in['items'] ?? [], (string)($in['zip'] ?? ''), !empty($in['residential']),
+                                                                     CustomerAccounts::tier(CustomerAccounts::current())));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
         }
@@ -64,12 +71,38 @@ class CheckoutController extends Controller
 
         try {
             $out = (new WebOrderService())->start($in['items'] ?? [], (string)($in['zip'] ?? ''), !empty($in['residential']),
-                                                  (string)($in['service'] ?? ''), 'https://' . $request->host());
+                                                  (string)($in['service'] ?? ''), 'https://' . $request->host(), CustomerAccounts::current());
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
         }
 
         return $response->json(['url' => $out['url']]);
+    }
+
+    /**
+     * A distributor's order on account. {items, ship: {...}, service, po, quote?} → {url}
+     * Signed in, linked, distributor tier, and posted from this site.
+     */
+    public function terms(Request $request, Response $response): Response
+    {
+        $login = CustomerAccounts::current();
+
+        if (!$login || !CustomerAccounts::sameOrigin($request)) {
+            return $response->json(['error' => 'Please sign in to order on account.'], 401);
+        }
+
+        $in = $this->body();
+
+        try {
+            $out = (new WebOrderService())->terms($login, $in['items'] ?? [], (array)($in['ship'] ?? []), (string)($in['service'] ?? ''),
+                                                  (string)($in['po'] ?? ''), !empty($in['quote']) ? (int)$in['quote'] : null);
+        } catch (DesignerError $e) {
+            return $response->json(['error' => $e->getMessage()], 422);
+        }
+
+        $checkout = (new WebCheckoutRepository())->forSalesOrder($out['so_id']);
+
+        return $response->json(['url' => '/checkout/thanks?c=' . urlencode((string)($checkout['token'] ?? ''))]);
     }
 
     /**
@@ -87,6 +120,7 @@ class CheckoutController extends Controller
             'state'  => $result['state'],
             'number' => $result['so_number'] ?? null,
             'total'  => $checkout !== false ? (float)$checkout['total'] : 0,
+            'terms'  => $checkout !== false && ($checkout['paid_by'] ?? 'card') === 'terms',
         ]);
     }
 

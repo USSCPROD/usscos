@@ -4,8 +4,13 @@
     <!-- data-cart-bought: cart.js empties this browser's cart. -->
     <div data-cart-bought></div>
     <h1 style="margin:0 0 .6rem;font-size:1.9rem">Thank you for your order</h1>
-    <p style="font-size:1.05rem">Your payment of <strong><?= money($total) ?></strong> went through and your order number is
-      <strong><?= e((string)$number) ?></strong>. Square has emailed your receipt.</p>
+    <?php if (!empty($terms)): ?>
+      <p style="font-size:1.05rem">Your order of <strong><?= money($total) ?></strong> is placed on your account. Your order
+        number is <strong><?= e((string)$number) ?></strong>, and we'll invoice it on your usual terms.</p>
+    <?php else: ?>
+      <p style="font-size:1.05rem">Your payment of <strong><?= money($total) ?></strong> went through and your order number is
+        <strong><?= e((string)$number) ?></strong>. Square has emailed your receipt.</p>
+    <?php endif; ?>
     <p>We'll be in touch if we have any questions, and you'll hear from us when it ships.
       Custom stencils are checked by our art team before they're cut.</p>
   <?php elseif ($state === 'unpaid'): ?>

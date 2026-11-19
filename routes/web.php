@@ -32,6 +32,8 @@ use App\Controllers\ShippingController;
 use App\Controllers\SiteController;
 use App\Controllers\DesignerController;
 use App\Controllers\CheckoutController;
+use App\Controllers\AccountController;
+use App\Controllers\CustomerLoginController;
 use App\Controllers\ReceivingController;
 use App\Controllers\VendorController;
 
@@ -72,6 +74,12 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     // part of the path: nginx serves any path ending .png/.jpg/.svg as a static file,
     // so /leads/files/x.png never reached PHP and every staff member got a 404.
     Router::get('/leads/artwork',          [LeadController::class, 'file'])->name('leads.file');
+
+    // Website customer accounts: link each to its customer, set its price tier, or block it.
+    Router::get('/website-accounts',                [CustomerLoginController::class, 'index'])->name('website-accounts');
+    Router::post('/website-accounts/{id}/link',     [CustomerLoginController::class, 'link'])->name('website-accounts.link');
+    Router::post('/website-accounts/{id}/unlink',   [CustomerLoginController::class, 'unlink'])->name('website-accounts.unlink');
+    Router::post('/website-accounts/{id}/status',   [CustomerLoginController::class, 'status'])->name('website-accounts.status');
     Router::get('/leads/{id}',             [LeadController::class, 'show'])->name('leads.show');
     Router::get('/leads/{id}/edit',        [LeadController::class, 'edit'])->name('leads.edit');
     Router::post('/leads/{id}/edit',       [LeadController::class, 'update'])->name('leads.update');
@@ -447,6 +455,27 @@ Router::post('/cart/price',       [CheckoutController::class, 'price'])->name('c
 Router::post('/cart/shipping',    [CheckoutController::class, 'shipping'])->name('cart.shipping');
 Router::post('/checkout',         [CheckoutController::class, 'start'])->name('checkout.start');
 Router::get('/checkout/thanks',   [CheckoutController::class, 'thanks'])->name('checkout.thanks');
+Router::post('/checkout/terms',   [CheckoutController::class, 'terms'])->name('checkout.terms');
+
+// Customer accounts on the website. Public routes: customers are not staff and never go
+// through the staff auth middleware. Each action checks for a customer itself, and every
+// POST must come from this site (CustomerAccounts::sameOrigin) instead of a CSRF session.
+Router::get('/account',                       [AccountController::class, 'show'])->name('account');
+Router::get('/account/sign-in',               [AccountController::class, 'signInPage'])->name('account.signin');
+Router::post('/account/sign-in',              [AccountController::class, 'signIn'])->name('account.signin.post');
+Router::get('/account/sign-up',               [AccountController::class, 'signUpPage'])->name('account.signup');
+Router::post('/account/sign-up',              [AccountController::class, 'signUp'])->name('account.signup.post');
+Router::post('/account/sign-out',             [AccountController::class, 'signOut'])->name('account.signout');
+Router::get('/account/forgot',                [AccountController::class, 'forgotPage'])->name('account.forgot');
+Router::post('/account/forgot',               [AccountController::class, 'forgot'])->name('account.forgot.post');
+Router::get('/account/reset',                 [AccountController::class, 'resetPage'])->name('account.reset');
+Router::post('/account/reset',                [AccountController::class, 'reset'])->name('account.reset.post');
+Router::post('/account/password',             [AccountController::class, 'password'])->name('account.password');
+Router::post('/account/designs',              [AccountController::class, 'saveDesign'])->name('account.designs.save');
+Router::post('/account/designs/{id}/delete',  [AccountController::class, 'deleteDesign'])->name('account.designs.delete');
+Router::post('/account/quotes',               [AccountController::class, 'saveQuote'])->name('account.quotes.save');
+Router::get('/account/quotes/{id}',           [AccountController::class, 'showQuote'])->name('account.quotes.show');
+Router::post('/account/quotes/{id}/delete',   [AccountController::class, 'deleteQuote'])->name('account.quotes.delete');
 
 // Square's payment notifications. Public, like the lead webhook; verified by signature.
 Router::post('/webhook/square',   [CheckoutController::class, 'webhook'])->name('webhook.square');

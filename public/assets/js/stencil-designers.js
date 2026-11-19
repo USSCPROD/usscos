@@ -8,6 +8,10 @@
  *
  * A design ends in "Request this stencil": the form under the designer carries the
  * current design in hidden fields, and the server prices it again before it becomes a lead.
+ *
+ * Accounts (phase 4): "Save this design" keeps those same fields in the customer's account,
+ * and ?design=ID reopens one (the page carries it as data-saved). A signed-in distributor's
+ * quotes include yourPrice, shown under the list price.
  */
 (function () {
   'use strict';
@@ -61,14 +65,54 @@
     }
     var send = $('#dz-send');
     if (send) send.disabled = false;
-    document.querySelectorAll('[data-add-design]').forEach(function (b) { b.disabled = false; });
+    document.querySelectorAll('[data-add-design],[data-save-design]').forEach(function (b) { b.disabled = false; });
   }
+
+  /** A distributor's own price, under the list price. Empty for everyone else. */
+  function yourPrice(priceEl, q) {
+    var el = priceEl.nextElementSibling && priceEl.nextElementSibling.hasAttribute('data-your-price') ? priceEl.nextElementSibling : null;
+    if (!el) { el = document.createElement('div'); el.setAttribute('data-your-price', ''); el.className = 'dz-sub'; el.style.cssText = 'font-weight:700;color:var(--navy)'; priceEl.parentNode.insertBefore(el, priceEl.nextSibling); }
+    el.textContent = q && q.yourPrice != null ? 'Your distributor price: ' + money(q.yourPrice) : '';
+  }
+
+  /** The design this page was opened with (?design=ID), or null. */
+  function saved(root) {
+    try { return JSON.parse(root.dataset.saved || 'null'); } catch (e) { return null; }
+  }
+
+  var savedId = 0, savedName = '';
+  document.querySelectorAll('[data-save-design]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.disabled) return;
+      if (btn.dataset.signedIn !== '1') {
+        window.location.href = '/account/sign-in?next=' + encodeURIComponent(location.pathname + location.search);
+        return;
+      }
+      var form = $('#dz-request-form'), data = {};
+      if (!form) return;
+      form.querySelectorAll('input[type="hidden"]').forEach(function (f) {
+        if (['kind', 'text', 'size', 'thickness', 'style', 'format', 'fill', 'line', 'logo', 'field', 'width'].indexOf(f.name) >= 0) data[f.name] = f.value;
+      });
+      var name = window.prompt('Name this design:', savedName || data.text || 'My design');
+      if (name === null) return;
+      btn.disabled = true;
+      fetch('/account/designs', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ id: savedId || null, kind: data.kind, name: name, data: data }) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Could not save.'); return j; }); })
+        .then(function (j) {
+          savedId = j.id; savedName = name;
+          btn.textContent = 'Saved ✓';
+          setTimeout(function () { btn.textContent = 'Save this design'; btn.disabled = false; }, 2500);
+        })
+        .catch(function (e) { window.alert(e.message); btn.disabled = false; });
+    });
+  });
 
   function clearDesign(proofBtn) {
     if (proofBtn) proofBtn.disabled = true;
     var send = $('#dz-send');
     if (send) send.disabled = true;
-    document.querySelectorAll('[data-add-design]').forEach(function (b) { b.disabled = true; });
+    document.querySelectorAll('[data-add-design],[data-save-design]').forEach(function (b) { b.disabled = true; });
   }
 
   function bindProof(btn) {
@@ -151,6 +195,13 @@
     var colors = JSON.parse(root.dataset.colors || '[]');
     var text = $('#ez-text'), proofBtn = $('#dz-proof');
     var state = { style: 'outline', size: sizes.length ? sizes[0].key : '', format: 'stencil', fill: colors[0][0], line: colors[7][0] };
+    var was = saved(root);
+    if (was && was.data) {
+      savedId = was.id; savedName = was.name;
+      text.value = was.data.text || text.value;
+      ['style', 'format', 'fill', 'line'].forEach(function (k) { if (was.data[k]) state[k] = was.data[k]; });
+      if (sizes.some(function (s) { return s.key === was.data.size; })) state.size = was.data.size;
+    }
     var quote = null, seq = 0;
 
     chipRow($('#ez-style'), [['outline', 'Outline'], ['solid', 'Solid']], state.style, function (v) {
@@ -189,6 +240,7 @@
         $('#ez-field').innerHTML = endzoneFieldSvg(q, state.fill, state.line);
         $('#ez-stencil').innerHTML = endzoneStencilSvg(q);
         $('#ez-price').textContent = money(q.price);
+        yourPrice($('#ez-price'), q);
         $('#ez-breakdown').textContent = q.format === 'letters'
           ? q.letters + ' letters × ' + money(q.letterPrice)
           : feet(q.sheet.width) + ' × ' + feet(q.sheet.height) + ' stencil, ' + q.panels + ' panels';
@@ -203,6 +255,7 @@
         if (my !== seq) return;
         quote = null;
         $('#ez-price').textContent = '—';
+        yourPrice($('#ez-price'), null);
         $('#ez-breakdown').textContent = '';
         $('#ez-msg').innerHTML = '<div class="dz-alert">' + esc(e.message) + '</div>';
       });
@@ -269,6 +322,14 @@
     var input = $('#mf-file'), drop = $('#mf-drop'), slider = $('#mf-width'), proofBtn = $('#dz-proof');
     var state = { field: 'hs', width: opt.widthDefault, upload: null, touched: false };
     var quote = null, seq = 0;
+    var was = saved(root);
+    if (was && was.data && was.data.logo) {
+      savedId = was.id; savedName = was.name;
+      state.field = opt.fields[was.data.field] ? was.data.field : state.field;
+      state.width = +was.data.width || state.width;
+      state.touched = true;
+      state.upload = { id: was.data.logo, aspect: 1, defaults: {} };   // the first quote fills in the aspect
+    }
 
     var row = $('#mf-field-type');
     chipRow(row, Object.keys(opt.fields).map(function (k) { return [k, opt.fields[k].label, 'Hashmarks ' + feet(opt.fields[k].hashGap) + ' apart']; }), state.field, function (v) {
@@ -332,8 +393,10 @@
       post('/custom/midfield/quote', { logo: state.upload.id, field: state.field, width: state.width }).then(function (q) {
         if (my !== seq) return;
         quote = q;
+        state.upload.aspect = q.aspect;
         draw();
         $('#mf-price').textContent = money(q.price);
+        yourPrice($('#mf-price'), q);
         $('#mf-breakdown').textContent = feet(q.sheet.width) + ' × ' + feet(q.sheet.height) + ' stencil, ' + q.panels + ' panels';
         $('#mf-size-note').textContent = q.insideHashes ? 'Fits between the hashmarks (' + feet(q.hashGap) + ' apart).'
           : 'Runs past the hashmarks (' + feet(q.hashGap) + ' apart on a ' + q.fieldLabel.toLowerCase() + ' field).';
@@ -344,6 +407,7 @@
         if (my !== seq) return;
         quote = null;
         $('#mf-price').textContent = '—';
+        yourPrice($('#mf-price'), null);
         $('#mf-breakdown').textContent = '';
         $('#mf-msg').innerHTML = '<div class="dz-alert">' + esc(e.message) + '</div>';
       });
@@ -353,6 +417,13 @@
     bindProof(proofBtn);
     sizeText();
     draw();
+    if (state.upload) {
+      slider.disabled = false;
+      drop.classList.add('done');
+      $('#mf-drop-title').textContent = 'Saved logo · click to change';
+      $('#mf-drop-text').textContent = savedName;
+      update();
+    }
   }
 
   // ============================================================ custom text
@@ -390,6 +461,12 @@
 
     size.innerHTML = sizes.map(function (s) { return '<option value="' + esc(s.key) + '">' + esc(s.label) + ' letters</option>'; }).join('');
     size.value = root.dataset.default || (sizes[0] && sizes[0].key);
+    var was = saved(root);
+    if (was && was.data) {
+      savedId = was.id; savedName = was.name;
+      if (was.data.text) text.value = was.data.text;
+      if (sizes.some(function (s) { return s.key === was.data.size; })) size.value = was.data.size;
+    }
 
     function fillMaterials() {
       var s = sizes.filter(function (x) { return x.key === size.value; })[0], keep = mat.value;
@@ -406,6 +483,7 @@
         if (my !== seq) return;
         $('#c-preview').innerHTML = plateSvg(res);
         $('#c-price').textContent = money(res.price);
+        yourPrice($('#c-price'), res);
         $('#c-breakdown').textContent = money(res.stencilPrice) + ' for ' + inches(res.text.width) + ' × ' + inches(res.text.height) + ' lettering' + (res.setupFee ? ' + ' + money(res.setupFee) + ' setup' : '');
         var typed = text.value.trim().toUpperCase().replace(/\s*\n\s*/g, ' / ');
         $('#c-chars').textContent = res.lines.join(' / ') !== typed ? 'Will be cut as: ' + res.lines.join(' / ') : '';
@@ -425,6 +503,7 @@
     }, 200);
 
     fillMaterials();
+    if (was && was.data && was.data.thickness && mat.querySelector('option[value="' + was.data.thickness + '"]')) mat.value = was.data.thickness;
     text.addEventListener('input', update);
     size.addEventListener('change', function () { fillMaterials(); update(); });
     mat.addEventListener('change', update);

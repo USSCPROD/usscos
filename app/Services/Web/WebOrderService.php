@@ -31,6 +31,10 @@ use App\Services\WebsiteLeadService;
  *   tax        none, as on the stencil shop, until the accountant says where to collect.
  *   payment    recorded as a credit-card payment with Square's payment id, so the order
  *              arrives paid and goes to the warehouse like any other.
+ *
+ * SIGNED-IN BUYERS (phase 4): a login linked to a customer orders AS that customer, at its
+ * price tier, instead of being matched by email. A distributor may also order on terms
+ * (terms()): no Square, an unpaid order with their PO number, billed as usual.
  */
 class WebOrderService
 {
@@ -54,10 +58,10 @@ class WebOrderService
      * @return array{zip:string, options: array<int,array{id:string,name:string,price:float}>}
      * @throws DesignerError
      */
-    public function shipping(array $items, string $zip, bool $residential): array
+    public function shipping(array $items, string $zip, bool $residential, string $tier = \App\Services\CustomerPricing::RETAIL): array
     {
         $zip    = self::zip($zip);
-        $priced = (new CartService())->price($items);
+        $priced = (new CartService())->price($items, $tier);
         $boxes  = array_map(static fn($p) => ['weight' => $p['weight'], 'length' => $p['dims'][0], 'width' => $p['dims'][1],
                                                'height' => $p['dims'][2]], StencilPacking::packages($priced['pieces']));
 
@@ -81,25 +85,16 @@ class WebOrderService
      * @return array{url:string}
      * @throws DesignerError
      */
-    public function start(array $items, string $zip, bool $residential, string $service, string $origin): array
+    public function start(array $items, string $zip, bool $residential, string $service, string $origin, ?array $login = null): array
     {
         if (!$this->square->configured()) {
             throw new DesignerError("Online checkout isn't set up yet. Please call or email us to place your order.");
         }
 
-        $priced  = (new CartService())->price($items);
-        $ship    = $this->shipping($items, $zip, $residential);
-        $chosen  = null;
-
-        foreach ($ship['options'] as $o) {
-            if ($o['id'] === $service) {
-                $chosen = $o;
-            }
-        }
-
-        if ($chosen === null) {
-            throw new DesignerError('Please choose a shipping option.');
-        }
+        $tier    = CustomerAccounts::tier($login);
+        $priced  = (new CartService())->price($items, $tier);
+        $ship    = $this->shipping($items, $zip, $residential, $tier);
+        $chosen  = self::chosen($ship['options'], $service);
 
         $token = bin2hex(random_bytes(16));
         $id = $this->checkouts->create([
@@ -107,6 +102,7 @@ class WebOrderService
             'shipping_service' => $chosen['id'], 'shipping_name' => $chosen['name'], 'shipping_amount' => $chosen['price'],
             'total' => round($priced['subtotal'] + $chosen['price'], 2), 'ship_zip' => $ship['zip'],
             'residential' => $residential, 'square_environment' => $this->square->environment(),
+            'login_id' => $login['id'] ?? null, 'customer_id' => $login['customer_id'] ?? null, 'price_tier' => $tier,
         ]);
 
         $lines = array_map(static fn($l) => [
@@ -124,6 +120,90 @@ class WebOrderService
         $this->checkouts->setSquare($id, $link['link_id'], $link['order_id']);
 
         return ['url' => $link['url'], 'token' => $token];
+    }
+
+    /**
+     * A distributor's order on terms: no payment now, billed as usual. The sales order is
+     * made at once, for the login's linked customer, at its price tier, shipping to the
+     * address given (and shipping priced to that address's ZIP, here, not in the browser).
+     *
+     * @param array $ship  name, company, address1, address2, city, state, zip, phone, residential
+     * @return array{so_id:int, so_number:?string}
+     * @throws DesignerError
+     */
+    public function terms(array $login, array $items, array $ship, string $service, string $po, ?int $quoteId = null): array
+    {
+        if (!CustomerAccounts::isTrade($login)) {
+            throw new DesignerError('Ordering on account is for distributor accounts. Please pay by card, or call us.');
+        }
+
+        $po = mb_substr(trim((string)preg_replace('/\s+/', ' ', $po)), 0, 50);
+
+        if ($po === '') {
+            throw new DesignerError('Please enter your PO number.');
+        }
+
+        $clean = static fn($k, $max) => mb_substr(trim((string)preg_replace('/\s+/', ' ', (string)($ship[$k] ?? ''))), 0, $max);
+        $b = ['name' => $clean('name', 100), 'org' => $clean('company', 150), 'line1' => $clean('address1', 150),
+              'line2' => $clean('address2', 150), 'city' => $clean('city', 80), 'state' => strtoupper($clean('state', 2)),
+              'zip' => $clean('zip', 10), 'phone' => $clean('phone', 40), 'email' => (string)$login['email']];
+
+        if ($b['name'] === '' || $b['line1'] === '' || $b['city'] === '' || !preg_match('/^[A-Z]{2}$/', $b['state'])) {
+            throw new DesignerError('Please fill in the ship-to name, street, city and state.');
+        }
+
+        $tier   = CustomerAccounts::tier($login);
+        $priced = (new CartService())->price($items, $tier);
+        $rates  = $this->shipping($items, $b['zip'], !empty($ship['residential']), $tier);
+        $chosen = self::chosen($rates['options'], $service);
+        $b['zip'] = $rates['zip'];
+
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+
+        try {
+            $token = bin2hex(random_bytes(16));
+            $id = $this->checkouts->create([
+                'token' => $token, 'status' => 'open', 'paid_by' => 'terms', 'items' => $items, 'lines' => $priced['lines'],
+                'subtotal' => $priced['subtotal'], 'shipping_service' => $chosen['id'], 'shipping_name' => $chosen['name'],
+                'shipping_amount' => $chosen['price'], 'total' => round($priced['subtotal'] + $chosen['price'], 2),
+                'ship_zip' => $b['zip'], 'residential' => !empty($ship['residential']), 'square_environment' => 'none',
+                'login_id' => (int)$login['id'], 'customer_id' => (int)$login['customer_id'], 'price_tier' => $tier,
+            ]);
+            $row  = $this->checkouts->lock($id);
+            $soId = $this->salesOrder($row, $b, (int)$login['customer_id'], '', null, $po);
+            $this->checkouts->attachOrder($id, $soId);
+
+            if ($quoteId !== null) {
+                (new \App\Repositories\SavedWorkRepository())->markQuoteOrdered((int)$login['id'], $quoteId, $soId);
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            error_log('web terms order failed for login ' . $login['id'] . ': ' . $e->getMessage());
+            throw new DesignerError('Your order could not be placed just now. Please try again, or call us.');
+        }
+
+        $number = $this->soNumber($soId);
+        $this->notify($row, $b, $number, $soId);
+
+        return ['so_id' => $soId, 'so_number' => $number];
+    }
+
+    /** @throws DesignerError */
+    private static function chosen(array $options, string $service): array
+    {
+        foreach ($options as $o) {
+            if ($o['id'] === $service) {
+                return $o;
+            }
+        }
+
+        throw new DesignerError('Please choose a shipping option.');
     }
 
     /**
@@ -174,7 +254,7 @@ class WebOrderService
             }
 
             $buyer = self::buyer($order, $paid['payment_id'] !== '' ? $this->paymentQuietly($paid['payment_id']) : []);
-            [$customerId, $dupNote] = $this->customer($buyer);
+            [$customerId, $dupNote] = !empty($row['customer_id']) ? [(int)$row['customer_id'], ''] : $this->customer($buyer);
             $soId = $this->salesOrder($row, $buyer, $customerId, $dupNote, $paid);
 
             $this->checkouts->markOrdered((int)$row['id'], $soId, $paid['payment_id']);
@@ -275,7 +355,7 @@ class WebOrderService
         return [$id, $note];
     }
 
-    private function salesOrder(array $c, array $b, int $customerId, string $dupNote, array $paid): int
+    private function salesOrder(array $c, array $b, int $customerId, string $dupNote, ?array $paid, string $po = ''): int
     {
         $repo   = new SalesOrderRepository();
         $lines  = json_decode((string)$c['priced_lines'], true) ?: [];
@@ -303,10 +383,16 @@ class WebOrderService
                       'unit_price' => (float)$c['shipping_amount'], 'discount_pct' => 0, 'taxable' => 0,
                       'line_total' => (float)$c['shipping_amount']];
 
+        $login = !empty($c['login_id']) ? (new \App\Repositories\CustomerLoginRepository())->find((int)$c['login_id']) : false;
+
         $internal = array_filter([
-            self::zipWarning($c, $b),
-            'Website order, paid by card through Square (' . $c['square_environment'] . '). Square order ' . $c['square_order_id']
-                . ', payment ' . $paid['payment_id'] . '.',
+            $paid !== null ? self::zipWarning($c, $b) : '',
+            $paid !== null
+                ? 'Website order, paid by card through Square (' . $c['square_environment'] . '). Square order ' . $c['square_order_id']
+                  . ', payment ' . $paid['payment_id'] . '.'
+                : 'Website order ON TERMS: not paid. Bill as usual.',
+            $login ? 'Placed by website account ' . $login['name'] . ' <' . $login['email'] . '>'
+                     . ($c['price_tier'] !== 'Retail' ? ', at ' . $c['price_tier'] . ' prices.' : '.') : '',
             $b['email'] !== '' ? 'Buyer: ' . $b['name'] . ' <' . $b['email'] . '>' . ($b['phone'] !== '' ? ', ' . $b['phone'] : '') : '',
             $dupNote,
             ...$notes,
@@ -314,18 +400,21 @@ class WebOrderService
 
         $soId = $repo->create([
             ':so_number' => $repo->nextSoNumber(), ':customer_id' => $customerId, ':created_by' => $userId,
-            ':status' => 'confirmed', ':order_date' => date('Y-m-d'),
+            ':status' => 'confirmed', ':order_date' => date('Y-m-d'), ':po_number' => $po !== '' ? $po : null,
             ':ship_name' => $b['org'] !== '' ? $b['org'] . ($b['name'] !== '' ? ' — ' . $b['name'] : '') : ($b['name'] ?: null),
             ':ship_address_1' => $b['line1'] ?: null, ':ship_address_2' => $b['line2'] ?: null,
             ':ship_city' => $b['city'] ?: null, ':ship_state' => $b['state'] ?: null, ':ship_zip' => $b['zip'] ?: null,
             ':ship_phone' => $b['phone'] ?: null,
             ':subtotal' => round((float)$c['subtotal'] + (float)$c['shipping_amount'], 2), ':total_amount' => (float)$c['total'],
             ':memo' => null, ':internal_notes' => implode("\n\n", $internal),
-            ':channel' => 'website', ':channel_reference' => (string)$c['square_order_id'],
+            ':channel' => 'website', ':channel_reference' => $paid !== null ? (string)$c['square_order_id'] : 'terms ' . $c['token'],
         ]);
 
         $repo->replaceLineItems($soId, $soLines);
-        $repo->collectPaymentInTransaction($soId, 'credit_card', 'Square ' . $paid['payment_id'], (float)$c['total'], $userId);
+
+        if ($paid !== null) {
+            $repo->collectPaymentInTransaction($soId, 'credit_card', 'Square ' . $paid['payment_id'], (float)$c['total'], $userId);
+        }
 
         return $soId;
     }
@@ -395,14 +484,17 @@ class WebOrderService
 
         $warning = self::zipWarning($c, $b);
 
-        $intake->notify($routing['stencil_email'], 'New website order ' . $number . ' — $' . number_format((float)$c['total'], 2)
+        $terms = ($c['paid_by'] ?? 'card') === 'terms';
+
+        $intake->notify($routing['stencil_email'], 'New website order ' . $number . ($terms ? ' ON TERMS' : '') . ' — $' . number_format((float)$c['total'], 2)
                 . ($warning !== '' ? ' — CHECK SHIPPING' : ''),
             ($warning !== '' ? '<p style="color:#b91c1c;font-weight:bold">' . htmlspecialchars($warning) . '</p>' : '')
             . '<table style="width:100%;border-collapse:collapse">'
             . $intake->row('Sales order', (string)$number) . $intake->row('Buyer', trim($b['name'] . ' ' . $b['email']))
             . $intake->row('Ship to', trim(implode(', ', array_filter([$b['line1'], $b['line2'], $b['city'], $b['state'] . ' ' . $b['zip']]))))
             . $rows . $intake->row('Shipping', $c['shipping_name'] . ' — $' . number_format((float)$c['shipping_amount'], 2))
-            . $intake->row('Paid', '$' . number_format((float)$c['total'], 2) . ' by card (Square)')
+            . ($terms ? $intake->row('Payment', 'On terms, not paid: $' . number_format((float)$c['total'], 2))
+                      : $intake->row('Paid', '$' . number_format((float)$c['total'], 2) . ' by card (Square)'))
             . '</table>');
     }
 

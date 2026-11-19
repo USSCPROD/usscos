@@ -269,13 +269,18 @@ class WebsiteLeadService
         ];
     }
 
+    /**
+     * An email to staff. Through Mailgun (App\Core\Mailer): the server has no local mail
+     * program, so PHP's mail() - which this used to call - accepted every message and
+     * delivered none of them.
+     */
     public function notify(string $to, string $subject, string $body): void
     {
-        $headers  = "MIME-Version: 1.0\r\n";
-        $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-        $headers .= "From: USSCOS <noreply@usscproducts.com>\r\n";
+        $mailer = new \App\Core\Mailer();
 
-        mail($to, $subject, $this->wrapEmail($subject, $body), $headers);
+        if (!$mailer->send($to, $subject, $this->wrapEmail($subject, $body), 'USSCOS')) {
+            error_log('staff email "' . $subject . '" to ' . $to . ' failed: ' . $mailer->getLastError());
+        }
     }
 
     public function row(string $label, string $value): string
@@ -293,7 +298,7 @@ class WebsiteLeadService
             </div>
             <div style="border:1px solid #d1d5db;border-top:none;padding:20px;border-radius:0 0 8px 8px">
                 ' . $body . '
-                <p style="margin-top:24px;font-size:.8rem;color:#9ca3af">This lead was created automatically from a website form submission. Log in to USSCOS to view and manage it.</p>
+                <p style="margin-top:24px;font-size:.8rem;color:#9ca3af">Sent automatically by USSCOS from the website. Log in to USSCOS to act on it.</p>
             </div>
         </body></html>';
     }

@@ -13,11 +13,12 @@ class WebCheckoutRepository
     {
         Database::insert(
             "INSERT INTO web_checkouts
-                (token, items, priced_lines, subtotal, shipping_service, shipping_name, shipping_amount, total,
-                 ship_zip, residential, square_environment)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [$d['token'], json_encode($d['items']), json_encode($d['lines']), $d['subtotal'], $d['shipping_service'],
-             $d['shipping_name'], $d['shipping_amount'], $d['total'], $d['ship_zip'], $d['residential'] ? 1 : 0,
+                (token, status, paid_by, items, priced_lines, subtotal, shipping_service, shipping_name, shipping_amount, total,
+                 ship_zip, residential, login_id, customer_id, price_tier, square_environment)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [$d['token'], $d['status'] ?? 'open', $d['paid_by'] ?? 'card', json_encode($d['items']), json_encode($d['lines']),
+             $d['subtotal'], $d['shipping_service'], $d['shipping_name'], $d['shipping_amount'], $d['total'], $d['ship_zip'],
+             $d['residential'] ? 1 : 0, $d['login_id'] ?? null, $d['customer_id'] ?? null, $d['price_tier'] ?? 'Retail',
              $d['square_environment']]
         );
 
@@ -45,13 +46,19 @@ class WebCheckoutRepository
     public function forSalesOrder(int $soId): array|false
     {
         return Database::selectOne(
-            "SELECT ship_zip, shipping_name, shipping_amount FROM web_checkouts WHERE sales_order_id = ? LIMIT 1", [$soId]);
+            "SELECT token, paid_by, ship_zip, shipping_name, shipping_amount FROM web_checkouts WHERE sales_order_id = ? LIMIT 1", [$soId]);
     }
 
     /** The row, locked for the rest of the current transaction: one order per payment. */
     public function lock(int $id): array|false
     {
         return Database::selectOne("SELECT * FROM web_checkouts WHERE id = ? FOR UPDATE", [$id]);
+    }
+
+    /** An order on terms: written straight to its sales order, no Square. */
+    public function attachOrder(int $id, int $soId): void
+    {
+        Database::update("UPDATE web_checkouts SET status = 'ordered', sales_order_id = ?, ordered_at = NOW() WHERE id = ?", [$soId, $id]);
     }
 
     public function markOrdered(int $id, int $soId, string $paymentId): void

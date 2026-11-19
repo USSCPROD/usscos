@@ -13,6 +13,8 @@ use App\Services\Stencils\EndzoneDesigner;
 use App\Services\Stencils\MidfieldDesigner;
 use App\Services\Stencils\StencilProof;
 use App\Services\Stencils\TextDesigner;
+use App\Services\Web\CartService;
+use App\Services\Web\CustomerAccounts;
 use App\Services\WebsiteLeadService;
 
 /**
@@ -56,6 +58,8 @@ class DesignerController extends Controller
             'sizes'  => $this->endzone->sizes(),
             'ready'  => $this->endzone->ready(),
             'colors' => self::COLORS,
+            'saved'  => self::savedDesign($request, 'endzone'),
+            'signedIn' => CustomerAccounts::current() !== null,
             'sent'   => (string)($request->raw('sent') ?? ''),
             'error'  => (string)($request->raw('error') ?? ''),
         ]);
@@ -80,6 +84,8 @@ class DesignerController extends Controller
             'sizes'     => $sizes,
             'default'   => $default ?? ($sizes[0]['key'] ?? ''),
             'materials' => TextDesigner::MATERIALS,
+            'saved'     => self::savedDesign($request, 'text'),
+            'signedIn' => CustomerAccounts::current() !== null,
             'sent'      => (string)($request->raw('sent') ?? ''),
             'error'     => (string)($request->raw('error') ?? ''),
         ]);
@@ -88,9 +94,11 @@ class DesignerController extends Controller
     public function textQuote(Request $request, Response $response): Response
     {
         try {
-            return $response->json($this->text->quote(
+            $q = $this->text->quote(
                 (string)$request->raw('text', ''), (string)$request->raw('size', ''), (string)$request->raw('thickness', '')
-            ));
+            );
+
+            return $response->json(self::forViewer($q, CartService::wholesale((float)$q['price'])));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
         }
@@ -102,6 +110,8 @@ class DesignerController extends Controller
             'title'   => 'Custom Midfield Logo',
             'nav'     => (new SiteController())->navForDesigner(),
             'options' => MidfieldDesigner::options(),
+            'saved'   => self::savedDesign($request, 'midfield'),
+            'signedIn' => CustomerAccounts::current() !== null,
             'sent'    => (string)($request->raw('sent') ?? ''),
             'error'   => (string)($request->raw('error') ?? ''),
         ]);
@@ -112,10 +122,12 @@ class DesignerController extends Controller
     public function endzoneQuote(Request $request, Response $response): Response
     {
         try {
-            return $response->json($this->endzone->quote(
+            $q = $this->endzone->quote(
                 (string)$request->raw('text', ''), (string)$request->raw('size', ''),
                 (string)$request->raw('style', ''), (string)$request->raw('format', '')
-            ));
+            );
+
+            return $response->json(self::forViewer($q, (float)$q['wholesale']));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
         }
@@ -140,9 +152,11 @@ class DesignerController extends Controller
     public function midfieldQuote(Request $request, Response $response): Response
     {
         try {
-            return $response->json($this->midfield->quote(
+            $q = $this->midfield->quote(
                 (string)$request->raw('logo', ''), (string)$request->raw('field', ''), $request->raw('width')
-            ));
+            );
+
+            return $response->json(self::forViewer($q, (float)$q['wholesale']));
         } catch (DesignerError $e) {
             return $response->json(['error' => $e->getMessage()], 422);
         }
@@ -274,6 +288,36 @@ class DesignerController extends Controller
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     /** @throws DesignerError */
+    /**
+     * A quote as this viewer may see it. The wholesale figure is for distributors only: a
+     * signed-in distributor gets it as yourPrice, everyone else never sees it.
+     */
+    private static function forViewer(array $q, float $wholesale): array
+    {
+        unset($q['wholesale']);
+
+        if (CustomerAccounts::isTrade(CustomerAccounts::current())) {
+            $q['yourPrice'] = $wholesale;
+        }
+
+        return $q;
+    }
+
+    /** ?design=ID: a design the signed-in customer saved, to open in its designer. */
+    private static function savedDesign(Request $request, string $kind): ?array
+    {
+        $login = CustomerAccounts::current();
+        $id    = (int)($request->raw('design') ?? 0);
+
+        if (!$login || $id < 1) {
+            return null;
+        }
+
+        $d = (new \App\Repositories\SavedWorkRepository())->design((int)$login['id'], $id);
+
+        return $d && $d['kind'] === $kind ? ['id' => (int)$d['id'], 'name' => $d['name'], 'data' => json_decode((string)$d['data'], true) ?: []] : null;
+    }
+
     private function endzoneFromQuery(Request $r): array
     {
         return $this->endzone->quote((string)$r->raw('text', ''), (string)$r->raw('size', ''),

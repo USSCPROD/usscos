@@ -17,7 +17,7 @@
     <div class="note" style="margin-bottom:3rem">The endzone designer isn't available just now.
       Please <a href="/stencils/endzone-stencils">send us your endzone</a> and we'll quote it.</div>
   <?php else: ?>
-  <div class="dz-grid" id="endzone-designer"
+  <div class="dz-grid" id="endzone-designer" data-saved="<?= e(json_encode($saved)) ?>"
        data-sizes="<?= e(json_encode($sizes)) ?>" data-colors="<?= e(json_encode($colors)) ?>">
     <div class="dz-card">
       <label class="dz-label" for="ez-text">Your text</label>
@@ -34,7 +34,7 @@
       <div class="dz-price" id="ez-price">—</div>
       <div class="dz-sub" id="ez-breakdown"></div>
       <div id="ez-msg"></div>
-      <?= view('site._designer_parts', ['part' => 'buy']) ?>
+      <?= view('site._designer_parts', ['part' => 'buy', 'signedIn' => $signedIn]) ?>
     </div>
 
     <div>
@@ -51,7 +51,7 @@
   <?php endif; ?>
 </div>
 
-<script src="/assets/js/stencil-designers.js?v=3" defer></script>
+<script src="/assets/js/stencil-designers.js?v=4" defer></script>
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/site.php';
