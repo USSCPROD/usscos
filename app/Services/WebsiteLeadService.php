@@ -34,7 +34,7 @@ class WebsiteLeadService
      * from). $file: one entry of $_FILES, or null.
      *
      * Artwork goes to storage/, OUTSIDE the web root, and is reached only through the
-     * signed-in /leads/files/{name} route. A customer's SVG or PDF is not ours: served
+     * signed-in /leads/artwork?f={name} route. A customer's SVG or PDF is not ours: served
      * from os.usscos.com an SVG would run with the staff application's origin.
      */
     public function siteEnquiry(array $d, ?array $file): int
@@ -147,6 +147,7 @@ class WebsiteLeadService
             return null;
         }
 
+        // Noted as /leads/files/{name}; the lead page turns that into its download link.
         return '/leads/files/' . $stored . '  (sent as "' . basename((string)$file['name']) . '")';
     }
 

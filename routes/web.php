@@ -66,8 +66,10 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/leads/create',           [LeadController::class, 'create'])->name('leads.create');
     Router::post('/leads',                 [LeadController::class, 'store'])->name('leads.store');
     // Artwork a customer attached on the website. Stored outside the web root, so this
-    // signed-in route is the only way to it. Before /leads/{id} so 'files' is not an id.
-    Router::get('/leads/files/{name}',     [LeadController::class, 'file'])->name('leads.file');
+    // signed-in route is the only way to it. The file name is a query parameter, not
+    // part of the path: nginx serves any path ending .png/.jpg/.svg as a static file,
+    // so /leads/files/x.png never reached PHP and every staff member got a 404.
+    Router::get('/leads/artwork',          [LeadController::class, 'file'])->name('leads.file');
     Router::get('/leads/{id}',             [LeadController::class, 'show'])->name('leads.show');
     Router::get('/leads/{id}/edit',        [LeadController::class, 'edit'])->name('leads.edit');
     Router::post('/leads/{id}/edit',       [LeadController::class, 'update'])->name('leads.update');

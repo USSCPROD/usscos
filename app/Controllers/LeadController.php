@@ -64,8 +64,9 @@ class LeadController extends Controller
      * never shown inline: it is the customer's file, and an SVG opened in the browser
      * would run with this application's origin.
      */
-    public function file(Request $request, Response $response, string $name = ''): Response
+    public function file(Request $request, Response $response): Response
     {
+        $name = (string)($request->query('f') ?? '');
         $path = \App\Services\WebsiteLeadService::filePath($name);
 
         if ($path === null) {
