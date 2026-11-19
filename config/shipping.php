@@ -14,12 +14,13 @@ declare(strict_types=1);
  */
 
 return [
-    // Added to a FedEx or UPS quote.
+    // Added to a FedEx or UPS quote: once per shipment, however many boxes it takes.
     'parcel_markup' => 10.00,
 
     // Added to a freight quote. Freight is quoted by Keubix by hand — there is no API
-    // to ask, so this is applied to whatever figure is typed in.
-    'freight_markup' => 20.00,
+    // to ask, so this is applied to whatever figure is typed in. The same $10 as parcel:
+    // USSC charges $10 over cost on every shipment, once per shipment, never per box.
+    'freight_markup' => 10.00,
 
     // The services offered on the quote screen, in the order they appear. Ground first
     // because it is nearly always the answer, and limited-quantity aerosol cannot go by

@@ -397,7 +397,7 @@ Small, and self-contained — the pattern already exists:
   from the freight card and/or on a schedule. Fill `shipment_tracking.tracking_number`
   and `freight_carrier_id` from `pro` and `carrier`.
 - `totalPrice` lands on the Shipping & Handling line, with the markup from
-  `config/shipping.php` ($20 freight) applied the same way the FedEx quote does it.
+  `config/shipping.php` ($10 freight) applied the same way the FedEx quote does it.
 - Match the carrier name back to the `freight_carriers` table rather than free text.
 
 **It is an efficiency gain, not a blocker.** The manual PRO and carrier fields on the

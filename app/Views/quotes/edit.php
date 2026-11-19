@@ -459,7 +459,7 @@ function qThStyleE(): string {
      * API to ask yet. The button hides itself and says so rather than offering a quote
      * that could only ever answer "this is freight".
      */
-    var FREIGHT_MARKUP = <?= json_encode((float)(\App\Core\Config::get('shipping.freight_markup') ?? 20.0)) ?>;
+    var FREIGHT_MARKUP = <?= json_encode((float)(\App\Core\Config::get('shipping.freight_markup') ?? 10.0)) ?>;
     (function(){
         const btn=document.getElementById('fQuoteBtn'), out=document.getElementById('fQuoteOut');
         if(!btn) return;
