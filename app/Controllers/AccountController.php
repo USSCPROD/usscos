@@ -116,6 +116,12 @@ class AccountController extends Controller
     {
         if (CustomerAccounts::sameOrigin($request)) {
             $this->accounts->signOut();
+
+            // Staff who signed in on the website sign out here too (USSCOS's own /logout
+            // works as well; this is the same thing).
+            if (Auth::check()) {
+                Auth::logout();
+            }
         }
 
         return $response->redirect('/account/sign-in?out=1');
