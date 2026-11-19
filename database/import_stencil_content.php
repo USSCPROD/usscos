@@ -97,6 +97,30 @@ const QUOTE_SKU = [
 /** The shop's made-to-order note, where a quote listing has none of its own. */
 const QUOTE_NOTE = '<strong>Made to order.</strong> Every one of these is cut for your field, team or design, so we price it with you. Send us your artwork or logo and the size you need, and we\'ll quote it and send a proof before cutting.';
 
+/**
+ * The shop's Materials & Sizing page. On the shop it is written into the page code, not
+ * the catalog, so it is carried here as text, with the shop's name taken out.
+ */
+const MATERIALS_PAGE = <<<'HTML'
+<h1>Stencil Materials &amp; Sizing</h1>
+<p>Every US Specialty Coatings stencil is CNC-cut from durable, reusable plastic sheet so you get clean, consistent lines job after job.</p>
+<h2>Choosing a material</h2>
+<table>
+  <thead><tr><th>Material</th><th>Best for</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1/8" Heavy-Duty</strong></td><td>Contractors and frequent reuse. Stays flat in wind and stands up to rough handling.</td></tr>
+    <tr><td><strong>3/32" Standard</strong></td><td>Occasional use and lower cost. Lighter to ship and easier to roll for storage.</td></tr>
+    <tr><td><strong>10-mil Polyethylene</strong></td><td>Very large layouts such as football field letters and awareness ribbons. Foldable and reusable, so it folds up small to ship and store.</td></tr>
+  </tbody>
+</table>
+<h2>Reading our sizes</h2>
+<p><strong>Word stencils</strong> are listed by letter height. The overall stencil width is shown on each product page. <strong>Kits</strong> list letter height and character width (e.g. 18" × 9"). <strong>Symbols and arrows</strong> are listed by overall length.</p>
+<h2>Curb stencils</h2>
+<p>Items marked <em>curb</em> use 4" letters placed 1" above the bottom edge of the stencil. Line the bottom of the stencil up with the bottom of the curb and the letters sit centered on a standard 6" curb face.</p>
+<h2>Multi-piece stencils</h2>
+<p>Very large stencils are cut in multiple pieces so they can ship and be handled on site. The piece count is listed on each product page.</p>
+HTML;
+
 const HERO = [
     'endzone'      => 'stencils-endzone',
     'midfield'     => 'stencils-midfield',
@@ -758,27 +782,3 @@ function stencilsLanding(array $hc): string
 
     return $out;
 }
-
-/**
- * The shop's Materials & Sizing page. On the shop it is written into the page code, not
- * the catalog, so it is carried here as text, with the shop's name taken out.
- */
-const MATERIALS_PAGE = <<<'HTML'
-<h1>Stencil Materials &amp; Sizing</h1>
-<p>Every US Specialty Coatings stencil is CNC-cut from durable, reusable plastic sheet so you get clean, consistent lines job after job.</p>
-<h2>Choosing a material</h2>
-<table>
-  <thead><tr><th>Material</th><th>Best for</th></tr></thead>
-  <tbody>
-    <tr><td><strong>1/8" Heavy-Duty</strong></td><td>Contractors and frequent reuse. Stays flat in wind and stands up to rough handling.</td></tr>
-    <tr><td><strong>3/32" Standard</strong></td><td>Occasional use and lower cost. Lighter to ship and easier to roll for storage.</td></tr>
-    <tr><td><strong>10-mil Polyethylene</strong></td><td>Very large layouts such as football field letters and awareness ribbons. Foldable and reusable, so it folds up small to ship and store.</td></tr>
-  </tbody>
-</table>
-<h2>Reading our sizes</h2>
-<p><strong>Word stencils</strong> are listed by letter height. The overall stencil width is shown on each product page. <strong>Kits</strong> list letter height and character width (e.g. 18" × 9"). <strong>Symbols and arrows</strong> are listed by overall length.</p>
-<h2>Curb stencils</h2>
-<p>Items marked <em>curb</em> use 4" letters placed 1" above the bottom edge of the stencil. Line the bottom of the stencil up with the bottom of the curb and the letters sit centered on a standard 6" curb face.</p>
-<h2>Multi-piece stencils</h2>
-<p>Very large stencils are cut in multiple pieces so they can ship and be handled on site. The piece count is listed on each product page.</p>
-HTML;
