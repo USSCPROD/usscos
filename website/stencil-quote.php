@@ -25,9 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Please enter a valid email address.';
     }
 
-    // Handle file upload
+    // Handle file upload.
+    //
+    // Skipped for a submission already judged spam. The file is written to the web root
+    // and never referenced by anything, so keeping it would let anyone with a script
+    // fill the disk with junk - while still seeing the ordinary thank-you and learning
+    // nothing. The check costs one condition.
     $attachmentPath = null;
-    if (!$error && !empty($_FILES['attachment']['tmp_name'])) {
+    if (!$error && !$isSpam && !empty($_FILES['attachment']['tmp_name'])) {
         $file    = $_FILES['attachment'];
         $allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'application/postscript',
                     'application/illustrator', 'image/vnd.adobe.photoshop'];

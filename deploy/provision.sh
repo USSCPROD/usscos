@@ -62,6 +62,17 @@ mkdir -p /var/www/usscos-storage/uploads
 chown -R "$DEPLOY_USER":www-data "$APP_DIR" "$SITE_DIR" /var/www/usscos-storage
 chmod -R 2775 /var/www/usscos-storage
 
+# The website's own stencil artwork folder. These ARE inside the web root, on purpose:
+# a customer's artwork is linked straight from the lead and nginx serves it, with script
+# execution denied there (see nginx-usscos.com.conf).
+#
+# It has to exist and be group-writable BEFORE anyone submits. The site root is owned by
+# deploy, PHP runs as www-data, so the form's own mkdir() is refused - and the form then
+# reports "File upload failed", which reads as a bad file rather than a bad directory.
+# That is exactly how this went unnoticed from September to 20 Nov 2026: every stencil
+# quote with artwork was turned away at the door.
+install -d -o "$DEPLOY_USER" -g www-data -m 2775 "$SITE_DIR/uploads" "$SITE_DIR/uploads/stencil"
+
 # deploy.sh reloads PHP-FPM at the end of every deploy. Grant exactly that
 # one command passwordless — nothing more.
 cat > /etc/sudoers.d/deploy-usscos <<'SUDO'
