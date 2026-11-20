@@ -103,6 +103,14 @@
           savedId = j.id; savedName = name;
           btn.textContent = 'Saved ✓';
           setTimeout(function () { btn.textContent = 'Save this design'; btn.disabled = false; }, 2500);
+          var note = btn.parentNode.querySelector('.dz-saved-note');
+          if (!note) {
+            note = document.createElement('p');
+            note.className = 'dz-saved-note';
+            note.style.cssText = 'margin:.4rem 0 0;font-size:.85rem';
+            btn.insertAdjacentElement('afterend', note);
+          }
+          note.innerHTML = 'Saved to your account. <a href="/account">See your saved designs →</a>';
         })
         .catch(function (e) { window.alert(e.message); btn.disabled = false; });
     });

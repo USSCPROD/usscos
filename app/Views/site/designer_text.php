@@ -59,7 +59,7 @@
   <?php endif; ?>
 </div>
 
-<script src="/assets/js/stencil-designers.js?v=4" defer></script>
+<script src="/assets/js/stencil-designers.js?v=5" defer></script>
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/site.php';

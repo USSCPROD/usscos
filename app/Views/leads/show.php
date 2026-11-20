@@ -63,11 +63,17 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
 
             <?php if ($lead['notes']): ?>
                 <h3 class="card__section-title" style="margin-top:1.25rem">Notes</h3>
-                <p style="font-size:.9rem;color:#374151;line-height:1.6;white-space:pre-wrap"><?php
+                <p style="font-size:.9rem;color:#374151;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere"><?php
                     // A website enquiry's artwork is noted as /leads/files/{name}: make
                     // that a download link. Escaped first, so nothing else in the notes is
                     // trusted. The link goes through /leads/artwork - see routes/web.php.
-                    echo preg_replace('#/leads/files/([0-9a-f]{32}\.[a-z0-9]{2,4})#', '<a href="/leads/artwork?f=$1">Download artwork ($1)</a>', e($lead['notes']));
+                    // A designer request's proof is noted as "Proof: /custom/proof?...": a
+                    // View proof link instead of the long address (still escaped, so the
+                    // &amp;s are right inside the href).
+                    echo preg_replace(
+                        ['#/leads/files/([0-9a-f]{32}\.[a-z0-9]{2,4})#', '#Proof: (/custom/proof\?[^\s<]+)#'],
+                        ['<a href="/leads/artwork?f=$1">Download artwork ($1)</a>', 'Proof: <a href="$1" target="_blank" rel="noopener">View proof</a>'],
+                        e($lead['notes']));
                 ?></p>
             <?php endif; ?>
         </div>

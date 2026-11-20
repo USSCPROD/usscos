@@ -140,7 +140,9 @@ class WebsiteLeadService
             . $this->row('Organization', (string)($d['org'] ?? ''))
             . $this->row('Email', (string)($d['email'] ?? ''))
             . $this->row('Phone', (string)($d['phone'] ?? ''))
-            . $this->row('Design', $notes)
+            . $this->row('Design', (string)preg_replace('#\n*Proof: /custom/proof\?\S+#', '', $notes))
+            . $this->linkRow('Proof', preg_match('#Proof: (/custom/proof\?\S+)#', $notes, $m) ? $m[1] : '', 'View proof')
+            . $this->linkRow('Lead', '/leads/' . $id, 'Open the lead in USSCOS')
             . $this->row('Logo', $attachment !== null ? 'Attached — open the lead in USSCOS' : '')
             . '</table>'
         );
@@ -288,6 +290,15 @@ class WebsiteLeadService
         if ($value === '') return '';
         return '<tr><td style="padding:6px 12px 6px 0;font-weight:600;color:#374151;white-space:nowrap;vertical-align:top">' . htmlspecialchars($label) . '</td>'
              . '<td style="padding:6px 0;color:#111827">' . nl2br(htmlspecialchars($value)) . '</td></tr>';
+    }
+
+    /** A row whose value is a link to a page on this site ($path starts with /). */
+    private function linkRow(string $label, string $path, string $text): string
+    {
+        if ($path === '') return '';
+        $url = rtrim((string)config('app.url'), '/') . $path;
+        return '<tr><td style="padding:6px 12px 6px 0;font-weight:600;color:#374151;white-space:nowrap;vertical-align:top">' . htmlspecialchars($label) . '</td>'
+             . '<td style="padding:6px 0"><a href="' . htmlspecialchars($url) . '" style="color:#0A3D91">' . htmlspecialchars($text) . '</a></td></tr>';
     }
 
     private function wrapEmail(string $title, string $body): string
