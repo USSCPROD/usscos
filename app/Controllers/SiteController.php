@@ -146,9 +146,11 @@ class SiteController extends Controller
             'images'   => $this->shop->imagesOf((int)$product['id']),
             'crumbs'   => $this->shop->crumbsFor((int)$product['id'], 'stencils'),
             // Sold online: a priced stencil, not aluminum (truck freight, by phone).
+            // Or paint USSCOS can pack for FedEx (StorefrontRepository::parcelProduct).
             'cartable' => (float)($product['website_price'] ?? 0) > 0
-                          && $this->shop->cartProduct((string)$product['sku']) !== false
-                          && StorefrontRepository::materialSlug((string)($product['variant_label'] ?? '')) !== 'aluminum',
+                          && (($this->shop->cartProduct((string)$product['sku']) !== false
+                               && StorefrontRepository::materialSlug((string)($product['variant_label'] ?? '')) !== 'aluminum')
+                              || $this->shop->parcelProduct((string)$product['sku']) !== false),
             'sent'     => (string)($request->raw('sent') ?? ''),
             'error'    => (string)($request->raw('error') ?? ''),
             'docs'     => $this->shop->documentsFor((int)$product['id']),

@@ -62,11 +62,35 @@ class WebOrderService
     {
         $zip    = self::zip($zip);
         $priced = (new CartService())->price($items, $tier);
-        $boxes  = array_map(static fn($p) => ['weight' => $p['weight'], 'length' => $p['dims'][0], 'width' => $p['dims'][1],
-                                               'height' => $p['dims'][2]], StencilPacking::packages($priced['pieces']));
+        $boxes  = $priced['pieces'] === [] ? [] : array_map(static fn($p) => ['weight' => $p['weight'], 'length' => $p['dims'][0],
+                                               'width' => $p['dims'][1], 'height' => $p['dims'][2]], StencilPacking::packages($priced['pieces']));
+        $services = (array)(Config::get('shipping.web_services') ?? []);
+
+        // Paint: the boxes the order desk would pack (aerosol cases pooled into doubles, fat
+        // cans single, a pail to a box), from the packing rules in USSCOS. Nothing that
+        // needs freight is sold online.
+        if ($priced['parcels'] !== []) {
+            $plan = (new \App\Services\CartonizerService())->pack($priced['parcels']);
+
+            if (!empty($plan['freight_required']) || ($plan['not_parcel'] ?? []) !== []) {
+                throw new DesignerError("Part of this order is too large to ship by FedEx and has to go by truck freight, which we can't "
+                    . "price online yet. Lower the quantity, or call or email us and we'll quote it.");
+            }
+
+            foreach ($plan['packages'] as $pkg) {
+                if ((float)($pkg['weight'] ?? 0) <= 0) {
+                    throw new DesignerError("We can't work out shipping for something in your cart. Please call or email us to order.");
+                }
+                $boxes[] = ['weight' => (float)$pkg['weight'], 'length' => $pkg['length'] ?? null,
+                            'width' => $pkg['width'] ?? null, 'height' => $pkg['height'] ?? null];
+            }
+
+            // Aerosol ships as a limited quantity and cannot go by air; paint goes by ground.
+            $services = array_intersect_key($services, array_flip(['FEDEX_GROUND', 'GROUND_HOME_DELIVERY']));
+        }
 
         $res = (new ShippingQuoteService())->rate(['zip' => $zip, 'residential' => $residential], $boxes,
-            (array)(Config::get('shipping.web_services') ?? []), self::handling());
+            $services, self::handling());
 
         if (empty($res['ok'])) {
             error_log('web shipping: ' . ($res['message'] ?? 'no rates') . ' for ' . $zip);

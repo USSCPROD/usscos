@@ -66,7 +66,9 @@ class ShippingQuoteService
             return ['ok' => false, 'message' => 'No packing information for these products yet, so the boxes cannot be worked out.'];
         }
 
-        if (!empty($plan['freight'])) {
+        // freight_required: the cartonizer's key. This read 'freight', which it never sets,
+        // so an order over a parcel limit was priced as parcels.
+        if (!empty($plan['freight_required'])) {
             return [
                 'ok'      => false,
                 'message' => 'This looks like freight, not parcel. Get the quote from Keubix and add $'

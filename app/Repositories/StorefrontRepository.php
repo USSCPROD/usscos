@@ -731,6 +731,39 @@ class StorefrontRepository extends Repository
         ", [$sku]);
     }
 
+    /**
+     * A published, priced product that is not a stencil and that USSCOS knows how to send
+     * by FedEx: it has a packing rule (aerosol cases), or a parcel limit and a case weight
+     * (pails, one to a box). Paint without either is quote-only until its packing is set
+     * up, because nothing else can say what its boxes weigh. Freight is never sold online.
+     * The tier price columns come along for CustomerPricing.
+     */
+    public function parcelProduct(string $sku): array|false
+    {
+        if ($sku === '') {
+            return false;
+        }
+
+        return Database::selectOne("
+            SELECT " . self::PUBLIC_COLUMNS . ", p.case_weight_gross, p.max_parcel_qty,
+                   p.price, p.dist_price, p.dist_price_2026, p.stocking_dist
+            FROM products p
+            LEFT JOIN product_brands b ON b.id = p.brand_id
+            WHERE " . self::PUBLIC_WHERE . " AND p.sku = ? AND p.website_price > 0
+              AND NOT EXISTS (
+                  SELECT 1 FROM product_categories pc
+                  JOIN categories c ON c.id = pc.category_id
+                  LEFT JOIN categories c1 ON c1.id = c.parent_id
+                  LEFT JOIN categories c2 ON c2.id = c1.parent_id
+                  WHERE pc.product_id = p.id AND 'stencils' IN (c.slug, c1.slug, c2.slug)
+              )
+              AND (EXISTS (SELECT 1 FROM product_packing_rules r JOIN shipping_boxes sb ON sb.id = r.shipping_box_id
+                           WHERE r.product_id = p.id AND r.is_active = 1 AND sb.is_active = 1)
+                   OR (p.max_parcel_qty >= 1 AND p.case_weight_gross > 0))
+            LIMIT 1
+        ", [$sku]);
+    }
+
     /** A content page by slug: title, description, html. */
     public function sitePage(string $slug): array|false
     {

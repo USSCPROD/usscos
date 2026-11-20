@@ -17,9 +17,12 @@ use App\Services\Stencils\TextDesigner;
  * as what was chosen, not what it costs: every line is priced here, from the catalog or
  * from the designer that made it, every time.
  *
- * What can be bought online, for now: stencils. A stock stencil is any priced, published
- * SKU filed under Stencils; custom text, endzone and midfield come from their designers.
- * Aluminum ships by truck freight and is ordered by phone, as on the shop.
+ * What can be bought online: stencils, and paint that goes by FedEx. A stock stencil is
+ * any priced, published SKU filed under Stencils; custom text, endzone and midfield come
+ * from their designers. Aluminum ships by truck freight and is ordered by phone, as on the
+ * shop. Paint is any other priced, published product USSCOS can pack for FedEx
+ * (StorefrontRepository::parcelProduct); its boxes come from the order desk's own packing
+ * rules (CartonizerService), and an order too big for FedEx is not taken online.
  *
  * Items, as the browser sends them:
  *   {kind: 'stock',    sku, qty}
@@ -32,7 +35,8 @@ use App\Services\Stencils\TextDesigner;
  * price sheet's: stock stencils and custom text at retail x 2 / 2.75, endzone letters at
  * each letter's wholesale, and calculator-priced endzones and midfields at cost x 1.75.
  * The stencil shop's catalog is the authority for stencil prices, which is why this does
- * not read the products' distributor columns the way the order desk does.
+ * not read the products' distributor columns the way the order desk does. Paint does:
+ * a distributor pays its CustomerPricing price, never more than the website price.
  */
 class CartService
 {
@@ -64,6 +68,7 @@ class CartService
 
         $lines = [];
         $pieces = [];
+        $parcels = [];
         $subtotal = 0.0;
 
         foreach ($items as $item) {
@@ -74,7 +79,7 @@ class CartService
             }
 
             $line = match ((string)($item['kind'] ?? '')) {
-                'stock'    => $this->stock($item),
+                'stock'    => $this->stock($item, $tier),
                 'text'     => $this->text($item),
                 'endzone'  => $this->endzone($item),
                 'midfield' => $this->midfield($item),
@@ -88,6 +93,10 @@ class CartService
             $lines[] = $line;
             $subtotal += $line['unit'] * $qty;
 
+            if (isset($line['_parcel'])) {
+                $parcels[] = ['product_id' => $line['_parcel'], 'qty' => $qty];
+            }
+
             foreach (array_fill(0, $qty, null) as $_) {
                 foreach ($line['_pieces'] as $p) {
                     $pieces[] = $p;
@@ -96,17 +105,27 @@ class CartService
         }
 
         foreach ($lines as &$l) {
-            unset($l['_pieces']);
+            unset($l['_pieces'], $l['_parcel']);
         }
 
-        return ['lines' => $lines, 'subtotal' => round($subtotal, 2), 'pieces' => $pieces, 'tier' => $tier];
+        // pieces: rolled stencils (StencilPacking). parcels: paint, by product and cases,
+        // for CartonizerService.
+        return ['lines' => $lines, 'subtotal' => round($subtotal, 2), 'pieces' => $pieces, 'parcels' => $parcels, 'tier' => $tier];
     }
 
     // ── Kinds ────────────────────────────────────────────────────────────────
 
-    private function stock(array $item): array
+    private function stock(array $item, string $tier = \App\Services\CustomerPricing::RETAIL): array
     {
         $p = $this->shop->cartProduct((string)($item['sku'] ?? ''));
+
+        if ($p === false) {
+            $paint = $this->shop->parcelProduct((string)($item['sku'] ?? ''));
+
+            if ($paint !== false) {
+                return $this->paint($paint, $tier);
+            }
+        }
 
         if ($p === false || (float)$p['website_price'] <= 0) {
             throw new DesignerError('An item in your cart is no longer available. Please remove it and try again.');
@@ -133,6 +152,25 @@ class CartService
             '_wholesale' => self::wholesale((float)$p['website_price']),
             'url' => StorefrontRepository::urlFor($p, true), 'image' => StorefrontRepository::imageFor($p),
             '_pieces' => array_fill(0, $count, ['weight' => $weight / $count, 'short_side' => $roll, 'thickness' => $mat]),
+        ];
+    }
+
+    /** Paint (and anything else sold by the case or pail): one line, packed by the cartonizer. */
+    private function paint(array $p, string $tier): array
+    {
+        $retail = round((float)$p['website_price'], 2);
+        $trade  = \App\Services\CustomerPricing::priceFor($p, $tier)['price'];
+        $title  = trim((string)$p['website_name']) ?: (string)$p['name'];
+        $label  = trim((string)$p['variant_label']);
+
+        return [
+            'kind' => 'stock', 'sku' => $p['sku'], 'product_id' => (int)$p['id'],
+            'name' => $title . ($label !== '' && stripos($title, $label) === false ? ' – ' . $label : ''),
+            'detail' => trim(html_entity_decode(strip_tags((string)$p['website_short_description']), ENT_QUOTES | ENT_HTML5)),
+            'unit' => $retail,
+            '_wholesale' => $trade > 0 ? min($retail, $trade) : $retail,
+            'url' => StorefrontRepository::urlFor($p, true), 'image' => StorefrontRepository::imageFor($p),
+            '_pieces' => [], '_parcel' => (int)$p['id'],
         ];
     }
 
