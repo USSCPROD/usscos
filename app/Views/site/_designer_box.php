@@ -17,9 +17,9 @@ $d = [
 ?>
 <?php if (!empty($card)): ?>
   <div class="card" style="border-color:var(--blue)">
-    <a href="<?= e($d['href']) ?>" style="display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;background:#3b7a2a;
-       color:#f6f6f2;font-weight:900;font-size:1.6rem;letter-spacing:.08em;text-decoration:none;border-bottom:1px solid var(--line)">
-      <?= $kind === 'endzone' ? 'ENDZONE' : 'LOGO' ?>
+    <a href="<?= e($d['href']) ?>" style="display:block;text-decoration:none">
+      <img src="/assets/img/stencils/<?= $kind === 'endzone' ? 'endzone' : 'midfield' ?>-designer.jpg" alt="<?= e($d['name']) ?>" loading="lazy"
+           style="aspect-ratio:4/3;object-fit:cover;width:100%;display:block;border-bottom:1px solid var(--line)">
     </a>
     <div class="card-b">
       <h3><a href="<?= e($d['href']) ?>"><?= e($d['name']) ?></a></h3>

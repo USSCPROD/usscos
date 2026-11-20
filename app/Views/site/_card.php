@@ -14,13 +14,15 @@ $from  = $sized && !empty($p['min_price']) ? (float)$p['min_price'] : null;
 ?>
 <div class="card">
     <?php $img = \App\Repositories\StorefrontRepository::imageFor($p); ?>
+    <a href="<?= e($url) ?>" style="display:block;text-decoration:none" tabindex="-1" aria-hidden="true">
     <?php if ($img !== null): ?>
         <img src="<?= e($img) ?>" alt="<?= e($p['name']) ?>"
-             style="aspect-ratio:4/3;object-fit:contain;background:#fff;border-bottom:1px solid var(--line)" loading="lazy"
+             style="aspect-ratio:4/3;object-fit:contain;background:#fff;border-bottom:1px solid var(--line);width:100%;display:block" loading="lazy"
              onerror="this.outerHTML='&lt;div class=\'ph\'&gt;No photo yet&lt;/div&gt;'">
     <?php else: ?>
         <div class="ph">No photo yet</div>
     <?php endif; ?>
+    </a>
     <div class="card-b">
         <h3><a href="<?= e($url) ?>"><?= e(\App\Repositories\StorefrontRepository::listingName($p)) ?></a></h3>
         <div class="sku"><?= e($p['sku']) ?><?php if (!empty($p['brand_name'])): ?> · <?= e($p['brand_name']) ?><?php endif; ?></div>

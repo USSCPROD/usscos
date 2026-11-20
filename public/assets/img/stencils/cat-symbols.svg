@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 440" preserveAspectRatio="xMidYMid slice"><defs>
+  <filter id="grain" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="2" seed="7"/>
+    <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 10 -5.4"/>
+  </filter>
+  <filter id="grain-dark" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="11"/>
+    <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 9 -4.4"/>
+  </filter>
+  <filter id="blades" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".015 .9" numOctaves="2" seed="4"/>
+    <feColorMatrix values="0 0 0 0 .55  0 0 0 0 .85  0 0 0 0 .35  0 0 0 1.6 -.5"/>
+  </filter>
+  <filter id="paint" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="2" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="3"/>
+  </filter>
+  <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+    <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000" flood-opacity=".35"/>
+  </filter>
+</defs><rect width="600" height="440" fill="#9c9e9b"/><rect width="600" height="440" filter="url(#grain-dark)" opacity=".14"/><rect width="600" height="440" filter="url(#grain)" opacity=".08"/><g transform="rotate(8 300 220)" filter="url(#shadow)"><path d="M201.0 70.0H399.0Q405.0 70.0 405.0 76.0V364.0Q405.0 370.0 399.0 370.0H201.0Q195.0 370.0 195.0 364.0V76.0Q195.0 70.0 201.0 70.0Z M300.0 107.0 L378.2 208.2 L327.6 208.2 L327.6 337.0 L272.4 337.0 L272.4 208.2 L221.8 208.2Z" fill="#eef1ef" fill-opacity=".93" fill-rule="evenodd"/></g></svg>

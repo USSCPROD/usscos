@@ -55,6 +55,10 @@
           <span style="opacity:.65;font-weight:500">&nbsp;<?= (int)$c['count'] ?></span>
         </a>
       <?php endforeach; ?>
+      <?php if ($section['slug'] === 'stencils'): ?>
+        <a href="/custom" style="padding:.45rem .85rem;border-radius:999px;font-size:.84rem;font-weight:600;text-decoration:none;
+                  border:1px solid #2f6b22;background:#2f6b22;color:#fff">Custom Stencils</a>
+      <?php endif; ?>
     </div>
   <?php endif; ?>
 
@@ -73,18 +77,40 @@
   <?php endif; ?>
 </div>
 
+<?php if ($section['slug'] === 'stencils' && $active === null): ?>
+  <?php
+    // The stencils landing page: the old stencil shop's home page, then every stencil.
+    $kidCount = array_column($children, 'count', 'slug');
+    $tiles = [];
+    foreach ([['words', 'Word Stencils', 'cat-words.svg'], ['symbols', 'Symbols & Arrows', 'cat-symbols.svg'],
+              ['kits', 'Letter & Number Kits', 'cat-kits.svg'], ['retail', 'Retail Chain Stencils', 'cat-retail.svg'],
+              ['sports', 'Sports & Athletics', 'cat-sports.svg'], ['custom', 'Custom Stencils', 'cat-custom.svg'],
+              ['rooftop', 'Rooftop Stencils', 'rooftop.jpg'], ['yard', 'Yard & Lawn Stencils', 'yard.jpg']] as [$ts, $tl, $ti]) {
+        if ($ts === 'custom') {
+            $tiles[] = [$tl, '/custom', null, '/assets/img/stencils/' . $ti];
+        } elseif (isset($kidCount[$ts])) {
+            $tiles[] = [$tl, '/shop/stencils/' . $ts, (int)$kidCount[$ts], '/assets/img/stencils/' . $ti];
+        }
+    }
+  ?>
+  <?= view('site._stencils_home', ['tiles' => $tiles]) ?>
+  <div class="wrap" id="all"><div class="sec-h" style="margin-bottom:.5rem"><div><h2>All stencils</h2></div></div></div>
+<?php endif; ?>
+
 <div class="wrap" style="padding-bottom:3rem">
   <?php if ($groups !== []): ?>
     <!-- One card per chain: the category's listings all sit in these. -->
     <div class="grid g4">
       <?php foreach ($groups as $g): ?>
         <div class="card">
+          <a href="<?= e('/shop/' . $section['slug'] . '/' . $g['slug']) ?>" style="display:block;text-decoration:none">
           <?php if (($g['image'] ?? '') !== ''): ?>
-            <img src="<?= e($g['image']) ?>" alt="" loading="lazy"
-                 style="aspect-ratio:4/3;object-fit:cover;border-bottom:1px solid var(--line)">
+            <img src="<?= e($g['image']) ?>" alt="<?= e($g['label']) ?>" loading="lazy"
+                 style="aspect-ratio:4/3;object-fit:cover;width:100%;display:block;border-bottom:1px solid var(--line)">
           <?php else: ?>
             <div class="ph" style="font-weight:800;font-size:1.2rem;color:var(--navy)"><?= e(preg_replace('/ Stencils$/', '', $g['label'])) ?></div>
           <?php endif; ?>
+          </a>
           <div class="card-b">
             <h3><a href="<?= e('/shop/' . $section['slug'] . '/' . $g['slug']) ?>"><?= e($g['label']) ?></a></h3>
             <div style="font-size:.8rem;color:var(--mut)"><?= (int)$g['count'] ?> stencil<?= (int)$g['count'] === 1 ? '' : 's' ?></div>

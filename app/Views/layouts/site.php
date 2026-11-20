@@ -224,6 +224,9 @@ img{max-width:100%;display:block}
                 <span class="n"><?= (int)($k['count'] ?? 0) ?></span>
               </a>
             <?php endforeach; ?>
+            <?php if ($s['slug'] === 'stencils'): ?>
+              <a href="/custom"><span>Custom Stencils</span><span class="n">Design</span></a>
+            <?php endif; ?>
             <a class="all" href="/shop/<?= e($s['slug']) ?>">
               <span>All <?= e($s['label']) ?></span>
               <span class="n"><?= (int)($s['count'] ?? 0) ?></span>
