@@ -1,12 +1,162 @@
-# From sales order to shipped and paid
+# From a lead to shipped and paid
 
-Written 2026-11-10, by clicking through every screen on the live site rather than
-reading the code. Every label and button name below is what is actually on screen.
+Written 2026-11-10 and extended 2026-11-20, by clicking through every screen on the
+live site rather than reading the code. Every label and button name below is what is
+actually on screen.
 
-Use this as a demo script. The flow is six phases, and **three different people touch it** — the salesperson, the warehouse, and the shipping clerk. Most of the confusion
-comes from not knowing which of the three you are standing in at any moment.
+Use this as a demo script. It is in two halves, and they are genuinely different
+businesses:
+
+- **Part One — winning the work.** A lead, an opportunity, tasks, a quote. Sales only.
+  Nothing here moves any goods and nothing here is visible to the warehouse.
+- **Part Two — delivering it.** The sales order, two approval gates, the pull, the
+  bench, the invoice and the label. Three different people touch it.
+
+Most of the confusion in a demo comes from not knowing which half, and which person,
+you are standing in at any moment.
 
 ---
+
+# Part One — Winning the work
+
+## The four things, and why there are four
+
+They look like duplicates until you ask what each one answers.
+
+| | Answers | Lives on |
+|---|---|---|
+| **Lead** | "Who is this, and are they worth our time?" | Someone who is not a customer yet |
+| **Opportunity** | "How much, and how likely?" | A deal, inside the pipeline total |
+| **Task** | "Who does what, by when?" | A person's to-do list |
+| **Quote** | "Here is the price, in writing" | A document the customer sees |
+
+A lead can carry several opportunities — a parks department buying stencils this spring
+and traffic paint next autumn is **two** deals, with two values and two close dates, not
+one lead with a muddled total. That is the whole reason opportunities exist separately.
+
+> **The pipeline is the forecast.** Only opportunities have an expected value and a
+> probability, so only opportunities can be added up into "what might we close this
+> quarter". A lead with no opportunity on it contributes **nothing** to that number,
+> however promising it is.
+
+---
+
+## Where the opportunities went
+
+First question everybody asks, so get it in early: **the sidebar calls it Pipeline, not
+Opportunities.** Same thing. `/opportunities` and `/pipeline` both land there and both
+light the same sidebar entry.
+
+---
+
+## Step 1 — The lead
+
+**Who:** sales. **Screen:** Leads.
+
+A lead is a company that is not a customer yet. They arrive two ways:
+
+- **By hand** — Leads → **+ New Lead**.
+- **By themselves** — the forms on usscproducts.com post straight in. A contact form, a
+  paint quote request or a stencil quote request becomes a lead within seconds, with
+  the form it came from recorded so you can tell them apart.
+
+The lead moves through **New → Contacted → Qualified**, and ends at **Converted** or
+**Dead**. The status is just a dropdown on Edit; nothing is enforced.
+
+The lead page is the hub for everything else in Part One — Opportunities, Quotes and
+Tasks each have their own panel on it, with an **+ Add** button. Work from here rather
+than from the sidebar and nothing ends up orphaned.
+
+---
+
+## Step 2 — The opportunity
+
+**Who:** sales. **Screen:** lead page → Opportunities → **+ Add**, or **+ Opportunity**
+in the page header.
+
+Give it an expected value, a close date, and a stage. The stages are
+**Prospecting → Proposal → Negotiation → Closed Won / Closed Lost**, and each carries a
+default probability — 20%, 50%, 75%, 100%, 0% — which is what weights the forecast.
+
+The opportunity page shows the stages as a progress bar, so where a deal stands is
+readable across the room. That makes it the right screen to leave on display.
+
+---
+
+## Step 3 — Tasks
+
+**Who:** sales. **Screen:** lead page → Tasks → **+ Add Task**, or Tasks in the sidebar.
+
+A task is the follow-up: call them Tuesday, send the sample, chase the PO. It has an
+owner, a due date and a priority, and it shows up on that person's dashboard.
+
+Created from the lead, it stays attached to the lead — so the history of who chased
+what sits with the company rather than evaporating out of somebody's inbox.
+
+> **Tasks do not drive anything.** Nothing in the system waits on a task and no stage
+> moves when one is ticked off. They are a to-do list attached to the right record,
+> which is all they are meant to be. Say that plainly in a demo before someone assumes
+> there is a workflow engine underneath.
+
+---
+
+## Step 4 — The quote
+
+**Who:** sales. **Screen:** lead page → Quotes → **+ New Quote**.
+
+Start it from the opportunity's **+ Quote** button rather than the generic one — that
+links the two, and the link is what makes the next part work.
+
+Add lines, set an expiry date. **Shipping is a line you type**: get a freight price the
+way you get one today, and key it in. The quote total includes it, so the customer sees
+one number rather than "plus freight".
+
+A quote runs **Draft → Sent → Accepted**, or **Declined / Expired**.
+
+### The bit that surprises people
+
+**Creating a quote does not move the pipeline. Sending it does.**
+
+The opportunity's stage follows the quote's *status*, not its existence:
+
+| Quote status | Opportunity moves to |
+|---|---|
+| **Sent** | Proposal |
+| **Accepted** | Closed Won |
+| **Declined** | Closed Lost |
+
+It only ever moves **forward** — marking a quote Sent will not drag a deal back out of
+Negotiation. So if you build a quote in a demo and the pipeline does not budge, nothing
+is broken: press **Mark as Sent**, and watch it step across.
+
+The quote total also keeps the opportunity's value in sync as you edit lines, so the
+forecast tracks the real number rather than the first guess.
+
+---
+
+## Step 5 — Convert
+
+Two conversions, in this order, and the order is not optional.
+
+**First, the lead becomes a customer.** On the lead page, **Convert to Customer**. This
+is the moment the company stops being a prospect and gets a customer record, which is
+what carries pricing, terms and an address.
+
+**Then the quote becomes a sales order.** On the quote, **Convert to SO** — available
+once the quote is **Sent** or **Accepted** and not already converted.
+
+> **Doing it the other way round stops you**, deliberately. A quote attached to a lead
+> has no customer to hang a sales order on, so pressing Convert to SO first refuses,
+> and says to convert the lead first. The quote stays attached throughout and converts
+> straight afterwards — nothing is retyped.
+
+Everything on the quote carries across: quantities, prices, taxability and the shipping
+line. The sales order lands as a **Draft**, which is where Part Two picks up.
+
+---
+
+# Part Two — Delivering it
+
 
 ## Two different "approvals", at opposite ends of the job
 
@@ -33,8 +183,15 @@ The shipping queue only shows orders that are *Confirmed*, *Processing*,
 show what happens next, and it is not there. Nothing is broken — the order is still a
 draft.
 
-> **Set the status to Confirmed before you leave the order.** It is the Status dropdown
-> in the top-left box of the sales order, next to the S.O. number.
+> **Press "Submit for shipping" on the order.** It is the green button in the header of
+> the sales order. That is the handoff, and it is a single press — there is no status
+> dropdown to hunt for.
+
+The system now says this out loud rather than leaving you to discover it. Saving a draft
+flashes a message naming the SO number and telling you the warehouse cannot see it yet,
+and the draft order itself carries a panel saying the same thing with the button right
+beside it. **Save & New** — the one that used to drop orders silently into the void —
+flashes it too.
 
 Second gotcha, worth knowing before someone spots it: **the number in the address bar
 is not the SO number.** `/sales-orders/24` opens SO #11. Every link in the application
@@ -49,9 +206,12 @@ don't type.
 
 1. **Sales Orders** in the sidebar → **+ New Order**.
 2. Pick the customer, add lines, set a **Ship By** date.
-3. Save. The order is now a **Draft**.
-4. **Change Status to Confirmed.** This is the handoff — it is what puts the order in
-   front of the warehouse.
+3. Save. The order is now a **Draft** — and the page says so, with the reason.
+4. **Submit for shipping.** This is the handoff — it is what puts the order in front of
+   the shipping clerk.
+
+If the order came from a quote (Part One), steps 1 and 2 already happened: it arrives
+as a draft with every line on it, and you start at step 4.
 
 **What the salesperson sees afterwards:** the order page, with Print / PDF, Packing
 Slip, Email, and — while the order is Confirmed, Processing or Partially Shipped — a
@@ -254,7 +414,16 @@ there is nothing to apply it to, it now names the draft invoices that are blocki
 ## The short version, for the whiteboard
 
 ```
-SALESPERSON        Enter order ─► set to CONFIRMED
+SALES              Lead ─► Opportunity ─► Task(s)
+                     │          │
+                     │          └─► Quote ─► MARK AS SENT ─► pipeline moves
+                     │                          │
+                     └─► Convert to Customer ───┤   (lead first, always)
+                                                │
+                                         Convert to SO
+                                                │
+                                      ══════════▼══════════
+SALESPERSON        Enter order ─► SUBMIT FOR SHIPPING
                                       │
                               ╔═══════▼═══════╗
 SHIPPING CLERK    GATE 1      ║  OK to ship   ║  ─► batch packing slips
@@ -276,6 +445,9 @@ Gate 1 says **"work this order."** Gate 2 says **"ship this much."** Keeping the
 is the point: the first is a scheduling decision, the second is a decision about goods
 somebody has in their hands.
 
+Everything above the double line is a forecast. Everything below it is goods. The
+conversion is the only door between them, and it is one-way.
+
 ---
 
 ## Who sees what
@@ -294,12 +466,12 @@ asks about, rather than company financials quietly turning up on a rep's screen.
 
 ---
 
-## A ten-minute demo
+## A ten-minute demo — Part Two only
 
 Orders #1–30 are seeded test data, marked *"SEED — test order, safe to delete"*.
 
-1. **Sales Orders → + New Order.** Enter one for a real customer. Save, **set
-   Confirmed**, and say out loud that this is the handoff to the clerk.
+1. **Sales Orders → + New Order.** Enter one for a real customer. Save, press
+   **Submit for shipping**, and say out loud that this is the handoff to the clerk.
 2. **Shipping → Waiting for your OK.** Your order is here, and *only* here — the
    warehouse cannot see it yet. Set the carrier, tick it, **print the packing slip**,
    then **OK to ship**. Point out the parcel and freight sections.
@@ -319,3 +491,30 @@ Orders #1–30 are seeded test data, marked *"SEED — test order, safe to delet
 If an order is missing from the shipping screens, check two things in this order: is it
 still a **Draft**, and has it been **approved** at gate one? It is almost always one of
 those two.
+
+---
+
+## The twenty-minute demo — the whole thing
+
+Run Part One first and let it flow into the script above. This is the version to show
+your boss, because it is the only one that shows the forecast and the goods as one
+business.
+
+1. **Leads.** Open a lead that came in from the website, and point out the form it came
+   from. The point to land: *nobody typed this in.*
+2. **+ Opportunity.** Give it a value and a close date. Note the probability, and that
+   this — not the lead — is what the pipeline adds up.
+3. **+ Add Task.** "Call Tuesday." Show it land on the dashboard. Say that it drives
+   nothing; it is a to-do in the right place.
+4. **+ Quote** from the opportunity. Add lines, type a freight price, save.
+5. **Pipeline.** The deal has **not** moved. Let that sit for a second — then go back,
+   **Mark as Sent**, and show it step to Proposal. This is the moment that explains how
+   the forecast stays honest: it follows what was actually sent, not what was drafted.
+6. **Convert to Customer** on the lead. Then **Convert to SO** on the quote. Show the
+   lines, prices and freight arriving untouched.
+7. **Submit for shipping** — and you are at step 2 of the ten-minute demo above.
+
+> **If you only have five minutes**, run steps 5 and 6, then jump to *Pack & Verify* and
+> *Ready to ship* in Part Two. Those three screens are the ones that are hard to argue
+> with: the forecast moves on evidence, the box is checked against the order, and the
+> invoice bills what was picked.
