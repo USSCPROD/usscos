@@ -70,9 +70,27 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
                     // A designer request's proof is noted as "Proof: /custom/proof?...": a
                     // View proof link instead of the long address (still escaped, so the
                     // &amp;s are right inside the href).
+                    // A stencil quote's file is noted as "Attachment: ...", and the file
+                    // itself lives on the WEBSITE, not in USSCOS - the form keeps it on its
+                    // own server and sends us only where it put it. Two shapes arrive:
+                    // WordPress (usscproducts.com) sends a full https:// address, while
+                    // website/stencil-quote.php sends a path relative to its own document
+                    // root. The relative one needs the site in front of it or it is dead
+                    // text on screen, which is exactly how it read before this.
+                    $siteUrl = rtrim((string)env('WEBSITE_URL', 'https://usscos.com'), '/');
                     echo preg_replace(
-                        ['#/leads/files/([0-9a-f]{32}\.[a-z0-9]{2,4})#', '#Proof: (/custom/proof\?[^\s<]+)#'],
-                        ['<a href="/leads/artwork?f=$1">Download artwork ($1)</a>', 'Proof: <a href="$1" target="_blank" rel="noopener">View proof</a>'],
+                        [
+                            '#/leads/files/([0-9a-f]{32}\.[a-z0-9]{2,4})#',
+                            '#Proof: (/custom/proof\?[^\s<]+)#',
+                            '#Attachment:\s+(https?://[^\s<]+)#',
+                            '#Attachment:\s+/?(uploads/[A-Za-z0-9_./-]+\.[A-Za-z0-9]{2,4})#',
+                        ],
+                        [
+                            '<a href="/leads/artwork?f=$1">Download artwork ($1)</a>',
+                            'Proof: <a href="$1" target="_blank" rel="noopener">View proof</a>',
+                            'Attachment: <a href="$1" target="_blank" rel="noopener">Click to view</a>',
+                            'Attachment: <a href="' . e($siteUrl) . '/$1" target="_blank" rel="noopener">Click to view</a>',
+                        ],
                         e($lead['notes']));
                 ?></p>
             <?php endif; ?>
