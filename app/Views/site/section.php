@@ -16,7 +16,9 @@
   <h1 style="margin:0 0 .4rem;font-size:1.9rem;letter-spacing:-.025em">
     <?= e($active !== null ? $active['label'] : $section['label']) ?>
   </h1>
+  <?php if (!($section['slug'] === 'stencils' && $active === null)): // the landing page's hero says it ?>
   <p style="margin:0 0 1.25rem;color:var(--mut);max-width:62ch"><?= e($section['blurb'] ?? '') ?></p>
+  <?php endif; ?>
 
   <?php
     // Chips: the section's children on its landing page and on a child's page; on a
