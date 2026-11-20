@@ -1,5 +1,6 @@
 <?php
 require 'config.php';
+require 'spam.php';
 
 $success = false;
 $error   = '';
@@ -7,6 +8,10 @@ $old     = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
+
+    // Looks automated? Say nothing and send nothing. Telling a bot which check it
+    // failed only teaches whoever wrote it what to fix next.
+    $isSpam = ussc_is_spam($_POST);
 
     $required = ['first_name', 'last_name', 'email', 'project_description'];
     foreach ($required as $f) {
@@ -48,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    if (!$error) {
+    if (!$error && !$isSpam) {
         $payload = json_encode([
             'form_type'          => 'stencil_quote',
             'first_name'         => trim($_POST['first_name']),
@@ -73,7 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'X-USSCOS-Secret: ' . USSCOS_WEBHOOK_SECRET,
+            ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 15,
         ]);
@@ -88,6 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'There was a problem submitting your request. Please try again or call us directly.';
         }
     }
+}
+
+if ($isSpam ?? false) {
+    // The ordinary thank-you, and nothing else. A validation error alongside it would
+    // tell a bot its submission was examined.
+    $success = true;
+    $error   = '';
+    $old     = [];
 }
 
 $pageTitle = 'Stencil Quote Request';
@@ -109,6 +125,7 @@ include '_layout.php';
 
     <?php if (!$success): ?>
     <form method="POST" action="stencil-quote.php" enctype="multipart/form-data">
+        <?= ussc_honeypot_fields() ?>
 
         <div class="section-label">Contact Information</div>
 
