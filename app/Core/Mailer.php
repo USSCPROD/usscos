@@ -34,6 +34,10 @@ class Mailer
         $fromEmail = $fromEmail ?: $this->fromEmail;
         $fromName  = $fromName  ?: $this->fromName;
 
+        if (($_ENV['SMTP2GO_API_KEY'] ?? '') !== '') {
+            return $this->sendSmtp2go($to, $subject, $htmlBody, $fromName, $fromEmail);
+        }
+
         $apiKey = $_ENV['MAILGUN_API_KEY'] ?? '';
         $domain = $_ENV['MAILGUN_DOMAIN']  ?? '';
 
@@ -77,6 +81,65 @@ class Mailer
         } catch (\Throwable $e) {
             $this->lastError = $e->getMessage();
             Logger::error('Mailer error', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Through the SMTP2GO API, the provider the website and stencil shop already send with
+     * (usscproducts.com is verified there and in its SPF record). Used whenever
+     * SMTP2GO_API_KEY is set; Mailgun is the fallback.
+     */
+    private function sendSmtp2go(string $to, string $subject, string $htmlBody, string $fromName, string $fromEmail): bool
+    {
+        $recipients = array_values(array_filter(array_map('trim', preg_split('/[,;]/', $to) ?: [])));
+
+        if ($recipients === []) {
+            $this->lastError = 'No recipient address.';
+            return false;
+        }
+
+        $payload = [
+            'sender'    => $fromName !== '' ? '"' . str_replace('"', '', $fromName) . '" <' . $fromEmail . '>' : $fromEmail,
+            'to'        => $recipients,
+            'subject'   => $subject,
+            'html_body' => $htmlBody,
+            'text_body' => trim(html_entity_decode(strip_tags($htmlBody), ENT_QUOTES | ENT_HTML5, 'UTF-8')),
+        ];
+
+        try {
+            $ch = curl_init('https://api.smtp2go.com/v3/email/send');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'X-Smtp2go-Api-Key: ' . $_ENV['SMTP2GO_API_KEY'],
+                ],
+                CURLOPT_POSTFIELDS     => json_encode($payload, JSON_THROW_ON_ERROR),
+                CURLOPT_TIMEOUT        => 15,
+            ]);
+
+            $body   = curl_exec($ch);
+            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr = curl_error($ch);
+            curl_close($ch);
+
+            $data = is_string($body) ? (json_decode($body, true)['data'] ?? []) : [];
+
+            if ($status !== 200 || (int)($data['succeeded'] ?? 0) < 1) {
+                $why = $data['error'] ?? ($data['failures'][0] ?? null);
+                $this->lastError = is_string($why) && $why !== '' ? $why : ($curlErr ?: "SMTP2GO HTTP {$status}");
+                Logger::error('Mailer error', ['provider' => 'smtp2go', 'status' => $status, 'body' => $body ?: $curlErr]);
+                return false;
+            }
+
+            return true;
+
+        } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
+            Logger::error('Mailer error', ['provider' => 'smtp2go', 'error' => $e->getMessage()]);
             return false;
         }
     }

@@ -270,7 +270,7 @@ class WebsiteLeadService
     }
 
     /**
-     * An email to staff. Through Mailgun (App\Core\Mailer): the server has no local mail
+     * An email to staff. Through App\Core\Mailer (SMTP2GO): the server has no local mail
      * program, so PHP's mail() - which this used to call - accepted every message and
      * delivered none of them.
      */
