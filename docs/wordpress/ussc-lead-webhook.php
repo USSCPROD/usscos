@@ -219,11 +219,46 @@ function usscos_keep_upload( $submission, $field ) {
 		return '';
 	}
 
+	/*
+	 * ARTWORK IS NOT A LOGO. Stencil art arrives as .ai or .eps as often as .pdf, and
+	 * WordPress ships neither in wp_get_mime_types(). Without this, media_handle_sideload
+	 * refuses them, the catch below logs it, and the lead arrives with the artwork
+	 * silently missing - the one failure that looks like nothing went wrong.
+	 *
+	 * Scoped to this one sideload, added and removed around the call, so the site's own
+	 * upload rules are untouched for everybody else. .pdf needs none of this; it is
+	 * already allowed.
+	 */
+	$allow_art = static function ( $mimes ) {
+		$mimes['ai']  = 'application/postscript';
+		$mimes['eps'] = 'application/postscript';
+		return $mimes;
+	};
+
+	// Illustrator files are usually PDF inside, so finfo disagrees with the extension.
+	// Trust the extension for these two, and only these two.
+	$trust_ext = static function ( $checked, $file, $filename, $mimes, $real_mime = '' ) {
+		$ext = strtolower( pathinfo( (string) $filename, PATHINFO_EXTENSION ) );
+
+		if ( in_array( $ext, array( 'ai', 'eps' ), true ) ) {
+			$checked['ext']  = $ext;
+			$checked['type'] = 'application/postscript';
+		}
+
+		return $checked;
+	};
+
+	add_filter( 'upload_mimes', $allow_art );
+	add_filter( 'wp_check_filetype_and_ext', $trust_ext, 10, 5 );
+
 	$id = media_handle_sideload(
 		array( 'name' => $name, 'tmp_name' => $tmp ),
 		0,
 		'Stencil artwork from a website quote request'
 	);
+
+	remove_filter( 'upload_mimes', $allow_art );
+	remove_filter( 'wp_check_filetype_and_ext', $trust_ext, 10 );
 
 	if ( is_wp_error( $id ) ) {
 		@unlink( $tmp );
