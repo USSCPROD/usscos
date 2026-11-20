@@ -42,8 +42,40 @@ $dead   = in_array('--dead', $args, true);
  * through because the phrase was not at the end of the note.
  *
  * Leads that anybody has worked are still protected, whichever mode is used.
+ *
+ * THAT RULE EXPIRED ON 20 NOV 2026, and --web now refuses to run without --before.
+ *
+ * usscos.com takes real enquiries as of that date - its stencil form was proven end to
+ * end - so source='web' no longer means spam, it means "came through our own site".
+ * Worse, the protections above barely help: a website lead is only given a task when it
+ * is a stencil quote that also wants paint, so an ordinary contact enquiry has no quote,
+ * no opportunity and no task, and looks exactly like the 117 that were deleted in
+ * November. Running --web unbounded today would delete real customers' enquiries and
+ * leave nothing to show it had happened.
+ *
+ * --before=YYYY-MM-DD bounds it to the era the rule was true for. 2026-11-20 is the
+ * last honest value.
  */
 $webMode = in_array('--web', $args, true);
+
+$webBefore = null;
+foreach ($args as $a) {
+    if (str_starts_with($a, '--before=')) {
+        $webBefore = substr($a, 9);
+    }
+}
+
+if ($webMode) {
+    if ($webBefore === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $webBefore)) {
+        fwrite(STDERR,
+            "--web needs --before=YYYY-MM-DD.\n\n" .
+            "  Leads whose source is 'web' used to mean spam, because nothing linked to\n" .
+            "  usscos.com. Since 20 Nov 2026 that site takes real enquiries, so the rule\n" .
+            "  only holds for leads created before it went live.\n\n" .
+            "  For the original cleanup:  --web --before=2026-11-20\n");
+        exit(1);
+    }
+}
 
 /*
  * Signals, not one rule. Each is weak alone; a lead matching any of them, having never
@@ -71,12 +103,14 @@ if ($webMode) {
                 LEFT(REPLACE(REPLACE(l.notes, '\n', ' '), '\r', ''), 64) AS snippet
            FROM leads l
           WHERE l.source = 'web'
+            AND l.created_at < :before
             AND l.customer_id IS NULL
             AND l.status <> 'converted'
             AND NOT EXISTS (SELECT 1 FROM quotes q        WHERE q.lead_id = l.id)
             AND NOT EXISTS (SELECT 1 FROM opportunities o WHERE o.lead_id = l.id)
             AND NOT EXISTS (SELECT 1 FROM tasks t         WHERE t.lead_id = l.id)
-          ORDER BY l.id"
+          ORDER BY l.id",
+        [':before' => $webBefore . ' 00:00:00']
     );
 
     foreach ($rows as $r) {
