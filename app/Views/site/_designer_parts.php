@@ -110,19 +110,19 @@ $co   = config('site.company');
         <table style="width:100%;border-collapse:separate;border-spacing:0 .7rem">
           <tr>
             <td style="width:50%;padding-right:.5rem;vertical-align:top">
-              <label class="fl" for="dz-name">Your name</label><input class="fi" id="dz-name" name="name" autocomplete="name" required>
+              <label class="fl" for="dz-name">Your name</label><input class="fi" id="dz-name" name="name" autocomplete="name" required value="<?= e($me['name'] ?? '') ?>">
             </td>
             <td style="width:50%;padding-left:.5rem;vertical-align:top">
-              <label class="fl" for="dz-org">School, team or company</label><input class="fi" id="dz-org" name="org" autocomplete="organization">
+              <label class="fl" for="dz-org">School, team or company</label><input class="fi" id="dz-org" name="org" autocomplete="organization" value="<?= e($me['org'] ?? '') ?>">
             </td>
           </tr>
           <tr>
             <td style="padding-right:.5rem;vertical-align:top">
-              <label class="fl" for="dz-email">Email</label><input class="fi" id="dz-email" name="email" type="email" autocomplete="email" required>
+              <label class="fl" for="dz-email">Email</label><input class="fi" id="dz-email" name="email" type="email" autocomplete="email" required value="<?= e($me['email'] ?? '') ?>">
             </td>
             <td style="padding-left:.5rem;vertical-align:top">
               <label class="fl" for="dz-phone">Phone <span style="font-weight:400;color:var(--mut)">(optional)</span></label>
-              <input class="fi" id="dz-phone" name="phone" type="tel" autocomplete="tel">
+              <input class="fi" id="dz-phone" name="phone" type="tel" autocomplete="tel" value="<?= e($me['phone'] ?? '') ?>">
             </td>
           </tr>
           <tr>

@@ -55,7 +55,7 @@
     </div>
   </div>
 
-  <?= view('site._designer_parts', ['part' => 'request', 'kind' => 'text', 'sent' => $sent, 'error' => $error]) ?>
+  <?= view('site._designer_parts', ['part' => 'request', 'kind' => 'text', 'sent' => $sent, 'error' => $error, 'me' => $me]) ?>
   <?php endif; ?>
 </div>
 

@@ -63,6 +63,7 @@ class DesignerController extends Controller
             'staffOnly' => CustomerAccounts::current() === null && \App\Core\Auth::check(),
             'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
+            'me'       => self::requester(),
             'sent'   => (string)($request->raw('sent') ?? ''),
             'error'  => (string)($request->raw('error') ?? ''),
         ]);
@@ -92,6 +93,7 @@ class DesignerController extends Controller
             'staffOnly' => CustomerAccounts::current() === null && \App\Core\Auth::check(),
             'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
+            'me'       => self::requester(),
             'sent'      => (string)($request->raw('sent') ?? ''),
             'error'     => (string)($request->raw('error') ?? ''),
         ]);
@@ -125,6 +127,7 @@ class DesignerController extends Controller
             'staffOnly' => CustomerAccounts::current() === null && \App\Core\Auth::check(),
             'next' => (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/custom'), PHP_URL_PATH) . ($request->raw('design') ? '?design=' . (int)$request->raw('design') : ''),
             'signedIn' => CustomerAccounts::current() !== null,
+            'me'       => self::requester(),
             'sent'    => (string)($request->raw('sent') ?? ''),
             'error'   => (string)($request->raw('error') ?? ''),
         ]);
@@ -331,6 +334,27 @@ class DesignerController extends Controller
         return !self::mayDesign()
             ? $response->json(['error' => 'Please sign in or create a free account to use the designer.', 'signIn' => true], 401)
             : null;
+    }
+
+    /**
+     * The quote-request form's contact fields, filled from the signed-in customer account
+     * so a request goes out under the account's own details. Staff get a blank form: they
+     * request on a customer's behalf.
+     */
+    private static function requester(): array
+    {
+        $login = CustomerAccounts::current();
+
+        if ($login === null) {
+            return ['name' => '', 'email' => '', 'phone' => '', 'org' => ''];
+        }
+
+        return [
+            'name'  => (string)$login['name'],
+            'email' => (string)$login['email'],
+            'phone' => (string)$login['phone'],
+            'org'   => trim((string)($login['customer_name'] ?? '')) ?: (string)$login['organization'],
+        ];
     }
 
     /** A signed-in customer, or USSCOS staff. */
