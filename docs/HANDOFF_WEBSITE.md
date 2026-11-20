@@ -50,7 +50,7 @@ that each cost an attempt.
 |---|---|---|---|
 | Contact Form - Basic | 74 | `contact` | **Proven**, including the Phone field added 13 Nov |
 | Request a Quote | 14593 | `paint_quote` | **Proven by a real enquiry** — lead 134, Gabriel Barron at CUHSD asking about the RM-21 robot |
-| Request a Stencil Quote | 18220 | `stencil_quote` | Data proven (lead 133). **Artwork upload deployed but never tested** |
+| Request a Stencil Quote | 18220 | `stencil_quote` | Data proven (lead 133). **File field is images-only and never tested** — see below |
 
 The newsletter, Georgia Proud Partner and Become a Dealer forms are deliberately *not*
 forwarded. A newsletter signup is not a lead, and making it one is how a lead list fills
@@ -58,12 +58,40 @@ with people nobody intends to ring.
 
 ### The one thing left unfinished
 
-**Stencil artwork.** `quote-file` on form 18220 is the customer's artwork. The snippet now
+**Stencil artwork.** `quote-file` on form 18220 is the customer's file. The snippet
 copies it into the WordPress media library and sends the URL as `attachment`, which
-USSCOS appends to the lead notes. **This was deployed and never tested** — the test
-submission failed validation (State and Paint are required) and the browser disconnected
-before a retry. Worth proving before anyone relies on it: a stencil quote without the
-artwork is a phone call to ask for it again.
+USSCOS appends to the lead notes, and the lead page renders as a **Click to view** link.
+**The chain has still never been proven end to end**, and an attempt on 2026-11-20
+established why, plus two things nobody had noticed.
+
+### What that attempt established
+
+1. **The field only accepts images.** It is labelled *Attach Logo* and carries
+   `accept="image/*"`, and the restriction is **enforced server-side, not just in the
+   browser** — a PDF was refused with *"You are not allowed to upload files of this
+   type."* Stencil artwork is normally PDF, AI or EPS. So as the form stands today a
+   customer cannot send real artwork through it at all, whatever the snippet does with
+   what arrives. **This is the finding that matters** — the plumbing is not the problem,
+   the field is. Decide whether the field is meant for a logo (its label) or for artwork
+   (what a stencil quote needs), and widen `filetypes:` if it is the latter.
+2. **`quote-state` wants full state names** — "Georgia", not "GA". Anything posting to
+   this form programmatically has to use the long form.
+3. **The spam protection is real and layered, and it works.** The scripted submission was
+   stopped by the honeypot plugin's JavaScript check (*"Spamming or your Javascript is
+   disabled"*) before it ever reached **Cloudflare Turnstile**, which is also on this form
+   (`_wpcf7_turnstile_response`), with Akismet behind that. Three independent layers.
+
+### How to finish the test
+
+Turnstile is bot-detection, so it has to be a person in a browser — it cannot be
+scripted, and should not be. Open <https://usscproducts.com/stencil-quote/>, fill it in
+with an obvious test name, **attach a PNG or JPG**, and submit. Then check the newest
+lead in USSCOS: the notes should end with *Attachment: Click to view*, and that link
+should open the image from the WordPress media library.
+
+Baseline when this was written: the newest lead was **#140**, and **no stencil quote has
+ever arrived** — every website lead so far came from the contact form. That absence is
+itself consistent with the file field turning people away.
 
 ## Spam
 
