@@ -18,12 +18,19 @@
     .bar { display: none; }
     .sheet { margin: 0; box-shadow: none; }
   }
+  /* A browser that ignores @page (or a dialog left on Portrait) would print the sheet across
+     the top half of a portrait page. Turn it a quarter so it fills the page instead. */
+  @media print and (orientation: portrait) {
+    .sheet { width: 8.5in; height: 11in; position: relative; overflow: hidden; }
+    .sheet svg { position: absolute; top: 0; left: 0; width: 11in; height: 8.5in;
+                 transform-origin: 0 0; transform: translateX(8.5in) rotate(90deg); }
+  }
 </style>
 </head>
 <body>
   <div class="bar">
     <button type="button" onclick="window.print()">Print or save as PDF</button>
-    <span>In the print dialog, choose “Save as PDF” to keep a copy.</span>
+    <span>In the print dialog, choose Landscape, then “Save as PDF” to keep a copy.</span>
   </div>
   <!-- Built by App\Services\Stencils\StencilProof from priced, validated values only. -->
   <div class="sheet"><?= $svg ?></div>

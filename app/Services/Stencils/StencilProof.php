@@ -7,9 +7,10 @@ namespace App\Services\Stencils;
 /**
  * The proof page from the online designers: the stencil shop's proof.py, as SVG.
  *
- * Letter landscape. The design on the field, its size boxes and material note on the
- * left; who it was prepared for, the project and the online price on the right; then the
- * approval and date lines, the trademark terms and the address bar.
+ * Letter landscape, laid out like USSC's own proof sheets: the design on the field across
+ * the full width of the page, a caption with its size, then a row with who it was prepared
+ * for, the project, the stencil details and the online price; then the approval and date
+ * lines, the trademark terms and the address bar.
  *
  * The shop turned this SVG into a PDF with rsvg-convert. This server has none, so the
  * page is served inside a print-ready HTML document (DesignerController::proof) and the
@@ -57,11 +58,12 @@ class StencilProof
         $specs = [['Lettering', $ft($q['lettering']['width']) . ' × ' . $ft($q['lettering']['height'])], ['Pieces', $pieces],
                   ['Ships', $q['weight'] . ' lbs · ' . $q['boxes'] . ' box' . ($q['boxes'] > 1 ? 'es' : '')]];
         $note = self::MATERIAL_NOTE . ($q['style'] === 'outline' ? ' Outline letters are cut as outlines; paint the inside by hand in a second color.' : '');
-        $panel = [[self::preparedFor($for),
-                   ['Project', ['Endzone lettering: “' . $q['text'] . '”', $q['styleLabel'] . ' letters, ' . $ft($q['letterHeight']) . ' tall', $cut]]],
-                  self::money($q['price']), self::priceNote()];
+        $caption = '“' . $q['text'] . '”: ' . $ft($q['lettering']['width']) . ' wide x ' . $ft($q['lettering']['height']) . ' tall ('
+                 . strtolower($q['styleLabel']) . ' letters are ' . $ft($q['letterHeight']) . ' tall)';
+        $project = ['Endzone lettering: “' . $q['text'] . '”', $q['styleLabel'] . ' letters, ' . $ft($q['letterHeight']) . ' tall', $cut];
 
-        return self::page($drawing, $view, sprintf('EZ-%06d', time() % 1000000), $specs, $note, $panel);
+        return self::page($drawing, $view, sprintf('EZ-%06d', time() % 1000000), $caption, self::preparedFor($for), $project,
+                          $specs, $note, (float)$q['price']);
     }
 
     public static function midfield(array $q, string $logoPng, array $for): string
@@ -73,12 +75,12 @@ class StencilProof
         $specs = [['Logo', $ft($q['width']) . ' × ' . $ft($q['height'])],
                   ['Stencil (1 piece)', $ft($q['sheet']['width']) . ' × ' . $ft($q['sheet']['height'])],
                   ['Ships', $q['weight'] . ' lbs · ' . $q['boxes'] . ' box' . ($q['boxes'] > 1 ? 'es' : '')]];
-        $panel = [[self::preparedFor($for),
-                   ['Project', ['Midfield logo', $q['fieldLabel'] . ' field, centered on the ' . $mid . '-yard line',
-                                'Logo ' . $ft($q['width']) . ' wide x ' . $ft($q['height']) . ' tall']]],
-                  self::money($q['price']), self::priceNote()];
+        $project = ['Midfield logo', $q['fieldLabel'] . ' field, centered on the ' . $mid . '-yard line',
+                    'Logo ' . $ft($q['width']) . ' wide x ' . $ft($q['height']) . ' tall'];
+        $caption = 'Midfield logo: ' . $ft($q['width']) . ' wide x ' . $ft($q['height']) . ' tall, ' . strtolower($q['fieldLabel']) . ' field';
 
-        return self::page($drawing, $view, 'MF-' . strtoupper(substr($q['logo'], 0, 6)), $specs, self::MATERIAL_NOTE, $panel);
+        return self::page($drawing, $view, 'MF-' . strtoupper(substr($q['logo'], 0, 6)), $caption, self::preparedFor($for), $project,
+                          $specs, self::MATERIAL_NOTE, (float)$q['price']);
     }
 
     // ── Field drawings, in feet ──────────────────────────────────────────────
@@ -137,8 +139,10 @@ class StencilProof
         $hashIn = $q['hash'];
         $cx = $L / 2;
         $cy = $W / 2;
-        $x0 = $cx - 105;
-        $x1 = $cx + 105;
+        // From the 20 to the 20 (the whole field between the end zones on an 80-yard field),
+        // so the drawing is as wide as the page it sits on.
+        $x0 = max(0, $cx - 150);
+        $x1 = min($L, $cx + 150);
         $m = 5;
         $LN = self::LINE;
 
@@ -201,29 +205,52 @@ class StencilProof
 
     // ── Page ─────────────────────────────────────────────────────────────────
 
-    private static function page(string $drawing, array $view, string $proofId, array $specs, string $note, array $panel): string
+    private static function page(string $drawing, array $view, string $proofId, string $caption, array $for, array $project,
+                                 array $specs, string $note, float $price): string
     {
-        $leftX = 36;
+        $B = self::BODY_FONT;
+
+        // The drawing: the full 720-point width, as tall as leaves room for the row below.
         $top = 64;
-        $bottom = 482;
-        $maxW = 470;
-        $noteRows = count(self::wrap($note, max(30, (int)(($maxW - 22) / 3.9))));
-        $below = 8 + 38 + 8 + (12 + 11 * $noteRows);
-        $k = min($maxW / $view[2], ($bottom - $top - $below) / $view[3]);
+        $maxW = 720;
+        $maxH = 268;
+        $k  = min($maxW / $view[2], $maxH / $view[3]);
         $dw = $view[2] * $k;
         $dh = $view[3] * $k;
-        $dx = $leftX;
+        $dx = 36 + ($maxW - $dw) / 2;
         $dy = $top;
 
-        $art = sprintf('<defs><clipPath id="field"><rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="9"/></clipPath></defs>', $dx, $dy, $dw, $dh)
+        $art = sprintf('<defs><clipPath id="field"><rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" rx="6"/></clipPath></defs>', $dx, $dy, $dw, $dh)
              . sprintf('<g clip-path="url(#field)"><g transform="translate(%.2f %.2f) scale(%.5f) translate(%s %s)">%s</g></g>',
                  $dx, $dy, $k, -$view[0], -$view[1], $drawing);
-        $y = $dy + $dh + 8;
-        $art .= self::specs($specs, $dx, $y, $dw);
-        $art .= self::note($note, $dx, $y + 38 + 8, $dw);
 
-        $px = $dx + $dw + 30;
-        $info = self::panel($px, $top + 8, 756 - $px, ...$panel);
+        // The caption, in spaced capitals like the shop's proofs.
+        $y = $dy + $dh + 20;
+        $art .= sprintf('<text x="36" y="%.2f" font-size="10.5" fill="#222" letter-spacing="1.6" font-family="%s">%s</text>', $y, $B, self::e(mb_strtoupper($caption)));
+
+        // One row of four: prepared for, project, stencil, price.
+        $y += 22;
+        $cols = [[36, 168], [216, 196], [424, 172], [608, 148]];
+        $art .= self::column($cols[0][0], $y, $cols[0][1], $for[0], $for[1]);
+        $art .= self::column($cols[1][0], $y, $cols[1][1], 'Project', $project);
+        $art .= self::column($cols[2][0], $y, $cols[2][1], 'Stencil', array_map(static fn($s) => $s[0] . ': ' . $s[1], $specs), false);
+        $art .= sprintf('<text x="%s" y="%.2f" font-size="7.5" font-weight="700" fill="#7a807b" letter-spacing="1.2" font-family="%s">PRICE</text>', $cols[3][0], $y, $B)
+              . sprintf('<text x="%s" y="%.2f" font-size="26" font-weight="700" fill="#111" font-family="%s">%s</text>', $cols[3][0], $y + 27, self::TITLE_FONT, self::e(self::money($price)));
+        foreach (self::wrap(self::priceNote(), 34) as $i => $part) {
+            $art .= sprintf('<text x="%s" y="%.2f" font-size="7.5" fill="#666" font-family="%s">%s</text>', $cols[3][0], $y + 41 + 10 * $i, $B, self::e($part));
+        }
+        foreach ([1, 2, 3] as $i) {
+            $art .= sprintf('<line x1="%s" y1="%.2f" x2="%s" y2="%.2f" stroke="#e2e2de" stroke-width=".75"/>', $cols[$i][0] - 12, $y - 9, $cols[$i][0] - 12, $y + 62);
+        }
+
+        // The material note, one or two lines across the page.
+        $ny = $y + 74;
+        $rows = self::wrap($note, 190);
+        $art .= sprintf('<rect x="36" y="%.2f" width="720" height="%s" fill="#f4f4f2"/><rect x="36" y="%.2f" width="3" height="%s" fill="#7cb82f"/>',
+            $ny, 8 + 10 * count($rows), $ny, 8 + 10 * count($rows));
+        foreach ($rows as $i => $r) {
+            $art .= sprintf('<text x="47" y="%.2f" font-size="7.8" fill="#333" font-family="%s">%s</text>', $ny + 12 + 10 * $i, $B, self::e($r));
+        }
 
         $terms = '';
         foreach (self::wrap(self::TERMS, 178) as $i => $t) {
@@ -240,18 +267,15 @@ class StencilProof
             ? sprintf('<image href="data:image/png;base64,%s" x="36" y="510" width="168" height="34.9"/>', base64_encode((string)file_get_contents($logoFile)))
             : '';
         $date = date('n/j/y');
-        $B = self::BODY_FONT;
 
         return <<<SVG
 <svg xmlns="http://www.w3.org/2000/svg" width="792pt" height="612pt" viewBox="0 0 792 612">
   <rect width="792" height="612" fill="#fff"/>
-  <text x="36" y="46" font-size="32" font-weight="900" fill="#111" font-family="{$B}" letter-spacing=".3">STENCIL PROOF</text>
+  <text x="36" y="44" font-size="26" font-weight="900" fill="#111" font-family="{$B}" letter-spacing=".3">STENCIL PROOF</text>
   <text x="756" y="34" font-size="9.5" fill="#333" text-anchor="end" font-family="{$B}">Date Created {$date}   Rev. 1</text>
   <text x="756" y="47" font-size="8" fill="#777" text-anchor="end" font-family="{$B}">Proof {$proofId}</text>
   <line x1="36" y1="54" x2="756" y2="54" stroke="#e2e2de" stroke-width=".75"/>
   {$art}
-  <line x1="{$px}" y1="{$top}" x2="{$px}" y2="{$bottom}" stroke="#e2e2de" stroke-width=".75" transform="translate(-15 0)"/>
-  {$info}
   <line x1="36" y1="498" x2="756" y2="498" stroke="#ddd" stroke-width=".75"/>
   {$logo}
   <text x="226" y="519" font-size="10.5" font-weight="700" fill="#111" font-family="{$B}">Proof Approval:</text>
@@ -265,69 +289,24 @@ class StencilProof
 SVG;
     }
 
-    private static function specs(array $specs, float $x, float $y, float $w, float $h = 38): string
+    /** A heading and its lines; the first line bold unless $boldFirst is false. */
+    private static function column(float $x, float $y, float $w, string $heading, array $lines, bool $boldFirst = true): string
     {
-        $cw = $w / count($specs);
-        $size = $cw >= 120 ? 11 : 10;
-        $out = sprintf('<rect x="%.2f" y="%.2f" width="%.2f" height="%s" rx="6" fill="#f4f4f2" stroke="#e2e2de" stroke-width=".75"/>', $x, $y, $w, $h);
-
-        foreach (array_values($specs) as $i => [$label, $value]) {
-            $cx = $x + $i * $cw;
-
-            if ($i) {
-                $out .= sprintf('<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#e2e2de" stroke-width=".75"/>', $cx, $y, $cx, $y + $h);
-            }
-
-            $out .= sprintf('<text x="%.2f" y="%.2f" font-size="8" fill="#6b706c" font-family="%s">%s</text>', $cx + 9, $y + 14, self::BODY_FONT, self::e($label))
-                  . sprintf('<text x="%.2f" y="%.2f" font-size="%s" font-weight="700" fill="#111" font-family="%s">%s</text>', $cx + 9, $y + 29, $size, self::BODY_FONT, self::e($value));
-        }
-
-        return $out;
-    }
-
-    private static function note(string $text, float $x, float $y, float $w): string
-    {
-        $rows = self::wrap($text, max(30, (int)(($w - 22) / 3.9)));
-        $h = 12 + 11 * count($rows);
-        $body = '';
-
-        foreach ($rows as $i => $r) {
-            $body .= sprintf('<text x="%.2f" y="%.2f" font-size="8.5" fill="#333" font-family="%s">%s</text>', $x + 13, $y + 16 + 11 * $i, self::BODY_FONT, self::e($r));
-        }
-
-        return sprintf('<rect x="%.2f" y="%.2f" width="%.2f" height="%s" fill="#f4f4f2"/><rect x="%.2f" y="%.2f" width="3" height="%s" fill="#7cb82f"/>%s',
-            $x, $y, $w, $h, $x, $y, $h, $body);
-    }
-
-    private static function panel(float $x, float $y, float $w, array $sections, string $price, string $priceNote): string
-    {
-        $out = '';
         $B = self::BODY_FONT;
+        $out = sprintf('<text x="%.2f" y="%.2f" font-size="7.5" font-weight="700" fill="#7a807b" letter-spacing="1.2" font-family="%s">%s</text>', $x, $y, $B, self::e(strtoupper($heading)));
+        $y += 14;
+        $n = 0;
 
-        foreach ($sections as [$heading, $lines]) {
-            $out .= sprintf('<text x="%.2f" y="%.2f" font-size="7.5" font-weight="700" fill="#7a807b" letter-spacing="1.2" font-family="%s">%s</text>', $x, $y, $B, self::e(strtoupper($heading)));
-            $y += 14;
-
-            foreach (array_values($lines) as $i => $line) {
-                foreach (self::wrap($line, max(24, (int)($w / 5.2))) ?: [''] as $part) {
-                    $out .= sprintf('<text x="%.2f" y="%.2f" font-size="%s"%s fill="%s" font-family="%s">%s</text>',
-                        $x, $y, $i === 0 ? 10 : 9, $i === 0 ? ' font-weight="700"' : '', $i === 0 ? '#111' : '#444', $B, self::e($part));
-                    $y += 13;
+        foreach (array_values($lines) as $i => $line) {
+            $bold = $boldFirst && $i === 0;
+            foreach (self::wrap($line, max(20, (int)($w / ($bold ? 5.4 : 4.9)))) ?: [''] as $part) {
+                if (++$n > 5) {
+                    break 2;
                 }
+                $out .= sprintf('<text x="%.2f" y="%.2f" font-size="%s"%s fill="%s" font-family="%s">%s</text>',
+                    $x, $y, $bold ? 9.5 : 8.5, $bold ? ' font-weight="700"' : '', $bold ? '#111' : '#444', $B, self::e($part));
+                $y += 11.5;
             }
-
-            $y += 10;
-            $out .= sprintf('<line x1="%.2f" y1="%.2f" x2="%.2f" y2="%.2f" stroke="#e2e2de" stroke-width=".75"/>', $x, $y - 6, $x + $w, $y - 6);
-            $y += 8;
-        }
-
-        $out .= sprintf('<text x="%.2f" y="%.2f" font-size="7.5" font-weight="700" fill="#7a807b" letter-spacing="1.2" font-family="%s">PRICE</text>', $x, $y, $B);
-        $out .= sprintf('<text x="%.2f" y="%.2f" font-size="28" font-weight="700" fill="#111" font-family="%s">%s</text>', $x, $y + 30, self::TITLE_FONT, self::e($price));
-        $y += 46;
-
-        foreach (self::wrap($priceNote, max(24, (int)($w / 4.6))) as $part) {
-            $out .= sprintf('<text x="%.2f" y="%.2f" font-size="8" fill="#666" font-family="%s">%s</text>', $x, $y, $B, self::e($part));
-            $y += 11;
         }
 
         return $out;
