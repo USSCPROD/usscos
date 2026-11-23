@@ -14,17 +14,24 @@
   .sheet { width: 11in; height: 8.5in; margin: 0 auto 2rem; background: #fff; box-shadow: 0 2px 12px #0002; }
   .sheet svg { display: block; width: 100%; height: 100%; }
   @media print {
-    html, body { background: #fff; }
+    /* Pinned to the sheet exactly, and clipped: without this a stray line box after the
+       SVG is enough on its own to spill onto a second page. */
+    html, body { background: #fff; width: 11in; height: 8.5in; overflow: hidden; }
     .bar { display: none; }
     .sheet { margin: 0; box-shadow: none; }
   }
-  /* A browser that ignores @page (or a dialog left on Portrait) would print the sheet across
-     the top half of a portrait page. Turn it a quarter so it fills the page instead. */
-  @media print and (orientation: portrait) {
-    .sheet { width: 8.5in; height: 11in; position: relative; overflow: hidden; }
-    .sheet svg { position: absolute; top: 0; left: 0; width: 11in; height: 8.5in;
-                 transform-origin: 0 0; transform: translateX(8.5in) rotate(90deg); }
-  }
+  /*
+   * THERE WAS A PORTRAIT FALLBACK HERE AND IT WAS THE BUG. It rotated the sheet a
+   * quarter turn for "a browser that ignores @page", but in Chrome the print
+   * `orientation` feature reports portrait even when @page has already set landscape,
+   * so the rule fired on every normal print: the sheet became 8.5 x 11, taller than the
+   * printable height, and Save as PDF produced a second, empty page. Reported 23 Nov
+   * 2026 as "I went to print and save and it was a blank page".
+   *
+   * Removed rather than re-scoped - @page size works in every browser we support, and a
+   * fallback that misfires in the ordinary case is worse than no fallback. Verified by
+   * printing this page headlessly: one page, with the proof on it.
+   */
 </style>
 </head>
 <body>
