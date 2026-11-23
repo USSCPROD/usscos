@@ -36,12 +36,17 @@ apt-get install -y -qq software-properties-common
 add-apt-repository -y ppa:ondrej/php >/dev/null 2>&1 || true
 apt-get update -qq
 
+# librsvg2-bin provides rsvg-convert, which turns a stencil proof SVG into the PDF a
+# customer downloads - see App\Services\Stencils\SvgToPdf. Without it the proof page
+# falls back to "print, and choose Save as PDF", which is how the blank-page reports
+# started: browsers disagree about printing, and the customer is the one who finds out.
 apt-get install -y -qq \
     nginx \
     mysql-server \
     php8.3-fpm php8.3-mysql php8.3-mbstring php8.3-xml php8.3-curl \
     php8.3-zip php8.3-gd php8.3-intl php8.3-bcmath \
-    git unzip curl fail2ban ufw certbot python3-certbot-nginx
+    git unzip curl fail2ban ufw certbot python3-certbot-nginx \
+    librsvg2-bin
 
 say "Installing Composer"
 if ! command -v composer >/dev/null; then
