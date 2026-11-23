@@ -445,6 +445,7 @@ Router::get('/custom/midfield',         [DesignerController::class, 'midfieldPag
 Router::post('/custom/midfield/upload', [DesignerController::class, 'midfieldUpload'])->name('designer.midfield.upload');
 Router::post('/custom/midfield/quote',  [DesignerController::class, 'midfieldQuote'])->name('designer.midfield.quote');
 Router::get('/custom/midfield/logo',    [DesignerController::class, 'midfieldLogo'])->name('designer.midfield.logo');
+Router::get('/custom/proof.pdf',        [DesignerController::class, 'proofPdf'])->name('designer.proof_pdf');
 Router::get('/custom/proof',            [DesignerController::class, 'proof'])->name('designer.proof');
 Router::post('/custom/request',         [DesignerController::class, 'request'])->name('designer.request');
 

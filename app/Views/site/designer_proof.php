@@ -9,7 +9,9 @@
   @page { size: letter landscape; margin: 0; }
   html, body { margin: 0; background: #e5e7eb; font-family: Arial, sans-serif; }
   .bar { display: flex; gap: .6rem; align-items: center; justify-content: center; padding: .8rem; }
-  .bar button { padding: .6rem 1.1rem; border: 0; border-radius: 6px; background: #222b59; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+  .bar .btn { padding: .6rem 1.1rem; border: 0; border-radius: 6px; background: #222b59; color: #fff;
+              font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
+  .bar .btn--quiet { background: #fff; color: #222b59; box-shadow: inset 0 0 0 1px #c7cbd6; }
   .bar span { color: #374151; font-size: .9rem; }
   .sheet { width: 11in; height: 8.5in; margin: 0 auto 2rem; background: #fff; box-shadow: 0 2px 12px #0002; }
   .sheet svg { display: block; width: 100%; height: 100%; }
@@ -42,11 +44,21 @@
 </head>
 <body>
   <div class="bar">
-    <button type="button" onclick="window.print()">Print or save as PDF</button>
-    <span>In the print dialog, choose Landscape, then “Save as PDF” to keep a copy.</span>
+    <?php if ($canPdf): ?>
+      <a class="btn" href="<?= e($pdfHref) ?>">Download PDF</a>
+      <button type="button" class="btn btn--quiet" onclick="window.print()">Print</button>
+    <?php else: ?>
+      <button type="button" class="btn" onclick="window.print()">Print or save as PDF</button>
+      <span>In the print dialog, choose Landscape, then “Save as PDF” to keep a copy.</span>
+    <?php endif; ?>
   </div>
   <!-- Built by App\Services\Stencils\StencilProof from priced, validated values only. -->
   <div class="sheet"><?= $svg ?></div>
-  <script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 300); });</script>
+  <!--
+    NO AUTO-PRINT. Opening the print dialog on load meant anyone following a proof link
+    was answering a dialog before they had seen the proof, and it fired again on every
+    reload. Downloading is the ordinary way to keep a copy; printing is a button for
+    whoever actually wants paper.
+  -->
 </body>
 </html>

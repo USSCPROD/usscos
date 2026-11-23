@@ -12,6 +12,7 @@ use App\Services\Stencils\DesignerError;
 use App\Services\Stencils\EndzoneDesigner;
 use App\Services\Stencils\MidfieldDesigner;
 use App\Services\Stencils\StencilProof;
+use App\Services\Stencils\SvgToPdf;
 use App\Services\Stencils\TextDesigner;
 use App\Services\Web\CartService;
 use App\Services\Web\CustomerAccounts;
@@ -226,21 +227,78 @@ class DesignerController extends Controller
         ];
 
         try {
-            if ($request->raw('kind') === 'midfield') {
-                $q    = $this->midfield->quote((string)$request->raw('logo', ''), (string)$request->raw('field', ''), $request->raw('width'));
-                $logo = (string)file_get_contents((string)MidfieldDesigner::path($q['logo'], 'logo.png'));
-                $svg  = StencilProof::midfield($q, $logo, $for);
-                $name = 'Midfield logo proof';
-            } else {
-                $q   = $this->endzoneFromQuery($request);
-                $svg = StencilProof::endzone($q, self::color($request->raw('fill'), '#c8102e'), self::color($request->raw('line'), '#f6f6f2'), $for);
-                $name = 'Endzone proof — ' . $q['text'];
-            }
+            [$svg, $name, $file] = $this->buildProof($request, $for);
         } catch (DesignerError $e) {
             return $response->status(422)->body(e($e->getMessage()));
         }
 
-        return $this->view('site.designer_proof', ['title' => $name, 'svg' => $svg]);
+        return $this->view('site.designer_proof', [
+            'title'   => $name,
+            'svg'     => $svg,
+            'pdfHref' => '/custom/proof.pdf?' . (string)($_SERVER['QUERY_STRING'] ?? ''),
+            'canPdf'  => SvgToPdf::available(),
+        ]);
+    }
+
+    /**
+     * The same proof as a PDF, downloaded rather than printed.
+     *
+     * The query string is identical to /custom/proof, so the page's own Download button
+     * is the page's address with .pdf on it. Nothing is stored: the proof is rebuilt from
+     * the query, which keeps it honest - a saved PDF and a reloaded page cannot drift.
+     */
+    public function proofPdf(Request $request, Response $response): Response
+    {
+        if (!self::mayDesign()) {
+            return $response->redirect('/account/sign-in?next=' . rawurlencode((string)($_SERVER['REQUEST_URI'] ?? '/custom')));
+        }
+
+        $for = [
+            'name'  => mb_substr((string)$request->raw('name', ''), 0, 80),
+            'org'   => mb_substr((string)$request->raw('org', ''), 0, 120),
+            'email' => mb_substr((string)$request->raw('email', ''), 0, 120),
+            'phone' => mb_substr((string)$request->raw('phone', ''), 0, 40),
+        ];
+
+        try {
+            [$svg, , $file] = $this->buildProof($request, $for);
+            $pdf = SvgToPdf::convert($svg);
+        } catch (DesignerError $e) {
+            // Send them to the page they can still print, rather than a dead end.
+            return $response->redirect('/custom/proof?' . (string)($_SERVER['QUERY_STRING'] ?? ''));
+        }
+
+        return $response
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $file . '"')
+            ->header('Content-Length', (string) strlen($pdf))
+            ->header('Cache-Control', 'private, no-store')
+            ->body($pdf);
+    }
+
+    /**
+     * Builds the proof SVG from the query.
+     *
+     * @return array{0:string,1:string,2:string} SVG, page title, download filename.
+     * @throws DesignerError
+     */
+    private function buildProof(Request $request, array $for): array
+    {
+        if ($request->raw('kind') === 'midfield') {
+            $q    = $this->midfield->quote((string)$request->raw('logo', ''), (string)$request->raw('field', ''), $request->raw('width'));
+            $logo = (string)file_get_contents((string)MidfieldDesigner::path($q['logo'], 'logo.png'));
+
+            return [StencilProof::midfield($q, $logo, $for), 'Midfield logo proof', 'midfield-logo-proof.pdf'];
+        }
+
+        $q   = $this->endzoneFromQuery($request);
+        $svg = StencilProof::endzone($q, self::color($request->raw('fill'), '#c8102e'), self::color($request->raw('line'), '#f6f6f2'), $for);
+
+        // The text is the customer's; keep it in the filename but let nothing else in.
+        $slug = strtolower((string)preg_replace('/[^A-Za-z0-9]+/', '-', (string)$q['text']));
+        $slug = trim($slug, '-') ?: 'endzone';
+
+        return [$svg, 'Endzone proof — ' . $q['text'], 'endzone-proof-' . $slug . '.pdf'];
     }
 
     // ── Request this stencil ─────────────────────────────────────────────────
