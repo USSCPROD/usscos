@@ -19,6 +19,12 @@
     html, body { background: #fff; width: 11in; height: 8.5in; overflow: hidden; }
     .bar { display: none; }
     .sheet { margin: 0; box-shadow: none; }
+    /* Real inches, not percentages. Safari resolves a percentage height against a print
+       container it has not laid out yet and draws nothing - the page comes out blank
+       through Save as PDF while printing correctly on paper, because the two use
+       different backends. Chrome is happy either way, so there is no cost to being
+       explicit. */
+    .sheet svg { width: 11in; height: 8.5in; }
   }
   /*
    * THERE WAS A PORTRAIT FALLBACK HERE AND IT WAS THE BUG. It rotated the sheet a
