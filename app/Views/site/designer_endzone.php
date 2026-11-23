@@ -44,7 +44,7 @@
       <div class="dz-specs" id="ez-specs"></div>
       <div class="dz-stencil" id="ez-stencil"></div>
       <div class="dz-note">Cut from 10-mil polyethylene that lays flat on grass or turf and folds up to ship. Outline
-        letters cut the outline only; fill the inside by hand in a second color. Need a logo, shadow layer or different
+        letters cut the outline only; fill the inside by hand in a second color. Need a logo or different
         lettering? <a href="/stencils/endzone-stencils">Ask us for a quote</a>.</div>
     </div>
   </div>

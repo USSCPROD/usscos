@@ -129,7 +129,7 @@ $co   = config('site.company');
             <td colspan="2">
               <label class="fl" for="dz-message">Anything else? <span style="font-weight:400;color:var(--mut)">(optional)</span></label>
               <textarea class="fi" id="dz-message" name="message" rows="3" maxlength="3000"
-                        placeholder="When you need it, how many, colors, a shadow layer…"></textarea>
+                        placeholder="When you need it, how many, colors…"></textarea>
             </td>
           </tr>
         </table>

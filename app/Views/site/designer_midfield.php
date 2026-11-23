@@ -42,7 +42,7 @@
       <div class="dz-field" id="mf-field"></div>
       <div class="dz-specs" id="mf-specs"></div>
       <div class="dz-note">Cut from 10-mil polyethylene that lays flat on grass or turf and folds up to ship. Our art team
-        prepares the cutting file from the artwork you upload. Need a shadow layer, a different layout or help with your
+        prepares the cutting file from the artwork you upload. Need a different layout or help with your
         artwork? <a href="/stencils/midfield-logo-stencil">Ask us for a quote</a>.</div>
     </div>
   </div>
