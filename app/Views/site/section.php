@@ -108,7 +108,7 @@
           <a href="<?= e('/shop/' . $section['slug'] . '/' . $g['slug']) ?>" style="display:block;text-decoration:none">
           <?php if (($g['image'] ?? '') !== ''): ?>
             <img src="<?= e($g['image']) ?>" alt="<?= e($g['label']) ?>" loading="lazy"
-                 style="aspect-ratio:4/3;object-fit:cover;width:100%;display:block;border-bottom:1px solid var(--line)">
+                 style="aspect-ratio:4/3;object-fit:contain;background:#fff;padding:1rem;box-sizing:border-box;width:100%;display:block;border-bottom:1px solid var(--line)">
           <?php else: ?>
             <div class="ph" style="font-weight:800;font-size:1.2rem;color:var(--navy)"><?= e(preg_replace('/ Stencils$/', '', $g['label'])) ?></div>
           <?php endif; ?>
