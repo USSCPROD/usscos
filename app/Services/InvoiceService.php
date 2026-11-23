@@ -734,11 +734,37 @@ class InvoiceService extends Service
             $invoice = $this->invoices->findWithDetails($id);
             if (!$invoice || $invoice['status']==='void') { throw new \RuntimeException('Invoice is unavailable.'); }
             $this->invoices->markReviewed($id,$userId);
+            $this->logInvoiceApproval($id, $userId);
             return ['status'=>'suppressed','message'=>'Invoice approved. Send the invoice from its Email action. No tracking email was sent.'];
         }
         $this->invoices->markReviewed($id, $userId);
+        $this->logInvoiceApproval($id, $userId);
 
         return (new ShipmentNotificationService())->notify($id, true);
+    }
+
+    /**
+     * Approval is the moment an invoice becomes real to the customer, so it is the one
+     * invoice event that always belongs on their timeline.
+     */
+    private function logInvoiceApproval(int $id, ?int $userId): void
+    {
+        $invoice = $this->invoices->findWithDetails($id);
+        if (!$invoice) {
+            return;
+        }
+
+        Activity::log(
+            'invoice.approved',
+            'Invoice ' . ($invoice['invoice_number'] ?? ('#' . $id)) . ' approved for '
+                . money((float)($invoice['total_amount'] ?? 0)) . '.',
+            [
+                'subject_type' => 'Invoice',
+                'subject_id'   => $id,
+                'customer_id'  => $invoice['customer_id'] ?? null,
+                'user_id'      => $userId,
+            ]
+        );
     }
 
     /**

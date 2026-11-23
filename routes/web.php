@@ -335,6 +335,7 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
 
     // Admin
     Router::get('/admin',                                    [AdminController::class, 'index'])->name('admin');
+    Router::get('/admin/activity',                           [AdminController::class, 'activity'])->name('admin.activity');
     Router::get('/admin/sales-reps',                         [AdminController::class, 'salesReps'])->name('admin.sales_reps');
     Router::get('/admin/sales-reps/create',                  [AdminController::class, 'salesRepsCreate'])->name('admin.sales_reps.create');
     Router::post('/admin/sales-reps',                        [AdminController::class, 'salesRepsStore'])->name('admin.sales_reps.store');

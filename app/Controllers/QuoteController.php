@@ -11,6 +11,7 @@ use App\Core\Mailer;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
+use App\Services\Activity;
 use App\Services\QuoteService;
 
 class QuoteController extends Controller
@@ -173,6 +174,13 @@ class QuoteController extends Controller
 
         if ($quote) {
             $this->advanceLeadStatus($quote, $status);
+
+            Activity::log(
+                'quote.' . $status,
+                'Quote ' . $quote['quote_number'] . ' marked ' . $status
+                    . ' (' . money((float)$quote['total_amount']) . ').',
+                $this->quoteParty($quote)
+            );
         }
 
         Session::flash('success', 'Quote status updated.');
@@ -188,6 +196,28 @@ class QuoteController extends Controller
         } catch (\RuntimeException $e) {
             Session::flash('error', $e->getMessage());
             return $response->redirect('/quotes/' . (int)$id);
+        }
+
+        $quote = (new \App\Repositories\QuoteRepository())->findWithDetails((int)$id);
+        if ($quote) {
+            // Both ends get an entry. On the quote this is where it went; on the order
+            // this is where it came from. Reading only one of the two leaves whoever
+            // picked up the order with no idea it was quoted at all.
+            Activity::log(
+                'quote.converted',
+                'Quote ' . $quote['quote_number'] . ' converted to sales order #' . $soId . '.',
+                $this->quoteParty($quote)
+            );
+            Activity::log(
+                'order.created',
+                'Sales order raised from quote ' . $quote['quote_number'] . ' ('
+                    . money((float)$quote['total_amount']) . ').',
+                [
+                    'subject_type' => 'SalesOrder',
+                    'subject_id'   => $soId,
+                    'customer_id'  => $quote['customer_id'] ?? null,
+                ]
+            );
         }
 
         Session::flash('success', 'Quote converted to Sales Order.');
@@ -231,12 +261,35 @@ class QuoteController extends Controller
                 $repo->setStatus((int)$id, 'sent');
                 $this->advanceLeadStatus($quote, 'sent');
             }
+            // The recipient is in the description on purpose. "Quote sent" raises the next
+            // question every time; "sent to purchasing@..." answers it, and answers the
+            // argument about whether it went to the right person.
+            Activity::log(
+                'quote.sent',
+                'Quote ' . $quote['quote_number'] . ' emailed to ' . $to . '.',
+                $this->quoteParty($quote)
+            );
+
             Session::flash('success', 'Quote emailed to ' . $to . '.');
         } else {
             Session::flash('error', 'Email failed: ' . $mailer->getLastError());
         }
 
         return $response->redirect('/quotes/' . (int)$id);
+    }
+
+    /**
+     * Where a quote's events belong. A quote hangs off a customer or a lead, never both,
+     * and which one it is decides whose timeline the entry turns up on.
+     */
+    private function quoteParty(array $quote): array
+    {
+        return [
+            'subject_type' => 'Quote',
+            'subject_id'   => (int)$quote['id'],
+            'customer_id'  => $quote['customer_id'] ?? null,
+            'lead_id'      => $quote['lead_id'] ?? null,
+        ];
     }
 
     private function advanceLeadStatus(array $quote, string $quoteStatus): void

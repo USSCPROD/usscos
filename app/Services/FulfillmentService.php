@@ -165,6 +165,28 @@ final class FulfillmentService
                     $this->repo->stampInvoiceCompletion((int)$f['invoice_id']);
                 }
                 $this->refreshOrderStatus($orderId);
+
+                // Inside the transaction deliberately. If the shipment rolls back the
+                // entry goes with it: a timeline that records goods leaving when they
+                // did not is worse than one that is quiet.
+                //
+                // fulfillment_events already records this per fulfillment. This entry is
+                // for the customer's timeline, which is a different question - "has their
+                // order gone out" rather than "what happened to shipment 3 of 4".
+                $shipped = $this->repo->remaining($orderId) > 0.00005;
+                Activity::log(
+                    $shipped ? 'order.part_shipped' : 'order.shipped',
+                    'Order ' . $order['so_number'] . ($shipped ? ' partly shipped' : ' shipped')
+                        . ' by ' . ($f['method'] === 'carrier' ? 'carrier' : $f['method'])
+                        . ($tracking !== '' ? ', tracking ' . $tracking : '')
+                        . ($recipient !== '' ? ', received by ' . $recipient : '') . '.',
+                    [
+                        'subject_type' => 'SalesOrder',
+                        'subject_id'   => $orderId,
+                        'customer_id'  => $order['customer_id'] ?? null,
+                        'user_id'      => $userId,
+                    ]
+                );
             }
         });
     }

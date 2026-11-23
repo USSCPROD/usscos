@@ -416,6 +416,9 @@ $ciVal  = 'padding:.45rem .9rem;font-size:.9rem;font-weight:600;text-align:right
                     'payment' => ['#16a34a', 'Payment'],
                     'quote'   => ['#d97706', 'Quote'],
                     'task'    => ['#0891b2', 'Task'],
+                    // Things somebody did, as opposed to records that exist. Slate, so a
+                    // timeline scanned quickly separates "we sent this" from "this exists".
+                    'action'  => ['#475569', 'Activity'],
                 ];
                 ?>
                 <?php if (empty($tl)): ?>

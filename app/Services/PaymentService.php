@@ -153,5 +153,24 @@ class PaymentService extends Service
         foreach (array_unique($applied) as $invId) {
             $this->payments->recalcInvoice($invId);
         }
+
+        // Which invoices it was put against, not just that money arrived. An unapplied
+        // payment and a fully applied one look identical in a list of amounts, and the
+        // difference is the whole of the conversation when a customer rings up.
+        Activity::log(
+            'payment.received',
+            money($totalAmount) . ' received by ' . ($post['payment_method'] ?? 'check')
+                . (($post['reference_number'] ?? '') !== '' ? ' #' . $post['reference_number'] : '')
+                . ($applied === []
+                    ? ', not yet applied to an invoice.'
+                    : ', applied to ' . count(array_unique($applied))
+                        . (count(array_unique($applied)) === 1 ? ' invoice.' : ' invoices.')),
+            [
+                'subject_type' => 'Payment',
+                'subject_id'   => $paymentId,
+                'customer_id'  => $customerId,
+                'user_id'      => $userId,
+            ]
+        );
     }
 }

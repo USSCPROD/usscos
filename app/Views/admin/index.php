@@ -52,6 +52,11 @@
         <td style="padding:.5rem">
             <?php adminCard('Freight Carriers', 'Who actually moves a pallet — Old Dominion, XPO. Offered when recording a PRO number.', '/admin/freight-carriers'); ?>
         </td>
+        <?php if (in_array(auth()['role'] ?? '', ['owner', 'admin', 'bookkeeper'], true)): ?>
+        <td style="padding:.5rem">
+            <?php adminCard('Activity Log', 'Who did what, and when — across quotes, orders, invoices and customers.', '/admin/activity'); ?>
+        </td>
+        <?php endif; ?>
     </tr>
 </table>
 

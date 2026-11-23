@@ -31,6 +31,39 @@ class AdminController extends Controller
         return $this->view('admin.index', ['title' => 'Admin']);
     }
 
+    /**
+     * The audit log: everything recorded, newest first, across every module.
+     *
+     * Paged rather than filtered-by-date. The question asked here is almost always "what
+     * happened recently" or "what has this person been doing", and a date range is an
+     * extra decision in front of both. Access is gated in CompanyMiddleware.
+     */
+    public function activity(Request $request, Response $response): Response
+    {
+        $perPage = 100;
+        $page    = max(1, (int)($request->query('page') ?? 1));
+
+        $filters = [
+            'event'        => (string)($request->query('event') ?? ''),
+            'user_id'      => (string)($request->query('user') ?? ''),
+            'subject_type' => (string)($request->query('type') ?? ''),
+        ];
+
+        // One row past the page, so "there is more" needs no COUNT over the whole table.
+        $rows = \App\Services\Activity::recent($perPage + 1, ($page - 1) * $perPage, $filters);
+        $more = count($rows) > $perPage;
+
+        return $this->view('admin.activity', [
+            'title'    => 'Activity Log',
+            'events'   => array_slice($rows, 0, $perPage),
+            'page'     => $page,
+            'hasMore'  => $more,
+            'filters'  => $filters,
+            'eventOpts' => \App\Services\Activity::eventNames(),
+            'users'    => $this->repo->allUsers(),
+        ]);
+    }
+
     // -------------------------------------------------------------------------
     // Deactivate / delete, shared by every admin lookup list
     // -------------------------------------------------------------------------

@@ -243,17 +243,33 @@ class WebsiteLeadService
 
         // source stays the enum the channel filters are built on; source_detail
         // carries which form it was, so a contact enquiry and a quote request differ.
-        return $this->leads->insertWebsiteLead([
+        $company = ($d['company'] ?? '') ?: trim($d['first_name'] . ' ' . $d['last_name']);
+
+        $id = $this->leads->insertWebsiteLead([
             'first_name'    => $d['first_name'],
             'last_name'     => $d['last_name'],
             // leads.company_name is NOT NULL.
-            'company_name'  => ($d['company'] ?? '') ?: trim($d['first_name'] . ' ' . $d['last_name']),
+            'company_name'  => $company,
             'email'         => $d['email'],
             'phone'         => $d['phone'] ?? null,
             'source_detail' => ($d['source'] ?? '') ?: null,
             'notes'         => trim($notes) ?: null,
             'rep_id'        => $d['assigned_to'] ?? null,
         ]);
+
+        // No signed-in user: this runs for a visitor on the public site, so user_id stays
+        // null and the timeline shows the event with no name against it. That is the
+        // honest answer - nobody here did this, the website did.
+        Activity::log(
+            'lead.created',
+            'Enquiry received from the website'
+                . (($d['source'] ?? '') !== '' ? ' (' . $d['source'] . ')' : '')
+                . ' for ' . $company . '.'
+                . (!empty($d['attachment']) ? ' Artwork attached.' : ''),
+            ['subject_type' => 'Lead', 'subject_id' => $id, 'lead_id' => $id]
+        );
+
+        return $id;
     }
 
     public function routing(): array

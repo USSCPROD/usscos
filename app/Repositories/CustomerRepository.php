@@ -526,6 +526,34 @@ class CustomerRepository extends Repository
                 LEFT JOIN users u2 ON u2.id = t.assigned_to
                 WHERE t.customer_id = ?
             )
+            UNION ALL
+            (
+                /*
+                 * The activity log. Every other branch above is DERIVED - it infers an
+                 * event from a record that still exists, which is why it can say 'invoice
+                 * issued' but never 'rep changed', 'quote emailed to whom', or anything
+                 * at all about a record that was since deleted. This branch is the only
+                 * one carrying things somebody DID.
+                 *
+                 * The excluded events are the ones a branch above already derives from
+                 * the record itself; logging them is still right - a deleted quote's
+                 * history survives in the log - but showing both puts the same quote on
+                 * the feed twice. Keep this list short, and only for exact overlaps.
+                 */
+                SELECT 'action',
+                       a.created_at,
+                       DATE(a.created_at),
+                       REPLACE(SUBSTRING_INDEX(a.event, '.', -1), '_', ' '),
+                       a.description,
+                       NULL,
+                       NULL,
+                       NULL,
+                       TRIM(CONCAT(COALESCE(u3.first_name,''), ' ', COALESCE(u3.last_name,'')))
+                FROM activity_log a
+                LEFT JOIN users u3 ON u3.id = a.user_id
+                WHERE a.customer_id = ?
+                  AND a.event NOT IN ('quote.created', 'order.created', 'customer.created')
+            )
             ORDER BY sort_at DESC, event_date DESC
             LIMIT {$limit}
         ", [
@@ -540,6 +568,7 @@ class CustomerRepository extends Repository
             $customerId,                 // payments
             $customerId,                 // quotes
             $customerId,                 // tasks
+            $customerId,                 // activity log
         ]);
     }
 
@@ -553,8 +582,10 @@ class CustomerRepository extends Repository
               (SELECT COUNT(*) FROM sales_orders   WHERE customer_id = ?) +
               (SELECT COUNT(*) FROM payments       WHERE customer_id = ?) +
               (SELECT COUNT(*) FROM quotes         WHERE customer_id = ?) +
-              (SELECT COUNT(*) FROM tasks          WHERE customer_id = ?) AS c
-        ", array_fill(0, 6, $customerId));
+              (SELECT COUNT(*) FROM tasks          WHERE customer_id = ?) +
+              (SELECT COUNT(*) FROM activity_log   WHERE customer_id = ?
+                 AND event NOT IN ('quote.created','order.created','customer.created')) AS c
+        ", array_fill(0, 7, $customerId));
         return (int)($row['c'] ?? 0);
     }
 

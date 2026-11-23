@@ -79,6 +79,21 @@ class QuoteService
             $this->opps->updateValue($oppId, $totals['total']);
         }
 
+        // Creating a quote is not the same as sending one, and the timeline keeps them
+        // apart: a drafted quote nobody sent is the most common thing to lose track of.
+        Activity::log(
+            'quote.created',
+            'Quote drafted for ' . money($totals['total']) . ' ('
+                . count($lines) . ' ' . (count($lines) === 1 ? 'line' : 'lines') . ').',
+            [
+                'subject_type' => 'Quote',
+                'subject_id'   => $quoteId,
+                'customer_id'  => ($post['customer_id'] ?? '') !== '' ? (int)$post['customer_id'] : null,
+                'lead_id'      => ($post['lead_id'] ?? '') !== '' ? (int)$post['lead_id'] : null,
+                'user_id'      => $userId,
+            ]
+        );
+
         return $quoteId;
     }
 

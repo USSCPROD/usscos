@@ -104,7 +104,17 @@ class CustomerService extends Service
             return ['id' => null, 'duplicates' => $duplicates];
         }
 
-        return ['id' => $this->customers->insertCustomer($data), 'duplicates' => []];
+        $id = $this->customers->insertCustomer($data);
+
+        Activity::log(
+            'customer.created',
+            'Customer created: ' . $data['company_name'] . ' (' . $data['customer_type'] . ').'
+                . ($duplicates !== [] ? ' Created despite ' . count($duplicates)
+                    . ' possible duplicate' . (count($duplicates) === 1 ? '' : 's') . '.' : ''),
+            ['subject_type' => 'Customer', 'subject_id' => $id, 'customer_id' => $id]
+        );
+
+        return ['id' => $id, 'duplicates' => []];
     }
 
     public function list(int $page, int $perPage, string $search, string $filter, string $rep = ''): array
@@ -198,6 +208,100 @@ class CustomerService extends Service
             'rep_id'                    => $customer['rep_id'] ?? null,
             'sales_rep_id'              => (int)($post['sales_rep_id'] ?? 0) ?: null,
         ]);
+
+        $this->logCustomerEdit($customer, $post);
+    }
+
+    /**
+     * What the edit changed, in the words the person reading the timeline needs.
+     *
+     * Rep, terms, credit limit and active each get their own sentence: those four are the
+     * ones that change what the business does, and burying them in a list of field names
+     * is how an unexplained price or a stopped account becomes an argument.
+     *
+     * Credit-card fields are watched by nobody here on purpose - the log must not become
+     * a second copy of them.
+     */
+    private function logCustomerEdit(array $before, array $post): void
+    {
+        $id    = (int)$before['id'];
+        $party = ['subject_type' => 'Customer', 'subject_id' => $id, 'customer_id' => $id];
+
+        $watch = [
+            'company_name', 'email', 'phone', 'customer_type', 'sales_rep_id',
+            'payment_term_id', 'credit_limit', 'is_active', 'tax_exempt',
+            'bill_address_1', 'bill_city', 'bill_state', 'bill_zip',
+        ];
+
+        $new = [];
+        foreach ($watch as $key) {
+            if ($key === 'is_active' || $key === 'tax_exempt') {
+                $new[$key] = isset($post[$key]) ? 1 : 0;
+            } elseif (array_key_exists($key, $post)) {
+                $new[$key] = trim((string)$post[$key]);
+            }
+        }
+
+        $diff = Activity::changes($before, $new, $watch);
+        if ($diff['new'] === []) {
+            return;
+        }
+
+        $spoken = [];
+
+        if (isset($diff['new']['sales_rep_id'])) {
+            $spoken[] = 'sales_rep_id';
+            Activity::log('customer.rep_changed',
+                'Sales rep changed to ' . $this->repLabel($diff['new']['sales_rep_id']) . '.', $party);
+        }
+        if (isset($diff['new']['customer_type'])) {
+            $spoken[] = 'customer_type';
+            Activity::log('customer.type_changed',
+                'Customer type changed from ' . ($diff['old']['customer_type'] ?? '?')
+                    . ' to ' . $diff['new']['customer_type'] . ' - this changes their pricing.', $party);
+        }
+        if (isset($diff['new']['credit_limit'])) {
+            $spoken[] = 'credit_limit';
+            Activity::log('customer.credit_limit_changed',
+                'Credit limit changed from ' . money((float)($diff['old']['credit_limit'] ?? 0))
+                    . ' to ' . money((float)$diff['new']['credit_limit']) . '.', $party);
+        }
+        if (isset($diff['new']['is_active'])) {
+            $spoken[] = 'is_active';
+            Activity::log(
+                (int)$diff['new']['is_active'] === 1 ? 'customer.reactivated' : 'customer.deactivated',
+                (int)$diff['new']['is_active'] === 1
+                    ? 'Customer reactivated.'
+                    : 'Customer deactivated - they will stop appearing on new orders.',
+                $party
+            );
+        }
+
+        $rest = array_diff(array_keys($diff['new']), $spoken);
+        if ($rest !== []) {
+            Activity::log(
+                'customer.updated',
+                'Details changed: ' . implode(', ', str_replace('_', ' ', $rest)) . '.',
+                $party + [
+                    'old' => array_intersect_key($diff['old'], array_flip($rest)),
+                    'new' => array_intersect_key($diff['new'], array_flip($rest)),
+                ]
+            );
+        }
+    }
+
+    private function repLabel(string $repId): string
+    {
+        if ($repId === '' || $repId === '0') {
+            return 'nobody';
+        }
+        foreach ($this->repOptions() as $rep) {
+            if ((int)($rep['id'] ?? 0) === (int)$repId) {
+                return trim(($rep['first_name'] ?? '') . ' ' . ($rep['last_name'] ?? ''))
+                    ?: ($rep['name'] ?? ('user #' . (int)$repId));
+            }
+        }
+        return 'user #' . (int)$repId;
     }
 
     public function show(int|string $id): array
