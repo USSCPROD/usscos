@@ -86,7 +86,8 @@ $shift = static function (string $type, string $start, int $by): string {
                     <td style="padding:.55rem .5rem;text-align:right;white-space:nowrap">
                         <?= money($actual) ?>
                         <?php if (($actuals[$repId]['n'] ?? 0) > 0): ?>
-                            <div class="text-muted" style="font-size:.76rem"><?= (int)$actuals[$repId]['n'] ?> invoices</div>
+                            <?php $invCount = (int)$actuals[$repId]['n']; ?>
+                            <div class="text-muted" style="font-size:.76rem"><?= $invCount ?> invoice<?= $invCount === 1 ? '' : 's' ?></div>
                         <?php endif; ?>
                     </td>
                     <td style="padding:.55rem 1.1rem;text-align:right;white-space:nowrap">
