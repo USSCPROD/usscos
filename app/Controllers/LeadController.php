@@ -250,6 +250,45 @@ class LeadController extends Controller
         return $row['name'] ?? ('user #' . (int)$repId);
     }
 
+    /**
+     * Log a call, email, visit or note against this lead.
+     *
+     * Validated here and not trusted from the form: note_type becomes part of an event
+     * name, so an unchecked value would create arbitrary event names in the log and in the
+     * audit screen's filter.
+     */
+    public function log(Request $request, Response $response, string $id = '0'): Response
+    {
+        $lead = $this->leads->find((int)$id);
+        if (!$lead) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        $body = trim((string)($_POST['body'] ?? ''));
+        $type = (string)($_POST['note_type'] ?? 'note');
+
+        if (!in_array($type, Activity::interactionTypes(), true)) {
+            $type = 'note';
+        }
+
+        if ($body === '') {
+            Session::flash('error', 'Say what happened before logging it.');
+            return $response->redirect('/leads/' . (int)$id . '#activity');
+        }
+
+        Activity::logInteraction($type, $body, [
+            'subject_type' => 'Lead',
+            'subject_id'   => (int)$id,
+            'lead_id'      => (int)$id,
+            // A converted lead keeps its own timeline AND feeds the customer's, so a call
+            // logged on the lead after conversion is not stranded behind it.
+            'customer_id'  => $lead['customer_id'] ?? null,
+        ]);
+
+        Session::flash('success', ucfirst($type) . ' logged.');
+        return $response->redirect('/leads/' . (int)$id . '#activity');
+    }
+
     private function mapPost(array $post): array
     {
         return [

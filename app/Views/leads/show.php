@@ -278,10 +278,13 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
         </div>
 
         <!-- Activity -->
-        <div class="card" style="padding:0;overflow:hidden">
+        <div class="card" id="activity" style="padding:0;overflow:hidden">
             <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5e7eb;background:#f8f9fb">
                 <h3 style="margin:0;font-size:.95rem;font-weight:700;color:#111">Activity</h3>
             </div>
+            <?= view('partials.log_interaction', [
+                'logAction' => '/leads/' . (int)$lead['id'] . '/log',
+            ]) ?>
             <?= view('partials.activity_feed', [
                 'events' => $activity ?? [],
                 'total'  => $activity_total ?? 0,

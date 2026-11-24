@@ -355,6 +355,22 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
     </tr>
 </table>
 
+<!--
+  Activity. The opportunity page had no timeline at all: a deal could be quoted, moved
+  through three stages and lost, and the page would show only its current state - which is
+  the one thing anybody looking at a lost deal does not need.
+-->
+<div class="card" id="activity" style="padding:0;overflow:hidden;margin-top:1.25rem">
+    <div style="padding:.9rem 1.25rem;border-bottom:1px solid #e5e7eb;background:#f8f9fb">
+        <h3 style="margin:0;font-size:.95rem;font-weight:700;color:#111">Activity</h3>
+    </div>
+    <?= view('partials.log_interaction', [
+        'logAction'      => '/opportunities/' . (int)$opp['id'] . '/log',
+        'logPlaceholder' => 'What happened? Who you spoke to, what they said, what you agreed.',
+    ]) ?>
+    <?= view('partials.activity_feed', ['events' => $activity ?? []]) ?>
+</div>
+
 <?php
 $content = ob_get_clean();
 include BASE_PATH . '/app/Views/layouts/app.php';

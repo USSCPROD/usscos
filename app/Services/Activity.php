@@ -70,6 +70,37 @@ final class Activity
         }
     }
 
+    /**
+     * Record something a PERSON did: a call, an email, a visit, a note.
+     *
+     * Separate from log() by name because it is a different kind of entry. Everything else
+     * in this table is the system reporting itself; this is somebody's own account of what
+     * happened, in their words, and it is the only entry type whose text is not predictable
+     * from the event name.
+     *
+     * Stored here rather than in a notes table of its own so that one timeline answers
+     * "what has happened with this account", whoever or whatever caused it. A rep's call
+     * and the invoice it led to belong in one list, in order.
+     *
+     * Not editable, deliberately and consistently with the rest of the log. A logged call
+     * is a contemporaneous record; being able to revise it later is most of what would
+     * make it untrustworthy. Getting it wrong means logging a correction, which is also
+     * what you would do on paper.
+     *
+     * @param string $type  call | email | meeting | note - validated by the caller.
+     * @param string $body  What happened, in the rep's own words.
+     */
+    public static function logInteraction(string $type, string $body, array $on = []): void
+    {
+        self::log('note.' . $type, $body, $on);
+    }
+
+    /** The interaction types a person may log. Anything else is a system event. */
+    public static function interactionTypes(): array
+    {
+        return ['call', 'email', 'meeting', 'note'];
+    }
+
     // ------------------------------------------------------------------ reading
 
     public static function forCustomer(int $customerId, int $limit = 50, int $offset = 0): array

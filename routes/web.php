@@ -134,6 +134,8 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/customers/{id}/edit',      [CustomerController::class, 'edit'])->name('customers.edit');
     Router::post('/customers/{id}/edit',     [CustomerController::class, 'update'])->name('customers.update');
     Router::post('/customers/{id}/note',     [CustomerController::class, 'storeNote'])->name('customers.note');
+    Router::post('/leads/{id}/log',           [LeadController::class, 'log'])->name('leads.log');
+    Router::post('/opportunities/{id}/log',   [OpportunityController::class, 'log'])->name('opportunities.log');
 
     // Products
     // Own account — every signed-in user, whatever their role

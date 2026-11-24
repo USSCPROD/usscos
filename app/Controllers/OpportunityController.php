@@ -115,6 +115,7 @@ class OpportunityController extends Controller
             'quotes' => $quotes,
             'tasks'  => $tasks,
             'users'  => $users,
+            'activity' => Activity::forSubject('Opportunity', (int)$id, 50),
         ]);
     }
 
@@ -200,6 +201,36 @@ class OpportunityController extends Controller
         }
 
         return $response->redirect('/pipeline');
+    }
+
+    /** Log a call, email, visit or note against this opportunity. */
+    public function log(Request $request, Response $response, string $id = '0'): Response
+    {
+        $opp = $this->opps->find((int)$id);
+        if (!$opp) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        $body = trim((string)($_POST['body'] ?? ''));
+        $type = (string)($_POST['note_type'] ?? 'note');
+
+        if (!in_array($type, Activity::interactionTypes(), true)) {
+            $type = 'note';
+        }
+
+        if ($body === '') {
+            Session::flash('error', 'Say what happened before logging it.');
+            return $response->redirect('/opportunities/' . (int)$id . '#activity');
+        }
+
+        Activity::logInteraction($type, $body, $this->oppParty(
+            (int)$id,
+            $opp['customer_id'] ?? null,
+            $opp['lead_id'] ?? null
+        ));
+
+        Session::flash('success', ucfirst($type) . ' logged.');
+        return $response->redirect('/opportunities/' . (int)$id . '#activity');
     }
 
     /** Where an opportunity's events belong: its own record, plus whoever it is for. */

@@ -23,6 +23,10 @@ if (!function_exists('activity_tone')) {
     function activity_tone(string $event): string
     {
         return match (true) {
+            // Logged by a person, in their own words. Given its own colour because it is a
+            // different kind of entry from the rest: scanning a timeline, "somebody rang
+            // them" and "an invoice exists" are not the same sort of fact.
+            str_starts_with($event, 'note.')     => '#0f766e',
             str_contains($event, 'deactivated'),
             str_contains($event, 'declined'),
             str_contains($event, 'cancelled'),
