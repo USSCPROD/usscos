@@ -41,12 +41,13 @@ final class Activity
      *     user_id?: int|null, old?: array|null, new?: array|null
      * } $on
      */
-    public static function log(string $event, string $description, array $on = []): void
+    /** @return int|null The new row's id, or null if it could not be written. */
+    public static function log(string $event, string $description, array $on = []): ?int
     {
         try {
             $user = Auth::user();
 
-            self::repo()->insert([
+            return (int) self::repo()->insert([
                 'company_id'   => (int) ($user['company_id'] ?? 1),
                 // user_id may be given explicitly for work done on someone's behalf by a
                 // script or a webhook, where Auth has nobody signed in.
@@ -67,6 +68,10 @@ final class Activity
                 'event' => $event,
                 'on'    => $on,
             ]);
+
+            // Null, never a throw. The caller may want the id - email intake stores it -
+            // but not being able to record the entry must not fail the work that caused it.
+            return null;
         }
     }
 
@@ -90,9 +95,9 @@ final class Activity
      * @param string $type  call | email | meeting | note - validated by the caller.
      * @param string $body  What happened, in the rep's own words.
      */
-    public static function logInteraction(string $type, string $body, array $on = []): void
+    public static function logInteraction(string $type, string $body, array $on = []): ?int
     {
-        self::log('note.' . $type, $body, $on);
+        return self::log('note.' . $type, $body, $on);
     }
 
     /** The interaction types a person may log. Anything else is a system event. */

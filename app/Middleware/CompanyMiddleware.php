@@ -40,7 +40,7 @@ final class CompanyMiddleware
         // The audit log says who did what. That is exactly the information a dispute is
         // settled with, so it is also information somebody in a dispute would like to see
         // before it is raised - owners, admins and the bookkeeper only.
-        if (preg_match('#^/admin/activity(?:/|$)#', $path)
+        if (preg_match('#^/admin/(activity|email-intake)(?:/|$)#', $path)
             && !in_array(Auth::user()['role'] ?? '', ['owner', 'admin', 'bookkeeper'], true)) {
             return $response->html('The activity log is open to owners, admins and the bookkeeper.', 403);
         }

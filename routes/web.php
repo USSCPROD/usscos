@@ -12,6 +12,7 @@ use App\Controllers\DocumentController;
 use App\Controllers\AuthController;
 use App\Controllers\CustomerController;
 use App\Controllers\DashboardController;
+use App\Controllers\EmailIntakeController;
 use App\Controllers\InvoiceController;
 use App\Controllers\LeadController;
 use App\Controllers\OpportunityController;
@@ -340,6 +341,9 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     // Admin
     Router::get('/admin',                                    [AdminController::class, 'index'])->name('admin');
     Router::get('/admin/activity',                           [AdminController::class, 'activity'])->name('admin.activity');
+    Router::get('/admin/email-intake',                       [EmailIntakeController::class, 'index'])->name('admin.email_intake');
+    Router::post('/admin/email-intake/{id}/attach',          [EmailIntakeController::class, 'attach'])->name('admin.email_intake.attach');
+    Router::post('/admin/email-intake/{id}/ignore',          [EmailIntakeController::class, 'ignore'])->name('admin.email_intake.ignore');
     Router::get('/admin/sales-reps',                         [AdminController::class, 'salesReps'])->name('admin.sales_reps');
     Router::get('/admin/sales-reps/create',                  [AdminController::class, 'salesRepsCreate'])->name('admin.sales_reps.create');
     Router::post('/admin/sales-reps',                        [AdminController::class, 'salesRepsStore'])->name('admin.sales_reps.store');
@@ -508,4 +512,7 @@ Router::group(['middleware' => ['apikey']], function () {
     Router::get('/api/qb/status',   [QbSyncController::class, 'status'])->name('api.qb.status');
     Router::get('/api/qb/pending',  [QbSyncController::class, 'pending'])->name('api.qb.pending');
     Router::post('/api/qb/ack',     [QbSyncController::class, 'ack'])->name('api.qb.ack');
+
+    // The BCC mailbox posts each message here. See docs/EMAIL_INTAKE.md.
+    Router::post('/api/email/inbound', [EmailIntakeController::class, 'inbound'])->name('api.email.inbound');
 });

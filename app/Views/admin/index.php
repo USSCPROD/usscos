@@ -56,6 +56,9 @@
         <td style="padding:.5rem">
             <?php adminCard('Activity Log', 'Who did what, and when — across quotes, orders, invoices and customers.', '/admin/activity'); ?>
         </td>
+        <td style="padding:.5rem">
+            <?php adminCard('Email Intake', 'Mail BCC\'d to the CRM mailbox, and anything it could not place on a record.', '/admin/email-intake'); ?>
+        </td>
         <?php endif; ?>
     </tr>
 </table>
