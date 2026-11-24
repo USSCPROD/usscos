@@ -99,7 +99,7 @@ class CustomerPricing
                     'price'     => round((float)$agreed['unit_price'], 2),
                     'column'    => 'agreed',
                     'label'     => (float)$agreed['min_qty'] > 1
-                        ? 'agreed @ ' . rtrim(rtrim((string)$agreed['min_qty'], '0'), '.') . '+'
+                        ? 'agreed @ ' . self::qty((float)$agreed['min_qty']) . '+'
                         : 'agreed',
                     // Never a fallback: this is the most specific answer there is, and
                     // colouring it as a fallback would read as a fault.
@@ -142,6 +142,21 @@ class CustomerPricing
             'min_qty'   => null,
             'note'      => null,
         ];
+    }
+
+    /**
+     * A quantity as a person writes it: 50, not 50.00 and not 5.
+     *
+     * rtrim($n, '0') is the obvious way to drop trailing zeros and it is wrong: on "50" it
+     * strips the zero from fifty. It only looks right while the value still carries its
+     * decimals, so the bug appears the moment a caller casts to float first - which the
+     * batched lookup does. Labelled a 50+ break as "5+" until it was caught on 24 Nov 2026.
+     */
+    public static function qty(float $qty): string
+    {
+        return $qty == (int)$qty
+            ? (string)(int)$qty
+            : rtrim(number_format($qty, 2, '.', ''), '0');
     }
 
     /** The columns any tier might read, for a SELECT. */

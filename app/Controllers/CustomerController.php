@@ -213,7 +213,7 @@ class CustomerController extends Controller
             'customer.price_agreed',
             ($wasExact ? 'Agreed price changed' : 'Agreed price set') . ' for ' . $product['sku']
                 . ' at ' . money($price)
-                . ($minQty > 1 ? ' for ' . rtrim(rtrim(number_format($minQty, 2), '0'), '.') . '+' : '')
+                . ($minQty > 1 ? ' for ' . \App\Services\CustomerPricing::qty($minQty) . '+' : '')
                 . ($wasExact ? ', was ' . money((float)$existing['unit_price']) : '')
                 . ' (list ' . money((float)$product['price']) . ')'
                 . ($note !== null ? ' - ' . $note : '') . '.',
