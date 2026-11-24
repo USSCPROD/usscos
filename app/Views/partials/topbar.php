@@ -8,6 +8,20 @@ $greeting = match(true) {
     default    => 'Good evening',
 };
 $dateStr = date('M j, Y');
+
+/*
+ * The greeting belongs to the dashboard, and only to it.
+ *
+ * The topbar is on every page, so "Here's what's happening with your business today" sat
+ * above a lead conversion, a packing slip and a 404 alike - and above page headings that
+ * then had to compete with it for the top of the screen. On the dashboard it is true; two
+ * clicks in it is furniture.
+ *
+ * Matched on the path rather than passed in by each controller: a flag every view has to
+ * remember to set is a flag most views will not set, and the failure would be silent.
+ */
+$path = strtok((string) ($_SERVER['REQUEST_URI'] ?? '/'), '?');
+$onDashboard = in_array(rtrim($path, '/') ?: '/', ['/', '/dashboard'], true);
 $initials = strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['last_name'] ?? '', 0, 1));
 ?>
 
@@ -15,10 +29,12 @@ $initials = strtoupper(substr($user['first_name'] ?? 'U', 0, 1) . substr($user['
     <button class="topbar__menu-toggle" id="sidebarToggle" aria-label="Toggle menu">
         <span></span><span></span><span></span>
     </button>
+    <?php if ($onDashboard): ?>
     <div class="topbar__greeting">
         <span class="topbar__greeting-title"><?= e($greeting) ?>, <?= e($firstName) ?> 👋</span>
         <span class="topbar__greeting-sub">Here's what's happening with your business today.</span>
     </div>
+    <?php endif; ?>
 </div>
 
 <div class="topbar__right">
