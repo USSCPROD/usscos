@@ -38,16 +38,51 @@ class WebhookController extends Controller
          * So: when a secret is sent it must be right, which protects the forms once
          * they send it. When none is sent the request is allowed and logged, so the
          * switch to requiring it can be made the moment the logs stop showing any.
+         *
+         * THAT SWITCH IS LEAD_WEBHOOK_REQUIRE_SECRET, and until it is on this endpoint is
+         * open. Rotating the secret does not change that: anyone holding a leaked value
+         * can omit the header instead. Rotation protects the senders; requiring it
+         * protects the endpoint. Both are needed, in that order.
+         *
+         * LEAD_WEBHOOK_SECRET_PREVIOUS is accepted alongside the current secret so a
+         * rotation does not have to land on every sender at the same instant. Its use is
+         * logged by sender, so the overlap closes on evidence.
          */
-        $expected = (string)(\App\Core\Config::get('app.lead_webhook_secret') ?: '');
+        $current  = (string)(\App\Core\Config::get('app.lead_webhook_secret') ?: '');
+        $previous = (string)(\App\Core\Config::get('app.lead_webhook_secret_previous') ?: '');
+        $required = (bool)\App\Core\Config::get('app.lead_webhook_require_secret');
         $given    = (string)($_SERVER['HTTP_X_USSCOS_SECRET'] ?? '');
 
-        if ($expected !== '' && $given !== '' && !hash_equals($expected, $given)) {
-            return $response->json(['error' => 'Unauthorized'], 401);
-        }
+        if ($given === '') {
+            if ($required) {
+                error_log('Lead webhook: rejected, no secret, from ' . ($_SERVER['REMOTE_ADDR'] ?? '?'));
+                return $response->json(['error' => 'Unauthorized'], 401);
+            }
 
-        if ($expected !== '' && $given === '') {
-            error_log('Lead webhook: no secret sent from ' . ($_SERVER['REMOTE_ADDR'] ?? '?'));
+            // Logged every time. This line is the signal for when the endpoint can be
+            // closed: once it stops appearing, every sender is authenticating and
+            // LEAD_WEBHOOK_REQUIRE_SECRET can be turned on without taking leads down.
+            if ($current !== '') {
+                error_log('Lead webhook: no secret sent from ' . ($_SERVER['REMOTE_ADDR'] ?? '?')
+                    . ' ua=' . ($_SERVER['HTTP_USER_AGENT'] ?? '-'));
+            }
+        } elseif ($current !== '' || $previous !== '') {
+            // hash_equals on both, with no short-circuit between them: comparing only when
+            // the first fails leaks which secret was tried through response timing.
+            $matchesCurrent  = $current  !== '' && hash_equals($current, $given);
+            $matchesPrevious = $previous !== '' && hash_equals($previous, $given);
+
+            if (!$matchesCurrent && !$matchesPrevious) {
+                return $response->json(['error' => 'Unauthorized'], 401);
+            }
+
+            if ($matchesPrevious && !$matchesCurrent) {
+                // Names the sender, because the point of this line is to tell you which
+                // one still needs updating before the old secret can be dropped.
+                error_log('Lead webhook: PREVIOUS secret used by ' . ($_SERVER['REMOTE_ADDR'] ?? '?')
+                    . ' ua=' . ($_SERVER['HTTP_USER_AGENT'] ?? '-')
+                    . ' - that sender still has the retired secret.');
+            }
         }
 
         $raw = file_get_contents('php://input');
