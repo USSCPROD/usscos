@@ -900,4 +900,49 @@ class AdminRepository
         );
         return $co ?: [];
     }
+
+    /**
+     * Reps who can carry a target: people, employees and owners.
+     *
+     * Excludes 'house', 'website', 'partner' and 'none'. A house account is a long-standing
+     * customer with no rep, and the website is not a person - giving either a sales goal
+     * would put a target against nobody and then report it as missed.
+     */
+    public function activeSellingReps(): array
+    {
+        return Database::select(
+            "SELECT id, name, rep_type, commission_rate
+               FROM sales_reps
+              WHERE is_active = 1 AND rep_type IN ('person','employee','owner')
+              ORDER BY name"
+        );
+    }
+
+    /**
+     * Invoiced sales per rep between two dates, keyed by rep id.
+     *
+     * Attribution is invoices.sales_rep_id - NOT rep_id, which is the dead column from the
+     * migration collision, and not processed_by, which records who keyed the order rather
+     * than who gets the credit.
+     *
+     * Credit memos carry negative totals, so they net off here without a special case.
+     */
+    public function salesByRepBetween(string $from, string $to): array
+    {
+        $rows = Database::select(
+            "SELECT i.sales_rep_id, COALESCE(SUM(i.total_amount),0) AS total, COUNT(*) AS n
+               FROM invoices i
+              WHERE i.sales_rep_id IS NOT NULL
+                AND i.status <> 'void'
+                AND i.invoice_date BETWEEN ? AND ?
+              GROUP BY i.sales_rep_id",
+            [$from, $to]
+        );
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int)$r['sales_rep_id']] = ['total' => (float)$r['total'], 'n' => (int)$r['n']];
+        }
+        return $out;
+    }
 }

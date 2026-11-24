@@ -70,6 +70,48 @@ if ($shows('opp_nag')) {
                     <span class="kpi-card__trend kpi-card__trend--neutral">vs last month</span>
                 </div>
             </div>
+            <?php
+            /*
+             * Goal cards appear only when a goal exists. A rep with no target set would
+             * otherwise see "0% of $0", which reads as failure when in fact nobody has
+             * said what success is - and the table these come from sat empty for three
+             * months, so that is the common case, not the edge one.
+             */
+            if (!empty($mine['goal_month'])):
+                $gmPct = (float)($mine['goal_month_pct'] ?? 0);
+            ?>
+            <div class="kpi-card">
+                <div class="kpi-card__header"><span class="kpi-card__label">Month vs goal</span></div>
+                <div class="kpi-card__value" style="color:<?= $gmPct >= 100 ? '#16a34a' : ($gmPct >= 70 ? 'inherit' : '#b45309') ?>">
+                    <?= number_format($gmPct, 0) ?>%
+                </div>
+                <div class="kpi-card__meta">
+                    <span class="kpi-card__trend kpi-card__trend--neutral">
+                        of <?= $dnum($mine['goal_month']) ?>
+                    </span>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($mine['goal_year'])):
+                $gyPct = (float)($mine['goal_year_pct'] ?? 0);
+                /* How far through the year we are, so "62% of target" can be read against
+                   "we are 90% through the year" rather than looking like good news. */
+                $yearPct = (int)date('z') / (date('L') ? 366 : 365) * 100;
+            ?>
+            <div class="kpi-card">
+                <div class="kpi-card__header"><span class="kpi-card__label">Year vs goal</span></div>
+                <div class="kpi-card__value" style="color:<?= $gyPct >= $yearPct ? '#16a34a' : '#b45309' ?>">
+                    <?= number_format($gyPct, 0) ?>%
+                </div>
+                <div class="kpi-card__meta">
+                    <span class="kpi-card__trend kpi-card__trend--neutral">
+                        of <?= $dnum($mine['goal_year']) ?> &middot; <?= number_format($yearPct, 0) ?>% through the year
+                    </span>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="kpi-card">
                 <div class="kpi-card__header"><span class="kpi-card__label">Invoices this month</span></div>
                 <div class="kpi-card__value"><?= (int)($mine['sales_count'] ?? 0) ?></div>

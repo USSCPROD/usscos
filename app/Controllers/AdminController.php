@@ -64,6 +64,63 @@ class AdminController extends Controller
         ]);
     }
 
+    /**
+     * GET /admin/sales-goals — targets per rep for a period.
+     *
+     * One screen per period rather than per rep: goals are set in a sitting, for everybody,
+     * when a month or a year starts. Walking thirty rep records to type thirty numbers is
+     * how a target table stays empty, which is what happened to this one for three months.
+     */
+    public function salesGoals(Request $request, Response $response): Response
+    {
+        $goals  = new \App\Repositories\SalesGoalRepository();
+        $type   = (string)($request->query('period') ?? 'month');
+        $type   = in_array($type, ['month', 'quarter', 'year'], true) ? $type : 'month';
+        $onDate = (string)($request->query('date') ?? date('Y-m-d'));
+
+        return $this->view('admin.sales_goals', [
+            'title'       => 'Sales goals',
+            'periodType'  => $type,
+            'periodStart' => $goals->periodStart($type, $onDate),
+            'periodEnd'   => $goals->periodEnd($type, $onDate),
+            'goals'       => $goals->allForPeriod($type, $onDate),
+            'actuals'     => $this->repo->salesByRepBetween(
+                $goals->periodStart($type, $onDate),
+                $goals->periodEnd($type, $onDate)
+            ),
+            'reps'        => $this->repo->activeSellingReps(),
+        ]);
+    }
+
+    /** POST /admin/sales-goals — save the whole period's targets in one submit. */
+    public function storeSalesGoals(Request $request, Response $response): Response
+    {
+        $goals  = new \App\Repositories\SalesGoalRepository();
+        $type   = (string)($_POST['period_type'] ?? 'month');
+        $type   = in_array($type, ['month', 'quarter', 'year'], true) ? $type : 'month';
+        $onDate = (string)($_POST['period_start'] ?? date('Y-m-d'));
+
+        $amounts = (array)($_POST['goal'] ?? []);
+        $saved   = 0;
+        $cleared = 0;
+
+        foreach ($amounts as $repId => $amount) {
+            $value = (float)str_replace(',', '', (string)$amount);
+            // An empty box is left alone; a zero clears. Blanking every field by accident
+            // should not wipe a quarter of targets.
+            if (trim((string)$amount) === '') {
+                continue;
+            }
+            $goals->set((int)$repId, $type, $onDate, $value, null, Auth::user()['id'] ?? null);
+            $value > 0 ? $saved++ : $cleared++;
+        }
+
+        Session::flash('success', $saved . ' goal' . ($saved === 1 ? '' : 's') . ' saved'
+            . ($cleared > 0 ? ', ' . $cleared . ' cleared' : '') . '.');
+
+        return $response->redirect('/admin/sales-goals?period=' . $type . '&date=' . urlencode($onDate));
+    }
+
     // -------------------------------------------------------------------------
     // Deactivate / delete, shared by every admin lookup list
     // -------------------------------------------------------------------------

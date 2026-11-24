@@ -347,6 +347,8 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/admin/email-intake',                       [EmailIntakeController::class, 'index'])->name('admin.email_intake');
     Router::post('/admin/email-intake/{id}/attach',          [EmailIntakeController::class, 'attach'])->name('admin.email_intake.attach');
     Router::post('/admin/email-intake/{id}/ignore',          [EmailIntakeController::class, 'ignore'])->name('admin.email_intake.ignore');
+    Router::get('/admin/sales-goals',                        [AdminController::class, 'salesGoals'])->name('admin.sales_goals');
+    Router::post('/admin/sales-goals',                       [AdminController::class, 'storeSalesGoals'])->name('admin.sales_goals.store');
     Router::get('/admin/sales-reps',                         [AdminController::class, 'salesReps'])->name('admin.sales_reps');
     Router::get('/admin/sales-reps/create',                  [AdminController::class, 'salesRepsCreate'])->name('admin.sales_reps.create');
     Router::post('/admin/sales-reps',                        [AdminController::class, 'salesRepsStore'])->name('admin.sales_reps.store');

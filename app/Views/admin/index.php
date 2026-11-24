@@ -47,6 +47,9 @@
             <?php adminCard('Sales Reps', 'The QuickBooks rep list — who gets credit for a sale, and commission rates.', '/admin/sales-reps'); ?>
         </td>
         <td style="padding:.5rem">
+            <?php adminCard('Sales Goals', 'Monthly, quarterly and yearly targets per rep, against what they have invoiced.', '/admin/sales-goals'); ?>
+        </td>
+        <td style="padding:.5rem">
             <?php adminCard('Locations', 'Warehouses, bays and racks — where stock physically sits.', '/admin/locations'); ?>
         </td>
         <td style="padding:.5rem">

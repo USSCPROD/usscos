@@ -71,6 +71,23 @@ class SalesDashboardService
         $lastTotal = (float)($last['total'] ?? 0);
         $mtdTotal  = (float)($mtd['total'] ?? 0);
 
+        /*
+         * Year to date as well as month, because a monthly target read alone punishes a
+         * business with a season in it. Field marking paint sells against a sports
+         * calendar: a quiet February against one twelfth of a yearly number says nothing.
+         */
+        $ytd = Database::selectOne("
+            SELECT COALESCE(SUM(i.total_amount),0) total
+            FROM invoices i
+            WHERE i.sales_rep_id = ? AND i.status <> 'void'
+              AND i.invoice_date >= DATE_FORMAT(CURDATE(), '%Y-01-01')
+        ", [$repId]);
+
+        $goals     = new \App\Repositories\SalesGoalRepository();
+        $monthGoal = (float)($goals->forPeriod($repId, 'month', date('Y-m-d'))['goal_amount'] ?? 0);
+        $yearGoal  = (float)($goals->forPeriod($repId, 'year',  date('Y-m-d'))['goal_amount'] ?? 0);
+        $ytdTotal  = (float)($ytd['total'] ?? 0);
+
         return [
             'linked'       => true,
             'sales_mtd'    => $mtdTotal,
@@ -78,6 +95,13 @@ class SalesDashboardService
             'sales_last'   => $lastTotal,
             'sales_trend'  => $lastTotal > 0 ? round((($mtdTotal - $lastTotal) / $lastTotal) * 100, 1) : 0.0,
             'accounts'     => (int)($accounts['n'] ?? 0),
+            'sales_ytd'    => $ytdTotal,
+            // Null, not zero, when no target is set. Zero would render as 0% attained and
+            // read as failure, when in fact nobody has said what success is.
+            'goal_month'   => $monthGoal > 0 ? $monthGoal : null,
+            'goal_year'    => $yearGoal  > 0 ? $yearGoal  : null,
+            'goal_month_pct' => $monthGoal > 0 ? round(($mtdTotal / $monthGoal) * 100, 1) : null,
+            'goal_year_pct'  => $yearGoal  > 0 ? round(($ytdTotal / $yearGoal) * 100, 1)  : null,
         ];
     }
 
