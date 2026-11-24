@@ -105,8 +105,29 @@ class LeadRepository
                 notes        = :notes
             WHERE id = :id
         ");
-        $data[':id'] = $id;
-        $stmt->execute($data);
+        /*
+         * Bound to the statement's own placeholders, not to whatever the caller passed.
+         *
+         * The controller builds one parameter map and uses it for both insert and update.
+         * insert() writes created_by; this statement does not, and with emulated prepares
+         * off PDO rejects a parameter the SQL never names: "Invalid parameter number".
+         * Editing a lead threw a 500 on every save from the initial commit (3 Aug 2026)
+         * until this was found on 24 Nov 2026 - the form looked fine, took the edit, and
+         * died on submit, which reads as "the lead won't save" rather than as a crash.
+         *
+         * Filtering here rather than in the controller because this statement is the thing
+         * that knows which columns it writes, and the next column added to one statement
+         * and not the other must not be able to break the other one again.
+         */
+        $allowed = [
+            ':company_name', ':first_name', ':last_name', ':email', ':phone',
+            ':website', ':source', ':status', ':rep_id', ':notes',
+        ];
+
+        $params = array_intersect_key($data, array_flip($allowed));
+        $params[':id'] = $id;
+
+        $stmt->execute($params);
     }
 
     /**
