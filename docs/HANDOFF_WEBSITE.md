@@ -12,14 +12,23 @@ Start here; it is what the previous session knew and a fresh one does not.
 
 | | What it is | Lead capture |
 |---|---|---|
-| **os.usscos.com/shop** | **The public website.** Built into USSCOS itself — catalogue, cart, checkout, stencil designers, and the contact and quote forms. | Live. This is the site to work on |
-| **usscproducts.com** | The old public site. WordPress, Porto theme, WooCommerce, Contact Form 7. DNS has **not** been pointed at the shop yet, so it is still serving and still sending leads. | Connected since 13 Nov 2026, to be replaced |
+| **usscproducts.com** | **The live production site.** WordPress, Porto theme, WooCommerce, Contact Form 7. Real customers, real orders, real leads. | **Live. Do not change it** |
+| **os.usscos.com/shop** | The replacement public website, built into USSCOS itself — catalogue, cart, checkout, stencil designers, contact and quote forms. | **A test site for now** |
 | **usscos.com** | Three bare PHP forms at `/var/www/usscos.com` on the same droplet. Nothing links to it. | Connected, and was the source of ~117 spam leads |
-| **os.usscos.com** (the rest) | USSCOS itself, the internal application. | n/a |
+| **os.usscos.com** (the rest) | USSCOS itself, the internal application. | In use internally |
 
-**Read the first row before planning anything.** "The website" means the shop at
-`os.usscos.com/shop`, not WordPress. Work aimed at usscproducts.com is work on a site
-being retired — confirm it is wanted before starting.
+**Confirmed by Chip, 24 Nov 2026.** This is the row order that matters, and it has been
+got backwards more than once: the shop is where the public site is *going*, not where it
+*is*. Work aimed at usscproducts.com touches production — ask before starting any of it,
+including its WordPress snippets and forms.
+
+The live site posts real leads into USSCOS (`160.153.189.158`, user agent
+`WordPress/…; https://usscproducts.com`) and authenticates with
+**`LEAD_WEBHOOK_SECRET_PREVIOUS`**, because the secret was rotated on 24 Nov 2026 and that
+site was deliberately left alone. Clearing that variable, or setting
+`LEAD_WEBHOOK_REQUIRE_SECRET=true`, stops production lead capture — **silently**: CF7 has
+already sent its own email and shows the visitor success, the 401 goes to the WordPress
+error log, and the lead never arrives here.
 
 **Chip's rule, 13 Nov 2026:** a lead whose source is `web` came through usscos.com, and
 since nothing links to that site, it is spam. 117 were deleted on that basis.
@@ -53,7 +62,11 @@ The per-site counts are on the leads index; a single lead's site shows under Sou
 on, so leads read `os.usscos.com` today and will read `usscproducts.com` once DNS moves —
 the same site under two names, which the per-site counts will show as two rows. That is the
 cutover date, not a fault, and it needs no code change: both hosts are already on the
-allowlist. The User-Agent branch earns its keep only until WordPress stops sending.
+allowlist.
+
+The User-Agent branch is not a stopgap: it is what labels **live** leads from
+usscproducts.com, and it keeps doing so for as long as that site runs, with nothing to
+install there.
 
 ## How website leads reach USSCOS
 
