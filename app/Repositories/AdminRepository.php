@@ -921,21 +921,27 @@ class AdminRepository
     /**
      * Invoiced sales per rep between two dates, keyed by rep id.
      *
-     * Attribution is invoices.sales_rep_id - NOT rep_id, which is the dead column from the
-     * migration collision, and not processed_by, which records who keyed the order rather
-     * than who gets the credit.
+     * Attribution goes through App\Services\RepAttribution so this screen and the rep's own
+     * dashboard cannot disagree - they did, which is why that class exists. NOT rep_id,
+     * the dead column from the migration collision, and not processed_by, which records
+     * who keyed the order rather than who gets the credit.
      *
      * Credit memos carry negative totals, so they net off here without a special case.
      */
     public function salesByRepBetween(string $from, string $to): array
     {
+        $attributed = \App\Services\RepAttribution::EXPR;
+
         $rows = Database::select(
-            "SELECT i.sales_rep_id, COALESCE(SUM(i.total_amount),0) AS total, COUNT(*) AS n
+            "SELECT {$attributed} AS sales_rep_id,
+                    COALESCE(SUM(i.total_amount),0) AS total,
+                    COUNT(*) AS n
                FROM invoices i
-              WHERE i.sales_rep_id IS NOT NULL
+               JOIN customers c ON c.id = i.customer_id
+              WHERE {$attributed} IS NOT NULL
                 AND i.status <> 'void'
                 AND i.invoice_date BETWEEN ? AND ?
-              GROUP BY i.sales_rep_id",
+              GROUP BY {$attributed}",
             [$from, $to]
         );
 

@@ -49,17 +49,23 @@ class SalesDashboardService
             return ['linked' => false];
         }
 
+        // One attribution rule across all three figures and the goals screen - see
+        // App\Services\RepAttribution. These used to count by the customer's current rep
+        // while the goals screen counted by the invoice's, so the same rep saw two
+        // different numbers for the same month on two screens.
+        $attributed = \App\Services\RepAttribution::whereRep();
+
         $mtd = Database::selectOne("
             SELECT COALESCE(SUM(i.total_amount),0) total, COUNT(*) n
             FROM invoices i JOIN customers c ON c.id = i.customer_id
-            WHERE c.sales_rep_id = ? AND i.status <> 'void' AND i.invoice_type = 'invoice'
+            WHERE {$attributed} AND i.status <> 'void' AND i.invoice_type = 'invoice'
               AND i.invoice_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
         ", [$repId]);
 
         $last = Database::selectOne("
             SELECT COALESCE(SUM(i.total_amount),0) total
             FROM invoices i JOIN customers c ON c.id = i.customer_id
-            WHERE c.sales_rep_id = ? AND i.status <> 'void' AND i.invoice_type = 'invoice'
+            WHERE {$attributed} AND i.status <> 'void' AND i.invoice_type = 'invoice'
               AND i.invoice_date >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
               AND i.invoice_date <  DATE_FORMAT(CURDATE(), '%Y-%m-01')
         ", [$repId]);
@@ -78,8 +84,8 @@ class SalesDashboardService
          */
         $ytd = Database::selectOne("
             SELECT COALESCE(SUM(i.total_amount),0) total
-            FROM invoices i
-            WHERE i.sales_rep_id = ? AND i.status <> 'void'
+            FROM invoices i JOIN customers c ON c.id = i.customer_id
+            WHERE {$attributed} AND i.status <> 'void'
               AND i.invoice_date >= DATE_FORMAT(CURDATE(), '%Y-01-01')
         ", [$repId]);
 
