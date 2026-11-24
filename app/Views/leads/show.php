@@ -56,6 +56,21 @@ $stageLabel  = ['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negot
                     <?php if (!empty($lead['source_detail'])): ?>
                         <div style="font-size:.82rem;color:#6b7280"><?= e($lead['source_detail']) ?></div>
                     <?php endif; ?>
+                    <?php
+                    /* Which site, for a web lead. Shown only for source 'web': on a trade
+                       show badge or a cold call the question does not arise, and a row
+                       saying "not recorded" there would read as missing data rather than
+                       as not applicable. */
+                    if (($lead['source'] ?? '') === 'web'):
+                    ?>
+                        <div style="font-size:.82rem;color:#6b7280">
+                            <?php if (!empty($lead['source_site'])): ?>
+                                via <?= e($lead['source_site']) ?>
+                            <?php else: ?>
+                                <span class="text-muted">site not recorded</span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </dd>
                 <dt>Rep</dt><dd><?= $lead['rep_first'] ? e($lead['rep_first'] . ' ' . $lead['rep_last']) : '<span class="text-muted">Unassigned</span>' ?></dd>
                 <dt>Created</dt><dd><?= date('M j, Y', strtotime($lead['created_at'])) ?></dd>

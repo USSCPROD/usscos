@@ -72,6 +72,8 @@ class WebsiteLeadService
             'notes'       => implode("\n", $lines),
             'assigned_to' => $isStencil ? ($routing['stencil_user_id'] ?? null) : ($routing['general_user_id'] ?? null),
             'attachment'  => $attachment,
+            // Not detected: this form IS on this host, so the host is the answer.
+            'source_site' => self::thisHost(),
         ]);
 
         $this->notify(
@@ -130,6 +132,7 @@ class WebsiteLeadService
             'notes'       => "About: {$about}\n\n{$notes}",
             'assigned_to' => $routing['stencil_user_id'] ?? null,
             'attachment'  => $attachment,
+            'source_site' => self::thisHost(),
         ]);
 
         $this->notify(
@@ -253,6 +256,7 @@ class WebsiteLeadService
             'email'         => $d['email'],
             'phone'         => $d['phone'] ?? null,
             'source_detail' => ($d['source'] ?? '') ?: null,
+            'source_site'   => $d['source_site'] ?? null,
             'notes'         => trim($notes) ?: null,
             'rep_id'        => $d['assigned_to'] ?? null,
         ]);
@@ -262,7 +266,7 @@ class WebsiteLeadService
         // honest answer - nobody here did this, the website did.
         Activity::log(
             'lead.created',
-            'Enquiry received from the website'
+            'Enquiry received from ' . ($d['source_site'] ?? 'the website')
                 . (($d['source'] ?? '') !== '' ? ' (' . $d['source'] . ')' : '')
                 . ' for ' . $company . '.'
                 . (!empty($d['attachment']) ? ' Artwork attached.' : ''),
@@ -270,6 +274,19 @@ class WebsiteLeadService
         );
 
         return $id;
+    }
+
+    /**
+     * The host this request arrived on, for a form served by this application rather
+     * than posted in from elsewhere. Run through the same allowlist as a declared host,
+     * so a spoofed Host header cannot put arbitrary text on a staff page.
+     */
+    private static function thisHost(): ?string
+    {
+        return \App\Services\Web\LeadOrigin::detect(
+            ['site' => (string)($_SERVER['HTTP_HOST'] ?? '')],
+            []
+        );
     }
 
     public function routing(): array

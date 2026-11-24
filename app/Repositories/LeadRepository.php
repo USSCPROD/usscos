@@ -131,6 +131,28 @@ class LeadRepository
     }
 
     /**
+     * Web leads per originating site, newest era first.
+     *
+     * The reason source_site exists: "how many enquiries does each site actually bring
+     * in" was unanswerable, and on 13 Nov 2026 a spam rule deleted 117 web leads with no
+     * way to tell whose they were. Leads taken before migration 127 come back under a
+     * null site and are reported as not recorded, never folded into either real site.
+     */
+    public function countsBySite(): array
+    {
+        return Database::select("
+            SELECT COALESCE(source_site, '') AS site,
+                   COUNT(*)                  AS n,
+                   MIN(created_at)           AS first_at,
+                   MAX(created_at)           AS last_at
+            FROM leads
+            WHERE source = 'web'
+            GROUP BY COALESCE(source_site, '')
+            ORDER BY n DESC
+        ");
+    }
+
+    /**
      * Mark a lead converted, and bring what it was carrying across with it.
      *
      * A lead can hold quotes and opportunities — quoting an enquiry before they are a
@@ -211,11 +233,13 @@ class LeadRepository
         Database::insert(
             'INSERT INTO leads
                 (first_name, last_name, company_name, email, phone,
-                 source, source_detail, notes, status, rep_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, \'web\', ?, ?, \'new\', ?, NOW(), NOW())',
+                 source, source_detail, source_site, notes, status, rep_id,
+                 created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, \'web\', ?, ?, ?, \'new\', ?, NOW(), NOW())',
             [
                 $d['first_name'], $d['last_name'], $d['company_name'], $d['email'],
-                $d['phone'], $d['source_detail'], $d['notes'], $d['rep_id'],
+                $d['phone'], $d['source_detail'], $d['source_site'] ?? null,
+                $d['notes'], $d['rep_id'],
             ]
         );
 

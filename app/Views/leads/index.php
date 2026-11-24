@@ -35,6 +35,44 @@
     </div>
 </div>
 
+<?php
+/*
+ * Web leads by originating site. Shown only when there is more than one row to compare,
+ * because a single line reading "usscos.com 4" is a statistic nobody asked for.
+ *
+ * A blank site is reported as not recorded and kept separate. Those are the leads taken
+ * before migration 127, plus anything posting to the webhook without identifying itself -
+ * folding them into whichever site looks likely is how 117 deleted leads became a
+ * question that can no longer be answered.
+ */
+$bySite = $bySite ?? [];
+if (count($bySite) > 1):
+?>
+<div class="card" style="padding:.85rem 1.1rem;margin-bottom:1rem">
+    <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#6b7280;margin-bottom:.5rem">
+        Web leads by site
+    </div>
+    <table style="border-collapse:collapse">
+        <tbody>
+        <?php foreach ($bySite as $row): ?>
+            <tr>
+                <td style="padding:.2rem 1.25rem .2rem 0;font-size:.88rem;color:#374151">
+                    <?= $row['site'] !== '' ? e($row['site']) : '<span class="text-muted">site not recorded</span>' ?>
+                </td>
+                <td style="padding:.2rem 1.25rem .2rem 0;font-size:.88rem;font-weight:700;color:#111;text-align:right">
+                    <?= number_format((int)$row['n']) ?>
+                </td>
+                <td style="padding:.2rem 0;font-size:.8rem;color:#9ca3af">
+                    <?= date('M Y', strtotime((string)$row['first_at'])) ?>
+                    &ndash; <?= date('M Y', strtotime((string)$row['last_at'])) ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
+
 <!-- Filters -->
 <div class="filter-bar">
     <form method="get" class="filter-bar__search">

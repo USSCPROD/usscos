@@ -28,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$error && !$isSpam) {
         $payload = json_encode([
             'form_type'  => 'contact',
+            // Which site sent this. Both public sites post to the same webhook and
+            // wrote source='web' with nothing saying which; see migration 127.
+            'site'       => $_SERVER['HTTP_HOST'] ?? 'usscos.com',
             'first_name' => trim($_POST['first_name']),
             'last_name'  => trim($_POST['last_name']),
             'email'      => strtolower(trim($_POST['email'])),

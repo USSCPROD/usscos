@@ -38,6 +38,7 @@ class LeadController extends Controller
             'title'      => 'Leads',
             'pagination' => $this->leads->paginate($page, 50, $search, $status),
             'stats'      => $this->leads->getStats(),
+            'bySite'     => $this->leads->countsBySite(),
             'search'     => $search,
             'status'     => $status,
         ]);

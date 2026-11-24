@@ -57,6 +57,20 @@ class WebhookController extends Controller
             return $response->json(['error' => 'Invalid payload'], 400);
         }
 
+        /*
+         * Which site sent this. Worked out once here rather than in each handler, and
+         * carried on the payload so the handlers stay a straight mapping from fields to
+         * lead. Null means the sender did not identify itself - logged, so the gap shows
+         * up as a gap rather than being quietly filled with a guess.
+         */
+        $data['source_site'] = \App\Services\Web\LeadOrigin::detect($data, $_SERVER);
+
+        if ($data['source_site'] === null) {
+            error_log('Lead webhook: sender did not identify its site, from '
+                . ($_SERVER['REMOTE_ADDR'] ?? '?')
+                . ' ua=' . ($_SERVER['HTTP_USER_AGENT'] ?? '-'));
+        }
+
         try {
             match ($data['form_type']) {
                 'contact'       => $this->handleContact($data),
@@ -86,6 +100,7 @@ class WebhookController extends Controller
             'source'     => 'Website — Contact Form',
             'notes'      => $this->buildContactNotes($d),
             'assigned_to'=> $routing['general_user_id'] ?? null,
+            'source_site'=> $d['source_site'] ?? null,
         ]);
 
         $this->intake->notify(
@@ -114,6 +129,7 @@ class WebhookController extends Controller
             'source'       => 'Website — Paint Quote Request',
             'notes'        => $this->buildPaintNotes($d),
             'assigned_to'  => $assignedTo,
+            'source_site'  => $d['source_site'] ?? null,
         ]);
 
         // Notify the assigned rep directly if we have their email, else fallback
@@ -172,6 +188,7 @@ class WebhookController extends Controller
             'notes'        => $this->buildStencilNotes($d),
             'assigned_to'  => $routing['stencil_user_id']  ?? null,
             'attachment'   => $d['attachment'] ?? null,
+            'source_site'  => $d['source_site'] ?? null,
         ]);
 
         $this->intake->notify(
