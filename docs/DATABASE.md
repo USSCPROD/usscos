@@ -93,7 +93,7 @@ the customer timeline either way.
 | Table | Notes |
 |---|---|
 | `leads` | `company_name` is `NOT NULL` |
-| `opportunities` | Pipeline stages, expected value, probability |
+| `opportunities` | Pipeline stages, expected value, probability, next step, lost reason — see below |
 | `quotes` + `quote_line_items` | `customer_id` nullable (quotes can attach to a lead) |
 | `sales_orders` + `sales_order_line_items` | Line item qty column is **`qty_ordered`** |
 | `invoices` + `invoice_line_items` | Line item qty column is **`qty`** |
@@ -187,3 +187,38 @@ single transaction, never deletes without an explicit flag. See
 
 Before any bulk operation: phpMyAdmin → select database → check the affected tables →
 **Export** → Go. Ten seconds, and it's the difference between a mistake and an incident.
+
+---
+
+## Opportunities: next step and lost reason
+
+Two columns on `opportunities` exist to be reported on, and each has a rule that is not
+obvious from the schema.
+
+**`next_step` / `next_step_date`** (migration 128) drive the "needs attention" panel on the
+dashboard and the pipeline. An opportunity with no next step is flagged, because nothing
+ever creates a task from an opportunity — so one with nothing planned against it generates
+no task, raises no flag, and is invisible until somebody recognises the name. Free text
+deliberately: "ring the AD about field dimensions" beats any dropdown.
+
+**`lost_reason_code`** (migration 129) is what the win/loss report groups by;
+`lost_reason` is the free-text detail a person reads. Both are **cleared whenever the stage
+moves to anything other than `closed_lost`** — a deal reopened and then won would otherwise
+still carry the reason it was lost for, and the report would count it twice.
+
+Three things to keep:
+
+1. **A loss must state why.** `updateStage()` is refused without a valid code, and it is not
+   defaulted to `other` — a default fills the report with the one value that tells nobody
+   anything, and is indistinguishable from reasons somebody chose. `lost_reason` sat empty
+   from the initial commit to 24 Nov 2026 precisely because the board's "Lost" button posted
+   the stage and nothing else.
+2. **The codes live in `App\Services\LostReasons`,** not an enum. Changing a label is safe;
+   changing a code orphans deals already recorded against it, which is why `label()` renders
+   an unknown code as "Retired reason: x" rather than dropping the row.
+3. **Deals with no code are reported as their own row,** not filtered out. "We do not know
+   why we lost 40% of these" is the most important line on the page.
+
+The stage panel stays visible on closed deals so a loss can be given a reason after the
+fact and a deal closed by mistake can be reopened. While it was hidden, every pre-existing
+loss was stuck under "No reason recorded" for good.
