@@ -402,27 +402,81 @@ class InvoiceRepository
         $ins = $this->pdo->prepare("
             INSERT INTO invoice_line_items
                 (invoice_id, product_id, quickbooks_item, description,
-                 qty, uom_id, unit_price, discount_pct, is_taxable, line_total, sort_order)
+                 qty, uom_id, unit_price, wholesale_price, discount_pct, is_taxable,
+                 line_total, sort_order)
             VALUES
                 (:invoice_id, :product_id, :quickbooks_item, :description,
-                 :qty, :uom_id, :unit_price, :discount_pct, :is_taxable, :line_total, :sort_order)
+                 :qty, :uom_id, :unit_price, :wholesale_price, :discount_pct, :is_taxable,
+                 :line_total, :sort_order)
         ");
 
+        /*
+         * The wholesale price is snapshotted onto each line, in one query for the whole
+         * invoice rather than one per line.
+         *
+         * A rep keeps whatever they sell above wholesale, so this figure IS their
+         * commission basis. Taken now, because taking it later means reading a price list
+         * that has moved: somebody's March earnings would change in April because an
+         * unrelated price was updated, and nobody would be told. See
+         * App\Services\RepCommission.
+         */
+        $wholesale = $this->wholesaleForLines($lines);
+
         foreach ($lines as $i => $line) {
+            $productId = $line['product_id'] ?: null;
+
             $ins->execute([
                 ':invoice_id'     => $invoiceId,
-                ':product_id'     => $line['product_id']      ?: null,
+                ':product_id'     => $productId,
                 ':quickbooks_item'=> $line['quickbooks_item']  ?: null,
                 ':description'    => $line['description']      ?: null,
                 ':qty'            => $line['qty']              ?? 1,
                 ':uom_id'         => $line['uom_id']           ?: null,
                 ':unit_price'     => $line['unit_price']       ?? 0,
+                // Null where the product has no wholesale price at all. Not zero: zero
+                // would read as "wholesale was nothing" and credit the whole line as
+                // margin, which overstates what a rep is owed.
+                ':wholesale_price'=> $productId !== null ? ($wholesale[(int)$productId] ?? null) : null,
                 ':discount_pct'   => $line['discount_pct']     ?? 0,
                 ':is_taxable'     => (int)($line['is_taxable'] ?? 0),
                 ':line_total'     => $line['line_total']       ?? 0,
                 ':sort_order'     => $i + 1,
             ]);
         }
+    }
+
+    /**
+     * Wholesale price per product id, for the products on these lines.
+     *
+     * @return array<int,float>
+     */
+    private function wholesaleForLines(array $lines): array
+    {
+        $ids = [];
+        foreach ($lines as $line) {
+            if (!empty($line['product_id'])) {
+                $ids[(int)$line['product_id']] = true;
+            }
+        }
+        $ids = array_keys($ids);
+        if ($ids === []) {
+            return [];
+        }
+
+        $in   = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->pdo->prepare(
+            "SELECT id, dist_price_2026, dist_price FROM products WHERE id IN ({$in})"
+        );
+        $stmt->execute($ids);
+
+        $out = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $price = \App\Services\RepCommission::wholesaleFor($row);
+            if ($price !== null) {
+                $out[(int)$row['id']] = $price;
+            }
+        }
+        return $out;
     }
 
     public function getShipViaOptions(): array

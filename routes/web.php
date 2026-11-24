@@ -11,6 +11,7 @@ use App\Controllers\TaskController;
 use App\Controllers\DocumentController;
 use App\Controllers\AuthController;
 use App\Controllers\CustomerController;
+use App\Controllers\CommissionController;
 use App\Controllers\DashboardController;
 use App\Controllers\EmailIntakeController;
 use App\Controllers\InvoiceController;
@@ -347,6 +348,10 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/admin/email-intake',                       [EmailIntakeController::class, 'index'])->name('admin.email_intake');
     Router::post('/admin/email-intake/{id}/attach',          [EmailIntakeController::class, 'attach'])->name('admin.email_intake.attach');
     Router::post('/admin/email-intake/{id}/ignore',          [EmailIntakeController::class, 'ignore'])->name('admin.email_intake.ignore');
+    // Commission is not an admin screen: a rep opens their own statement here, scoped to
+    // themselves by AccessScope. Owners and admins can select any rep.
+    Router::get('/commission',                               [CommissionController::class, 'index'])->name('commission');
+
     Router::get('/admin/sales-goals',                        [AdminController::class, 'salesGoals'])->name('admin.sales_goals');
     Router::post('/admin/sales-goals',                       [AdminController::class, 'storeSalesGoals'])->name('admin.sales_goals.store');
     Router::get('/admin/sales-reps',                         [AdminController::class, 'salesReps'])->name('admin.sales_reps');
