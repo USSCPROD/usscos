@@ -68,6 +68,44 @@ must be answered **before** the inventory module is built, not after.
 - [x] Invoices with receipt-vs-invoice email logic
 - [x] Payments applied to specific invoices
 
+### CRM depth — November 2026
+Built in one pass on 24 Nov 2026. The theme: the system could say what it *held* but not
+what anyone had *done*.
+
+- [x] **Activity log, finally written to.** `activity_log` was created in migration 003 and
+      nothing had ever inserted a row. Now records quote drafted/sent/converted, order
+      shipped, invoice approved, payment received, lead created/status/owner/converted, and
+      customer created/rep/type/credit-limit/deactivated — written through
+      `App\Services\Activity`, which is static and never throws, both deliberately.
+      Migration 126 added a party axis (`customer_id`, `lead_id`) so a timeline is one
+      indexed read rather than a seven-way UNION. See [DATABASE.md](DATABASE.md).
+- [x] **Logged calls, emails and meetings** on leads and opportunities. Previously the only
+      writable field on a lead was the `notes` blob the website webhook also appends to.
+- [x] **Opportunity next step and the nag** (migration 128) — open deals with no next step,
+      a next step past its date, a passed close date, or nothing recorded for a fortnight,
+      surfaced above the dashboard and the pipeline board. Nothing ever creates a task from
+      an opportunity, so one with nothing planned raised no flag at all.
+- [x] **Win/loss reporting with lost reasons** (migration 129). `lost_reason` had existed
+      since the initial commit and never held a value — the board's "Lost" button posted the
+      stage and nothing else. A loss now requires a reason, refused rather than defaulted.
+- [x] **Duplicate check on lead → customer**, with the option to attach the lead to the
+      customer that already exists rather than only warning. Hand-entry had warned since it
+      was built; the convert path had no check at all.
+- [x] **Which site a web lead came from** (migration 127). Both public sites wrote
+      `source='web'` with nothing recording which. Not backfilled — see
+      [HANDOFF_WEBSITE.md](HANDOFF_WEBSITE.md).
+- [x] **Email into the CRM via a BCC mailbox** (migration 130) — matched to a customer or
+      lead by address, or by company domain with free-mail providers excluded; unmatched
+      mail queues rather than disappearing. See [EMAIL_INTAKE.md](EMAIL_INTAKE.md).
+
+> **Six pre-existing faults were found by testing this**, two of them destroying data on
+> save and both live since the initial commit of 3 Aug 2026: editing a lead threw a 500 on
+> every save, and saving an opportunity silently unlinked it from its account. Both had the
+> same cause — one parameter map serving two statements with different columns. Also fixed:
+> the Move Stage panel was hidden on closed deals, so a loss could never be given a reason
+> after the fact; the dashboard feed printed every description twice, linked every reference
+> to `#`, and its "View all activity" pointed at a route that has never existed.
+
 ### Products & data
 - [x] Product page with image gallery and document library (SDS/TDS/flyers)
 - [x] ~100 product fields covering EDI, Amazon, GS1, packaging, compliance, specs
@@ -80,6 +118,9 @@ must be answered **before** the inventory module is built, not after.
 - [x] Admin area — users, departments, company defaults, lookups, lead routing
 - [x] Role-aware dashboard
 - [x] USSCOS moved to its own subdomain, separated from the public website
+- [x] Transactional mail through the SMTP2GO API. Mailgun was removed 2026-11-24 (dead
+      account), and with it ~80 lines of hand-rolled SMTP client that nothing ever called
+      and four `MAIL_*` settings that configured nothing
 
 ### Reps, access and reporting — August 2026
 - [x] `sales_reps` as its own entity, imported and corrected against the QuickBooks Rep list
@@ -126,6 +167,11 @@ records exist but only 4,156 have ever ordered.
    unified activity timeline, and inactivity alerts judged against each customer's own
    rhythm rather than a fixed threshold. Built as queries on existing tables — no
    `activities` or `customer_alerts` table was needed after all.
+   > **Superseded in part, 2026-11-24.** Queries over existing tables answer "what does this
+   > customer have", but they can only infer events from records that still exist — they can
+   > say "invoice issued" and never "rep changed", "who a quote went to", or anything a
+   > person did. `activity_log` now carries that, and joins the customer timeline as an
+   > eighth branch rather than replacing the derived seven. See **CRM depth** under Built.
 3. **Quoting: customer-specific pricing** — account-level price overrides per customer
    per product, layered under the existing retail/distributor/stocking-distributor
    tiers, plus volume discount rules. Self-contained, doesn't depend on anything else
@@ -170,10 +216,22 @@ records exist but only 4,156 have ever ordered.
 6. **Digital Job Binder** — expand the sales order into a full job record: artwork with
    revision history, production notes, QA checklist, shop-floor photos, shipping
    documents. Everything about a job in one place, retrievable years later.
-7. **Security hardening** — 2FA, login lockout, audit log.
+7. **Security hardening** — 2FA and login lockout. ~~Audit log~~ done 2026-11-24.
    > CSRF is now enforced (2026-08). The middleware existed but was applied to no route;
    > 36 POST forms were missing tokens and have been fixed. `/api/*` and `/webhook/*`
    > stay exempt by design.
+   >
+   > The audit log is `activity_log`, readable at `/admin/activity` by owners, admins and
+   > the bookkeeper. Entries are not editable or removable and the screen says so.
+   >
+   > **Still open, and the one item here with a live exposure behind it:**
+   > `LEAD_WEBHOOK_SECRET` was committed to the public repo in `41ead2f`. It was rotated on
+   > 24 Nov 2026, but the old secret is still accepted (`LEAD_WEBHOOK_SECRET_PREVIOUS`)
+   > because the live WordPress site authenticates with it and is deliberately not being
+   > changed. More importantly the endpoint still accepts posts with **no** secret at all,
+   > so rotation protects the senders and not the endpoint — closing it means setting
+   > `LEAD_WEBHOOK_REQUIRE_SECRET=true`, which cannot happen until every sender holds the
+   > current secret or usscproducts.com is retired.
 
 ## Website & Publishing
 
@@ -471,4 +529,11 @@ convention).
 - **Inconsistent field naming** — the same product description is labeled "Sales
   Description", "Short Description", and "Sales" in three different places.
 - **The flex/grid convention** is probably based on a misdiagnosis and is worth
-  retesting; see [CLAUDE.md](../CLAUDE.md#layout-use-tables-not-flexgrid).
+  retesting; see [CLAUDE.md](../CLAUDE.md#layout-use-tables-not-flexgrid). Half an hour:
+  one page, a plain `display:flex` block, nothing else unusual. If it works the convention
+  goes and every view afterwards gets simpler.
+- **41,164 customer records, 4,156 of which have ever ordered.** Dormant records are also
+  false positives for the lead-conversion duplicate warning, and that warning only works
+  while people trust it. Prune at the clean reimport.
+- **11 web leads read "site not recorded"** and always will — they predate migration 127
+  and must not be backfilled with a guess.
