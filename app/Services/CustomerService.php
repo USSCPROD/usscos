@@ -257,7 +257,8 @@ class CustomerService extends Service
         if (isset($diff['new']['customer_type'])) {
             $spoken[] = 'customer_type';
             Activity::log('customer.type_changed',
-                'Customer type changed from ' . ($diff['old']['customer_type'] ?? '?')
+                'Customer type changed from '
+                    . (($diff['old']['customer_type'] ?? '') !== '' ? $diff['old']['customer_type'] : 'not set')
                     . ' to ' . $diff['new']['customer_type'] . ' - this changes their pricing.', $party);
         }
         if (isset($diff['new']['credit_limit'])) {

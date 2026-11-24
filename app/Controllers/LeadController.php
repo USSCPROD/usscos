@@ -207,7 +207,8 @@ class LeadController extends Controller
         if (isset($diff['new']['status'])) {
             Activity::log(
                 'lead.status_changed',
-                'Lead status changed from ' . ($diff['old']['status'] ?? '?')
+                'Lead status changed from '
+                    . (($diff['old']['status'] ?? '') !== '' ? $diff['old']['status'] : 'not set')
                     . ' to ' . $diff['new']['status'] . '.',
                 ['subject_type' => 'Lead', 'subject_id' => (int)$before['id'], 'lead_id' => (int)$before['id']]
             );
