@@ -12,9 +12,14 @@ Start here; it is what the previous session knew and a fresh one does not.
 
 | | What it is | Lead capture |
 |---|---|---|
-| **usscproducts.com** | The real public site. WordPress, Porto theme, WooCommerce, Contact Form 7. | **Connected** to USSCOS since 13 Nov 2026 |
-| **usscos.com** | Not a live site — three bare PHP forms at `/var/www/usscos.com` on the same droplet as USSCOS. Nothing links to it. | Connected, and was the source of ~117 spam leads |
-| **os.usscos.com** | USSCOS itself, the internal application. | n/a |
+| **os.usscos.com/shop** | **The public website.** Built into USSCOS itself — catalogue, cart, checkout, stencil designers, and the contact and quote forms. | Live. This is the site to work on |
+| **usscproducts.com** | The old public site. WordPress, Porto theme, WooCommerce, Contact Form 7. DNS has **not** been pointed at the shop yet, so it is still serving and still sending leads. | Connected since 13 Nov 2026, to be replaced |
+| **usscos.com** | Three bare PHP forms at `/var/www/usscos.com` on the same droplet. Nothing links to it. | Connected, and was the source of ~117 spam leads |
+| **os.usscos.com** (the rest) | USSCOS itself, the internal application. | n/a |
+
+**Read the first row before planning anything.** "The website" means the shop at
+`os.usscos.com/shop`, not WordPress. Work aimed at usscproducts.com is work on a site
+being retired — confirm it is wanted before starting.
 
 **Chip's rule, 13 Nov 2026:** a lead whose source is `web` came through usscos.com, and
 since nothing links to that site, it is spam. 117 were deleted on that basis.
@@ -43,6 +48,12 @@ Two things to keep in mind when reading it:
   at which point it stops being a guess about an era.
 
 The per-site counts are on the leads index; a single lead's site shows under Source.
+
+**At cutover, the shop's own host changes.** Its forms record the host the request arrived
+on, so leads read `os.usscos.com` today and will read `usscproducts.com` once DNS moves —
+the same site under two names, which the per-site counts will show as two rows. That is the
+cutover date, not a fault, and it needs no code change: both hosts are already on the
+allowlist. The User-Agent branch earns its keep only until WordPress stops sending.
 
 ## How website leads reach USSCOS
 
