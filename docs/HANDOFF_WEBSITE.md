@@ -21,6 +21,29 @@ since nothing links to that site, it is spam. 117 were deleted on that basis.
 `database/remove_spam_leads.php --web` applies the rule, dry run by default, and refuses
 to touch any lead that has been worked.
 
+The rule rested on an assumption the data could not support. Both sites post to the same
+webhook and both wrote `source='web'` with nothing recording which one sent it, so whether
+any of those 117 were genuine usscproducts.com enquiries cannot now be established.
+
+**Fixed 24 Nov 2026.** `leads.source_site` (migration 127) records the originating host,
+resolved by `App\Services\Web\LeadOrigin` from the payload's own `site` field — which
+usscos.com's three forms now send — or failing that from the User-Agent, since
+`wp_remote_post()` sends `WordPress/6.x; https://usscproducts.com` by default. Both go
+through an allowlist of known hosts, because the value arrives at a public endpoint and is
+then shown to a rep.
+
+Two things to keep in mind when reading it:
+
+- **Leads before 24 Nov 2026 have `source_site` NULL** and are reported as *site not
+  recorded*, never folded into either site. Nothing was backfilled, and nothing should be:
+  a confident wrong answer is worse than a blank, because the blank is the only thing that
+  says don't trust it.
+- `--web` already requires `--before=YYYY-MM-DD` to bound it to the spam era. Once enough
+  labelled leads exist, **that rule should be rewritten against `source_site` instead**,
+  at which point it stops being a guess about an era.
+
+The per-site counts are on the leads index; a single lead's site shows under Source.
+
 ## How website leads reach USSCOS
 
 ```
