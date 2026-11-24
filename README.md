@@ -46,7 +46,7 @@ Built in-house on PHP + MySQL. No framework, no licensing cost, no vendor lock-i
 - **MySQL 8** — PDO with prepared statements throughout
 - **nginx** on a DigitalOcean droplet (Ubuntu 24.04 LTS)
 - **Composer** for PhpSpreadsheet, PHPMailer, Dotenv
-- **Mailgun** API for transactional mail
+- **SMTP2GO** API for transactional mail (usscproducts.com account)
 - Plain HTML/CSS/JS on the front end — no build step, no bundler
 
 ## Live environment

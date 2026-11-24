@@ -102,7 +102,7 @@ Each phase ships on its own and is usable when it lands.
    Square payment, and the order arriving as a USSCOS sales order.
 4. **Customer and distributor accounts.** 🟡 First slice built 19 Nov 2026, waiting on a
    real sign-up to test end to end. `/account` (sign up, sign in, password reset by
-   Mailgun email, change password), in `customer_logins` with its own cookie, never the
+   email, change password), in `customer_logins` with its own cookie, never the
    staff `users` table. **Staff link each login to its customer** (Website accounts in the
    sidebar), never by email: thousands of addresses are shared. Linking to a parent covers
    its sub-stores (a sub-store login sees only itself; Chip, 19 Nov 2026). The linked
