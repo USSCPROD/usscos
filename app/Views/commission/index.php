@@ -89,9 +89,19 @@ $link = static function (array $over) use ($periodType, $periodDate, $rep): stri
                 </span>
             </div>
         </div>
+        <?php /* These three subtract: costed sold - wholesale = commission. Using TOTAL
+                 sold here instead gave a trio that did not reconcile, and anyone checking
+                 the arithmetic would have found a different answer and trusted none of it. */ ?>
         <div class="kpi-card">
-            <div class="kpi-card__label">Sold</div>
-            <div class="kpi-card__value"><?= money((float)$summary['revenue']) ?></div>
+            <div class="kpi-card__label">Sold (costed lines)</div>
+            <div class="kpi-card__value"><?= money((float)$summary['revenue_costed']) ?></div>
+            <?php if ($uncosted > 0): ?>
+                <div class="kpi-card__meta">
+                    <span class="kpi-card__trend kpi-card__trend--neutral">
+                        <?= money((float)$summary['revenue']) ?> sold in all
+                    </span>
+                </div>
+            <?php endif; ?>
         </div>
         <div class="kpi-card">
             <div class="kpi-card__label">At wholesale</div>
@@ -100,9 +110,12 @@ $link = static function (array $over) use ($periodType, $periodDate, $rep): stri
         <div class="kpi-card">
             <div class="kpi-card__label">Margin</div>
             <div class="kpi-card__value">
-                <?= (float)$summary['revenue'] > 0
-                    ? number_format(((float)$summary['total'] / (float)$summary['revenue']) * 100, 1) . '%'
+                <?= (float)$summary['revenue_costed'] > 0
+                    ? number_format(((float)$summary['total'] / (float)$summary['revenue_costed']) * 100, 1) . '%'
                     : '—' ?>
+            </div>
+            <div class="kpi-card__meta">
+                <span class="kpi-card__trend kpi-card__trend--neutral">on costed lines</span>
             </div>
         </div>
     </div>

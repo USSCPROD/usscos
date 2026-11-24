@@ -73,6 +73,11 @@ final class RepCommission
                 COUNT(*)                                   AS line_count,
                 COUNT(DISTINCT i.id)                       AS invoices,
                 COALESCE(SUM(ili.line_total), 0)           AS revenue,
+                -- Revenue on the lines that CAN be costed, so the statement's figures
+                -- subtract: costed revenue - wholesale = commission. Reporting total
+                -- revenue beside a commission computed on a subset gave three numbers
+                -- that did not reconcile, and a reader who subtracts them is right to.
+                COALESCE(SUM(CASE WHEN {$wholesale} IS NOT NULL THEN ili.line_total END), 0) AS revenue_costed,
                 COALESCE(SUM({$wholesale} * ili.qty), 0)   AS wholesale,
                 COALESCE(SUM(ili.line_total - ({$wholesale} * ili.qty)), 0) AS total,
                 SUM(ili.wholesale_price IS NOT NULL)       AS lines_snapshotted,
@@ -95,6 +100,7 @@ final class RepCommission
         return [
             'total'              => (float)($row['total'] ?? 0),
             'revenue'            => (float)($row['revenue'] ?? 0),
+            'revenue_costed'     => (float)($row['revenue_costed'] ?? 0),
             'wholesale'          => (float)($row['wholesale'] ?? 0),
             'lines'              => (int)($row['line_count'] ?? 0),
             'invoices'           => (int)($row['invoices'] ?? 0),
