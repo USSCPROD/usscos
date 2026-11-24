@@ -8,6 +8,7 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Service;
 use App\Repositories\TaskRepository;
+use App\Services\AccessScope;
 
 /**
  * The front page.
@@ -58,6 +59,21 @@ class DashboardService extends Service
 
         if ($shows('chart')) {
             $data['revenue_chart'] = $this->getRevenueChart();
+        }
+
+        if ($shows('opp_nag')) {
+            /*
+             * Scoped to the rep when they are restricted, everyone otherwise - an owner
+             * wants the team's neglect, a rep can only act on their own.
+             *
+             * Six, not the query's default ten: this sits among other panels, and a list
+             * long enough to scroll past is a list that gets scrolled past.
+             */
+            $data['opp_nag'] = (new \App\Repositories\OpportunityRepository())->needingAttention(
+                AccessScope::isRestricted() ? AccessScope::repId() : null,
+                14,
+                6
+            );
         }
 
         if ($shows('focus')) {

@@ -41,6 +41,18 @@ $stageColor = ['prospecting' => '#6b7280', 'proposal' => '#0A3D91', 'negotiation
     </a>
 </div>
 
+<?php
+/* Above the board on purpose. The board is sorted by value, so a neglected deal sits
+   wherever its number puts it and reads like all the others - which is how an
+   opportunity goes four months without anybody noticing. */
+if (empty($closed)) {
+    echo view('partials.opportunity_nag', [
+        'nag'      => $nag ?? [],
+        'nagTitle' => 'Needs attention',
+    ]);
+}
+?>
+
 <?php if (!empty($closed)): ?>
     <div style="margin-bottom:1rem">
         <a href="/opportunities" class="btn btn--secondary btn--sm">&lsaquo; Back to the board</a>

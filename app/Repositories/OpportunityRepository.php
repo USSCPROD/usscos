@@ -51,12 +51,18 @@ class OpportunityRepository
         $stmt = $pdo->prepare("
             INSERT INTO opportunities
                 (name, lead_id, customer_id, rep_id, stage,
-                 expected_value, probability, expected_close, notes, created_by)
+                 expected_value, probability, next_step, next_step_date,
+                 expected_close, notes, created_by)
             VALUES
                 (:name, :lead_id, :customer_id, :rep_id, :stage,
-                 :expected_value, :probability, :expected_close, :notes, :created_by)
+                 :expected_value, :probability, :next_step, :next_step_date,
+                 :expected_close, :notes, :created_by)
         ");
-        $stmt->execute($data);
+        $stmt->execute($this->only($data, [
+            ':name', ':lead_id', ':customer_id', ':rep_id', ':stage',
+            ':expected_value', ':probability', ':next_step', ':next_step_date',
+            ':expected_close', ':notes', ':created_by',
+        ]));
         return (int)$pdo->lastInsertId();
     }
 
@@ -72,13 +78,36 @@ class OpportunityRepository
                 stage          = :stage,
                 expected_value = :expected_value,
                 probability    = :probability,
+                next_step      = :next_step,
+                next_step_date = :next_step_date,
                 expected_close = :expected_close,
                 notes          = :notes,
                 lost_reason    = :lost_reason
             WHERE id = :id
         ");
         $data[':id'] = $id;
-        $stmt->execute($data);
+        $stmt->execute($this->only($data, [
+            ':name', ':lead_id', ':customer_id', ':rep_id', ':stage',
+            ':expected_value', ':probability', ':next_step', ':next_step_date',
+            ':expected_close', ':notes', ':lost_reason', ':id',
+        ]));
+    }
+
+    /**
+     * Narrow a parameter map to what a statement actually names.
+     *
+     * The controller builds ONE map and feeds it to both statements, which do not take the
+     * same columns - insert wants created_by, update wants lost_reason and id. It used to
+     * manage this by unset()ing the surplus key at each call site, which works until
+     * somebody adds a column to one statement and forgets the other.
+     *
+     * That exact mismatch made LeadController::update fatal on every save from 3 Aug to
+     * 24 Nov 2026: with emulated prepares off, PDO refuses a parameter the SQL never
+     * names. Filtered here so the statement decides, and the next column cannot repeat it.
+     */
+    private function only(array $data, array $keys): array
+    {
+        return array_intersect_key($data, array_flip($keys));
     }
 
     public function updateValue(int $id, float $value): void
@@ -119,6 +148,102 @@ class OpportunityRepository
              ORDER BY o.updated_at DESC, o.id DESC
              LIMIT {$limit}
         ");
+    }
+
+    /**
+     * Open opportunities that nobody is doing anything about.
+     *
+     * The one screen on a sales dashboard that earns its place: everything else reports
+     * what happened, this says what is being neglected. Four reasons, in the order a rep
+     * should care about them:
+     *
+     *   1. The next step is past its date. Somebody said what to do and when, and the day
+     *      has gone. The strongest signal on the list, because it is self-reported.
+     *   2. There is no next step at all. Nothing is planned, so nothing will happen.
+     *   3. The expected close date has passed. The forecast is now wrong either way.
+     *   4. Untouched for $staleDays. Nothing has been recorded against it at all.
+     *
+     * One reason per row, the strongest that applies, because a line reading "overdue, no
+     * next step, stale" is three ways of saying the same thing and reads as noise.
+     *
+     * "Untouched" comes from activity_log, not updated_at. updated_at moves when anything
+     * on the row changes, including a nightly value sync from a quote, so it reports work
+     * that nobody did. The log only has entries somebody caused.
+     *
+     * $repId null means every rep - that is the owner's view, not a missing filter.
+     */
+    public function needingAttention(?int $repId = null, int $staleDays = 14, int $limit = 10): array
+    {
+        $where  = ["o.stage NOT IN ('closed_won','closed_lost')"];
+        $params = [':stale' => $staleDays];
+
+        if ($repId !== null) {
+            $where[]           = 'o.rep_id = :rep_id';
+            $params[':rep_id'] = $repId;
+        }
+
+        $sql = "
+            SELECT o.id, o.name, o.stage, o.expected_value, o.next_step, o.next_step_date,
+                   o.expected_close,
+                   COALESCE(c.company_name, l.company_name) AS party,
+                   TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS rep_name,
+                   GREATEST(COALESCE(a.last_at, o.created_at), o.created_at) AS last_at,
+                   DATEDIFF(CURDATE(), DATE(GREATEST(COALESCE(a.last_at, o.created_at), o.created_at))) AS days_quiet,
+                   CASE
+                     WHEN o.next_step_date IS NOT NULL AND o.next_step_date < CURDATE() THEN 'next_step_overdue'
+                     WHEN o.next_step IS NULL OR TRIM(o.next_step) = ''                 THEN 'no_next_step'
+                     WHEN o.expected_close IS NOT NULL AND o.expected_close < CURDATE()  THEN 'close_date_passed'
+                     ELSE 'stale'
+                   END AS reason,
+                   CASE
+                     WHEN o.next_step_date IS NOT NULL AND o.next_step_date < CURDATE()
+                       THEN DATEDIFF(CURDATE(), o.next_step_date)
+                     WHEN o.expected_close IS NOT NULL AND o.expected_close < CURDATE()
+                       THEN DATEDIFF(CURDATE(), o.expected_close)
+                     ELSE NULL
+                   END AS days_late
+            FROM opportunities o
+            LEFT JOIN customers c ON c.id = o.customer_id
+            LEFT JOIN leads l     ON l.id = o.lead_id
+            LEFT JOIN users u     ON u.id = o.rep_id
+            LEFT JOIN (
+                SELECT subject_id, MAX(created_at) AS last_at
+                FROM activity_log
+                WHERE subject_type = 'Opportunity'
+                GROUP BY subject_id
+            ) a ON a.subject_id = o.id
+            WHERE " . implode(' AND ', $where) . "
+              AND (
+                    (o.next_step_date IS NOT NULL AND o.next_step_date < CURDATE())
+                 OR  o.next_step IS NULL OR TRIM(o.next_step) = ''
+                 OR (o.expected_close IS NOT NULL AND o.expected_close < CURDATE())
+                 OR  DATEDIFF(CURDATE(), DATE(GREATEST(COALESCE(a.last_at, o.created_at), o.created_at))) > :stale
+              )
+            ORDER BY
+                FIELD(CASE
+                     WHEN o.next_step_date IS NOT NULL AND o.next_step_date < CURDATE() THEN 'next_step_overdue'
+                     WHEN o.next_step IS NULL OR TRIM(o.next_step) = ''                 THEN 'no_next_step'
+                     WHEN o.expected_close IS NOT NULL AND o.expected_close < CURDATE()  THEN 'close_date_passed'
+                     ELSE 'stale'
+                   END, 'next_step_overdue', 'no_next_step', 'close_date_passed', 'stale'),
+                o.expected_value DESC
+            LIMIT :limit
+        ";
+
+        $stmt = Database::connection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, \PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /** How many open opportunities are being neglected, for a badge. */
+    public function countNeedingAttention(?int $repId = null, int $staleDays = 14): int
+    {
+        return count($this->needingAttention($repId, $staleDays, 500));
     }
 
     public function getPipelineStats(): array

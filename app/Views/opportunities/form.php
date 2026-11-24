@@ -47,6 +47,25 @@ $defaultProb = ['prospecting' => 20, 'proposal' => 50, 'negotiation' => 75, 'clo
                 </tr>
                 <tr>
                     <td style="padding:.5rem .75rem .5rem 0;vertical-align:top">
+                        <label class="form-label">Next Step</label>
+                        <input type="text" name="next_step" maxlength="255" value="<?= $val('next_step') ?>"
+                               placeholder="Ring the AD about field dimensions"
+                               class="input" style="width:100%;box-sizing:border-box">
+                        <div class="text-muted" style="font-size:.78rem;margin-top:.25rem">
+                            What happens next. An opportunity with none set is flagged on the dashboard.
+                        </div>
+                    </td>
+                    <td style="padding:.5rem 0 .5rem .75rem;vertical-align:top">
+                        <label class="form-label">Next Step By</label>
+                        <input type="date" name="next_step_date" value="<?= $val('next_step_date') ?>"
+                               class="input" style="width:100%;box-sizing:border-box">
+                        <div class="text-muted" style="font-size:.78rem;margin-top:.25rem">
+                            Leave blank if there is no date yet; it still counts as a step.
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:.5rem .75rem .5rem 0;vertical-align:top">
                         <label class="form-label">Stage</label>
                         <select name="stage" id="stageSelect" class="input" style="width:100%;box-sizing:border-box" onchange="updateProb(this.value)">
                             <?php foreach (['prospecting' => 'Prospecting', 'proposal' => 'Proposal', 'negotiation' => 'Negotiation', 'closed_won' => 'Closed Won', 'closed_lost' => 'Closed Lost'] as $s => $sl): ?>

@@ -64,9 +64,11 @@ class DashboardAudience
      * 'ai'            the assistant
      */
     private const PANELS = [
-        self::EXECUTIVE => ['kpis_company', 'chart', 'focus', 'tasks', 'activity', 'top_products', 'ai'],
+        self::EXECUTIVE => ['kpis_company', 'chart', 'focus', 'opp_nag', 'tasks', 'activity', 'top_products', 'ai'],
         self::FINANCE   => ['kpis_finance', 'chart', 'focus', 'tasks', 'activity', 'ai'],
-        self::SALES     => ['kpis_mine', 'my_orders', 'my_pipeline', 'my_leads', 'my_quotes', 'my_overdue', 'my_quiet', 'tasks'],
+        // opp_nag sits before tasks for sales: an opportunity with no next step creates no
+        // task, so the task list is exactly where it does NOT appear.
+        self::SALES     => ['kpis_mine', 'opp_nag', 'my_orders', 'my_pipeline', 'my_leads', 'my_quotes', 'my_overdue', 'my_quiet', 'tasks'],
         self::SHIPPING  => ['shipping_work', 'tasks', 'activity'],
     ];
 

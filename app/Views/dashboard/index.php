@@ -24,6 +24,27 @@ $dhead  = 'display:flex;align-items:center;justify-content:space-between;padding
 $dnum   = fn($n) => '$' . number_format((float)$n, 0);
 ?>
 
+<?php
+/*
+ * The nag, before anything else on the page.
+ *
+ * At the top level rather than inside either dashboard's own region, because both the
+ * sales and the executive audiences are allowed it and those regions are drawn
+ * separately - placed in one, the other would silently never show it.
+ *
+ * Full width and above the panels on purpose. Sized into a column it would sit level with
+ * six other cards, which is the arrangement that let an opportunity run four months
+ * without anybody noticing.
+ */
+if ($shows('opp_nag')) {
+    echo view('partials.opportunity_nag', [
+        'nag'      => $d['opp_nag'] ?? [],
+        'nagTitle' => 'Opportunities needing attention',
+        'nagEmpty' => 'Nothing neglected — every open opportunity has a next step.',
+    ]);
+}
+?>
+
 <?php if ($shows('kpis_mine')): ?>
     <?php
         $mine = $d['my'] ?? ['linked' => false];

@@ -14,6 +14,7 @@ use App\Repositories\AdminRepository;
 use App\Repositories\CustomerRepository;
 use App\Repositories\LeadRepository;
 use App\Repositories\OpportunityRepository;
+use App\Services\Activity;
 
 class OpportunityController extends Controller
 {
@@ -61,6 +62,15 @@ class OpportunityController extends Controller
             'stats'   => $this->opps->getPipelineStats(),
             'closed'  => $closed,
             'closedRows' => $closed ? $this->opps->closed() : [],
+            /*
+             * Scoped to the signed-in rep when they are restricted to their own accounts,
+             * and across everyone otherwise. An owner's list of what the whole team is
+             * neglecting is the point of the screen; a rep seeing someone else's neglect
+             * is noise they cannot act on.
+             */
+            'nag' => $closed ? [] : $this->opps->needingAttention(
+                \App\Services\AccessScope::isRestricted() ? \App\Services\AccessScope::repId() : null
+            ),
         ]);
     }
 
@@ -129,8 +139,15 @@ class OpportunityController extends Controller
     public function store(Request $request, Response $response): Response
     {
         $data = $this->mapPost($_POST);
-        unset($data[':lost_reason']);
-        $id = $this->opps->insert($data);
+        $id   = $this->opps->insert($data);
+
+        Activity::log(
+            'opportunity.created',
+            'Opportunity "' . $data[':name'] . '" opened at ' . money((float)$data[':expected_value'])
+                . ', stage ' . $data[':stage'] . '.',
+            $this->oppParty($id, $data[':customer_id'], $data[':lead_id'])
+        );
+
         Session::flash('success', 'Opportunity created.');
         return $response->redirect('/pipeline');
     }
@@ -157,8 +174,9 @@ class OpportunityController extends Controller
 
         $data = $this->mapPost($_POST);
         $data[':lost_reason'] = trim($_POST['lost_reason'] ?? '') ?: null;
-        unset($data[':created_by']);
         $this->opps->update((int)$id, $data);
+        $this->logOppEdit($opp, $data);
+
         Session::flash('success', 'Opportunity updated.');
         return $response->redirect('/pipeline');
     }
@@ -167,8 +185,76 @@ class OpportunityController extends Controller
     {
         $stage      = $_POST['stage']       ?? '';
         $lostReason = trim($_POST['lost_reason'] ?? '') ?: null;
+        $opp = $this->opps->find((int)$id);
         $this->opps->updateStage((int)$id, $stage, $lostReason);
+
+        if ($opp && $stage !== ($opp['stage'] ?? '')) {
+            Activity::log(
+                'opportunity.stage_' . $stage,
+                'Opportunity "' . $opp['name'] . '" moved from '
+                    . str_replace('_', ' ', (string)$opp['stage'])
+                    . ' to ' . str_replace('_', ' ', $stage)
+                    . ($lostReason !== null ? ' - ' . $lostReason : '') . '.',
+                $this->oppParty((int)$id, $opp['customer_id'] ?? null, $opp['lead_id'] ?? null)
+            );
+        }
+
         return $response->redirect('/pipeline');
+    }
+
+    /** Where an opportunity's events belong: its own record, plus whoever it is for. */
+    private function oppParty(int $id, $customerId, $leadId): array
+    {
+        return [
+            'subject_type' => 'Opportunity',
+            'subject_id'   => $id,
+            'customer_id'  => $customerId ?: null,
+            'lead_id'      => $leadId ?: null,
+        ];
+    }
+
+    /**
+     * Record what the edit changed. The next step gets its own sentence because it is the
+     * field the dashboard nags about - "details changed" would hide the one change that
+     * takes an opportunity off the neglected list.
+     */
+    private function logOppEdit(array $before, array $data): void
+    {
+        $party = $this->oppParty((int)$before['id'], $data[':customer_id'], $data[':lead_id']);
+
+        $wasStep = trim((string)($before['next_step'] ?? ''));
+        $isStep  = trim((string)($data[':next_step'] ?? ''));
+        $wasDate = (string)($before['next_step_date'] ?? '');
+        $isDate  = (string)($data[':next_step_date'] ?? '');
+
+        if ($wasStep !== $isStep || $wasDate !== $isDate) {
+            Activity::log(
+                $isStep === '' ? 'opportunity.next_step_cleared' : 'opportunity.next_step_set',
+                $isStep === ''
+                    ? 'Next step cleared - this opportunity will show as needing one.'
+                    : 'Next step: ' . $isStep
+                        . ($isDate !== '' ? ', by ' . date('M j, Y', strtotime($isDate)) : ', no date set') . '.',
+                $party
+            );
+        }
+
+        if ((string)$before['stage'] !== (string)$data[':stage']) {
+            Activity::log(
+                'opportunity.stage_' . $data[':stage'],
+                'Opportunity moved from ' . str_replace('_', ' ', (string)$before['stage'])
+                    . ' to ' . str_replace('_', ' ', (string)$data[':stage']) . '.',
+                $party
+            );
+        }
+
+        if (round((float)$before['expected_value'], 2) !== round((float)$data[':expected_value'], 2)) {
+            Activity::log(
+                'opportunity.value_changed',
+                'Value changed from ' . money((float)$before['expected_value'])
+                    . ' to ' . money((float)$data[':expected_value']) . '.',
+                $party
+            );
+        }
     }
 
     private function mapPost(array $post): array
@@ -181,6 +267,8 @@ class OpportunityController extends Controller
             ':stage'          => $post['stage']          ?? 'prospecting',
             ':expected_value' => (float)($post['expected_value'] ?? 0),
             ':probability'    => (int)($post['probability']      ?? 20),
+            ':next_step'      => trim($post['next_step'] ?? '') ?: null,
+            ':next_step_date' => ($post['next_step_date'] ?? '') ?: null,
             ':expected_close' => ($post['expected_close'] ?? '') ?: null,
             ':notes'          => trim($post['notes'] ?? '') ?: null,
             ':lost_reason'    => null,
