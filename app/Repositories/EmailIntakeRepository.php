@@ -71,7 +71,19 @@ class EmailIntakeRepository
     /** @param string[] $statuses */
     public function byStatus(array $statuses, int $limit = 100, int $offset = 0): array
     {
-        $in   = implode(',', array_fill(0, count($statuses), '?'));
+        /*
+         * Named placeholders for the IN list too, not '?'.
+         *
+         * PDO refuses a statement that mixes positional and named parameters outright -
+         * "Invalid parameter number: mixed named and positional parameters" - and LIMIT has
+         * to be named here because it is bound as PARAM_INT separately.
+         */
+        $names = [];
+        foreach (array_values($statuses) as $i => $v) {
+            $names[':s' . $i] = $v;
+        }
+        $in = implode(',', array_keys($names));
+
         $stmt = $this->pdo->prepare("
             SELECT e.*,
                    c.company_name AS customer_name,
@@ -83,8 +95,8 @@ class EmailIntakeRepository
             ORDER BY e.created_at DESC, e.id DESC
             LIMIT :limit OFFSET :offset
         ");
-        foreach (array_values($statuses) as $i => $v) {
-            $stmt->bindValue($i + 1, $v);
+        foreach ($names as $name => $v) {
+            $stmt->bindValue($name, $v);
         }
         $stmt->bindValue(':limit',  $limit,  \PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
