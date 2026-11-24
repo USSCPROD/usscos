@@ -567,7 +567,12 @@ class DashboardService extends Service
             UNION ALL
             (SELECT 'action',
                     a.description,
-                    REPLACE(a.event, '_', ' '),
+                    /* The record it is about, not the event name. This column holds invoice
+                       and order numbers; 'note.meeting' beside them is machine wording in a
+                       column people read. Matches the timeline feed's own convention. */
+                    CASE WHEN a.subject_id IS NULL THEN a.subject_type
+                         ELSE CONCAT(a.subject_type, ' #', a.subject_id)
+                    END,
                     CASE a.subject_type
                         WHEN 'Lead'        THEN CONCAT('/leads/', a.subject_id)
                         WHEN 'Customer'    THEN CONCAT('/customers/', a.subject_id)
