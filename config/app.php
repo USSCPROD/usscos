@@ -18,12 +18,20 @@ return [
      * The secret being retired, accepted alongside the current one while a rotation is
      * in flight.
      *
-     * Rotating needs the server and every sender to change together or leads 401 in the
-     * gap. One of the senders is a WordPress snippet somebody has to paste by hand, so
-     * "together" is not something that can be arranged - hence an overlap window: set the
-     * new secret here as current, leave the old one as previous, update the senders, then
-     * clear this. Every use of the previous secret is logged, so the window can be closed
-     * the moment the log goes quiet rather than on a guess.
+     * DO NOT CLEAR THIS. As at 24 Nov 2026 the live production site usscproducts.com
+     * (WordPress, 160.153.189.158) posts real customer leads to this endpoint using the
+     * PREVIOUS secret, and that site is deliberately not being touched - os.usscos.com is
+     * still a test system. Clearing this, or setting LEAD_WEBHOOK_REQUIRE_SECRET, stops
+     * production lead capture dead.
+     *
+     * It fails silently from this end: Contact Form 7 has already sent its own email and
+     * shows the visitor a success message, the snippet writes the 401 to the WordPress
+     * error log where nobody reads it, and the lead simply never arrives here. Nothing in
+     * USSCOS says anything is wrong. That is the worst shape a failure comes in.
+     *
+     * So this is not a loose end to tidy. It stays until somebody has deliberately put the
+     * current secret into Code Snippets snippet 9 on usscproducts.com, or that site has
+     * been retired. Every use is logged with the sender, so you can tell which it is.
      */
     'lead_webhook_secret_previous' => trim((string)($_ENV['LEAD_WEBHOOK_SECRET_PREVIOUS'] ?? '')),
 
@@ -34,9 +42,15 @@ return [
      * with no secret at all is accepted, which means a leaked secret costs nothing to work
      * around: omit it. Rotating without this is theatre.
      *
-     * Default false because turning it on while any sender is still silent takes live lead
-     * capture down - which is exactly what happened on 13 Nov 2026. Turn it on once the
-     * "no secret sent" lines stop appearing in the log.
+     * Default false, and as at 24 Nov 2026 it must STAY false. Turning it on while any
+     * sender is silent takes live lead capture down - that is exactly what happened on
+     * 13 Nov 2026 - and usscproducts.com, which is the live production site and is not
+     * being changed, authenticates with the retired secret rather than this one.
+     *
+     * The precondition is not "the log went quiet". It is: every sender has been given the
+     * current secret, verified by the log showing neither "no secret sent" nor "PREVIOUS
+     * secret used". Until then this flag is the difference between a working business and
+     * a silent one.
      */
     'lead_webhook_require_secret' => filter_var(
         $_ENV['LEAD_WEBHOOK_REQUIRE_SECRET'] ?? false,
