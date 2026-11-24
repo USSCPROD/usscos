@@ -39,6 +39,11 @@ $stageColor = ['prospecting' => '#6b7280', 'proposal' => '#0A3D91', 'negotiation
         <div class="kpi-card__label">Won Deals</div>
         <div class="kpi-card__value" style="color:#16a34a"><?= (int)($stats['won_count'] ?? 0) ?></div>
     </a>
+    <a class="kpi-card" href="/opportunities/win-loss" style="text-decoration:none;color:inherit;display:block">
+        <div class="kpi-card__label">Win / loss</div>
+        <div class="kpi-card__value" style="font-size:1rem;padding-top:.35rem">Why we lose</div>
+        <div style="font-size:.72rem;color:#6b7280;margin-top:.15rem">Rates and reasons &rsaquo;</div>
+    </a>
 </div>
 
 <?php
@@ -162,15 +167,42 @@ if (empty($closed)) {
                         <?php endif; ?>
                         <!-- Quick stage move -->
                         <div style="margin-top:.6rem;display:flex;gap:.3rem;flex-wrap:wrap" onclick="event.stopPropagation()">
-                            <?php foreach (['prospecting' => 'Prosp.', 'proposal' => 'Prop.', 'negotiation' => 'Neg.', 'closed_won' => 'Won', 'closed_lost' => 'Lost'] as $s => $sl): ?>
+                            <?php
+                            /* Lost is NOT a one-click button here any more.
+                               It was, and it posted the stage and nothing else - which is
+                               why lost_reason was empty on every lost deal in the system
+                               and there was nothing to report on. A <details> disclosure
+                               rather than a dialog: no JavaScript, and the reason is
+                               chosen in the same submit that closes the deal, so there is
+                               no state where it is lost-without-a-reason. */
+                            foreach (['prospecting' => 'Prosp.', 'proposal' => 'Prop.', 'negotiation' => 'Neg.', 'closed_won' => 'Won'] as $s => $sl): ?>
                                 <?php if ($s !== $stage): ?>
                                 <form method="POST" action="/opportunities/<?= (int)$opp['id'] ?>/stage" style="display:inline">
                                 <?= csrf_field() ?>
                                     <input type="hidden" name="stage" value="<?= $s ?>">
-                                    <button type="submit" style="font-size:.7rem;padding:.15rem .45rem;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;color:<?= in_array($s, ['closed_won']) ? '#16a34a' : (in_array($s, ['closed_lost']) ? '#dc2626' : '#374151') ?>"><?= $sl ?></button>
+                                    <button type="submit" style="font-size:.7rem;padding:.15rem .45rem;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;color:<?= $s === 'closed_won' ? '#16a34a' : '#374151' ?>"><?= $sl ?></button>
                                 </form>
                                 <?php endif; ?>
                             <?php endforeach; ?>
+
+                            <details style="display:inline-block">
+                                <summary style="list-style:none;font-size:.7rem;padding:.15rem .45rem;border:1px solid #d1d5db;border-radius:4px;background:#fff;cursor:pointer;color:#dc2626">Lost</summary>
+                                <form method="POST" action="/opportunities/<?= (int)$opp['id'] ?>/stage"
+                                      style="margin-top:.4rem;padding:.5rem;border:1px solid #e5e7eb;border-radius:6px;background:#fff">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="stage" value="closed_lost">
+                                    <select name="lost_reason_code" required
+                                            style="width:100%;font-size:.75rem;padding:.3rem;border:1px solid #d1d5db;border-radius:4px;margin-bottom:.3rem">
+                                        <option value="">Why was it lost?</option>
+                                        <?php foreach (\App\Services\LostReasons::all() as $lrCode => $lrLabel): ?>
+                                            <option value="<?= e($lrCode) ?>"><?= e($lrLabel) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="text" name="lost_reason" maxlength="255" placeholder="Detail (optional)"
+                                           style="width:100%;font-size:.75rem;padding:.3rem;border:1px solid #d1d5db;border-radius:4px;margin-bottom:.3rem;box-sizing:border-box">
+                                    <button type="submit" class="btn btn--sm" style="width:100%;background:#dc2626;color:#fff;border:0">Close as lost</button>
+                                </form>
+                            </details>
                         </div>
                     </div>
                     <?php endforeach; ?>

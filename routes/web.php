@@ -101,6 +101,8 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/pipeline',               [OpportunityController::class, 'index'])->name('pipeline');
     Router::get('/opportunities',          [OpportunityController::class, 'index'])->name('opportunities.index');
     Router::get('/opportunities/create',   [OpportunityController::class, 'create'])->name('opportunities.create');
+    // Before /opportunities/{id}, or 'win-loss' is matched as an id.
+    Router::get('/opportunities/win-loss', [OpportunityController::class, 'analysis'])->name('opportunities.analysis');
     Router::post('/opportunities',         [OpportunityController::class, 'store'])->name('opportunities.store');
     Router::get('/opportunities/{id}',           [OpportunityController::class, 'show'])->name('opportunities.show');
     Router::get('/opportunities/{id}/edit',      [OpportunityController::class, 'edit'])->name('opportunities.edit');

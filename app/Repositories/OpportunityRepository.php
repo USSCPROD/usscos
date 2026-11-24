@@ -134,11 +134,29 @@ class OpportunityRepository
         )->execute([':val' => $value, ':id' => $id]);
     }
 
-    public function updateStage(int $id, string $stage, ?string $lostReason = null): void
+    /**
+     * Move the stage, and record why if it is being lost.
+     *
+     * Both reason columns are cleared when moving to any other stage. A deal reopened from
+     * closed_lost and then won would otherwise still carry the reason it was lost for, and
+     * the losses report would count it as both.
+     */
+    public function updateStage(int $id, string $stage, ?string $lostReason = null, ?string $lostCode = null): void
     {
+        $lost = $stage === 'closed_lost';
+
         Database::connection()->prepare("
-            UPDATE opportunities SET stage = :stage, lost_reason = :reason WHERE id = :id
-        ")->execute([':stage' => $stage, ':reason' => $lostReason, ':id' => $id]);
+            UPDATE opportunities
+               SET stage            = :stage,
+                   lost_reason      = :reason,
+                   lost_reason_code = :code
+             WHERE id = :id
+        ")->execute([
+            ':stage'  => $stage,
+            ':reason' => $lost ? $lostReason : null,
+            ':code'   => $lost ? $lostCode   : null,
+            ':id'     => $id,
+        ]);
     }
 
     /**
@@ -261,6 +279,140 @@ class OpportunityRepository
     public function countNeedingAttention(?int $repId = null, int $staleDays = 14): int
     {
         return count($this->needingAttention($repId, $staleDays, 500));
+    }
+
+    /**
+     * Win/loss, overall and per rep, for closed deals in a period.
+     *
+     * Counts AND value, because they answer different questions: a rep who wins nine small
+     * deals and loses one large one has a 90% win rate and has lost the quarter.
+     *
+     * Closed deals only - an open deal is neither, and counting it as a loss would make
+     * every rep's rate improve simply by having fewer live deals.
+     *
+     * Period is on updated_at, which is when the stage was last moved. It is the closest
+     * thing to a close date on the row; expected_close is a forecast and is frequently
+     * blank. Anything more exact needs a closed_at column, and that is worth adding the
+     * day somebody disputes a quarter boundary, not before.
+     */
+    public function winLoss(?int $repId = null, ?string $since = null): array
+    {
+        $where  = ["o.stage IN ('closed_won','closed_lost')"];
+        $params = [];
+
+        if ($repId !== null) {
+            $where[]           = 'o.rep_id = :rep_id';
+            $params[':rep_id'] = $repId;
+        }
+        if ($since !== null) {
+            $where[]          = 'o.updated_at >= :since';
+            $params[':since'] = $since;
+        }
+
+        $row = Database::selectOne("
+            SELECT
+                SUM(o.stage = 'closed_won')                                   AS won_count,
+                SUM(o.stage = 'closed_lost')                                  AS lost_count,
+                COALESCE(SUM(CASE WHEN o.stage='closed_won'  THEN o.expected_value END), 0) AS won_value,
+                COALESCE(SUM(CASE WHEN o.stage='closed_lost' THEN o.expected_value END), 0) AS lost_value
+            FROM opportunities o
+            WHERE " . implode(' AND ', $where), $params);
+
+        return $row ?: [];
+    }
+
+    /** The same, broken down by rep. Unassigned deals come back under a null rep. */
+    public function winLossByRep(?string $since = null): array
+    {
+        $params = [];
+        $extra  = '';
+        if ($since !== null) {
+            $extra            = ' AND o.updated_at >= :since';
+            $params[':since'] = $since;
+        }
+
+        return Database::select("
+            SELECT o.rep_id,
+                   TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS rep_name,
+                   SUM(o.stage = 'closed_won')  AS won_count,
+                   SUM(o.stage = 'closed_lost') AS lost_count,
+                   COALESCE(SUM(CASE WHEN o.stage='closed_won'  THEN o.expected_value END), 0) AS won_value,
+                   COALESCE(SUM(CASE WHEN o.stage='closed_lost' THEN o.expected_value END), 0) AS lost_value
+            FROM opportunities o
+            LEFT JOIN users u ON u.id = o.rep_id
+            WHERE o.stage IN ('closed_won','closed_lost'){$extra}
+            GROUP BY o.rep_id, rep_name
+            ORDER BY won_value DESC, lost_value DESC
+        ", $params);
+    }
+
+    /**
+     * Why deals were lost, most costly first.
+     *
+     * Ordered by value, not count. Ten small deals lost on price and one large one lost
+     * because we could not supply in time are not the same problem, and a count puts the
+     * supply failure at the bottom of the list.
+     *
+     * Deals with no code come back under NULL rather than being filtered out: "we do not
+     * know why we lost 40% of these" is itself the most important line on the report, and
+     * dropping it would make the rest look complete.
+     */
+    public function lostReasons(?string $since = null): array
+    {
+        $params = [];
+        $extra  = '';
+        if ($since !== null) {
+            $extra            = ' AND o.updated_at >= :since';
+            $params[':since'] = $since;
+        }
+
+        return Database::select("
+            SELECT o.lost_reason_code AS code,
+                   COUNT(*)           AS n,
+                   COALESCE(SUM(o.expected_value), 0) AS value
+            FROM opportunities o
+            WHERE o.stage = 'closed_lost'{$extra}
+            GROUP BY o.lost_reason_code
+            ORDER BY value DESC, n DESC
+        ", $params);
+    }
+
+    /** The individual losses behind a reason, so a figure can be checked against reality. */
+    public function lossesForReason(?string $code, ?string $since = null, int $limit = 50): array
+    {
+        $params = [];
+        $where  = ["o.stage = 'closed_lost'"];
+
+        if ($code === null || $code === '') {
+            $where[] = "(o.lost_reason_code IS NULL OR o.lost_reason_code = '')";
+        } else {
+            $where[]         = 'o.lost_reason_code = :code';
+            $params[':code'] = $code;
+        }
+        if ($since !== null) {
+            $where[]          = 'o.updated_at >= :since';
+            $params[':since'] = $since;
+        }
+
+        $stmt = Database::connection()->prepare("
+            SELECT o.id, o.name, o.expected_value, o.lost_reason, o.updated_at,
+                   COALESCE(c.company_name, l.company_name) AS account_name,
+                   TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS rep_name
+            FROM opportunities o
+            LEFT JOIN customers c ON c.id = o.customer_id
+            LEFT JOIN leads l     ON l.id = o.lead_id
+            LEFT JOIN users u     ON u.id = o.rep_id
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY o.expected_value DESC
+            LIMIT :limit
+        ");
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getPipelineStats(): array

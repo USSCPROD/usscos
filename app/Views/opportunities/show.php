@@ -75,6 +75,11 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
             <?php endif; ?>
         </tr>
     </table>
+    <?php if ($stage === 'closed_lost' && !empty($opp['lost_reason_code'])): ?>
+        <div style="margin:.5rem 0 0;font-size:.88rem;color:#b91c1c;font-weight:600">
+            <?= e(\App\Services\LostReasons::label($opp['lost_reason_code'])) ?>
+        </div>
+    <?php endif; ?>
     <?php if ($stage === 'closed_lost' && !empty($opp['lost_reason'])): ?>
     <div style="margin-top:.5rem;font-size:.85rem;color:#dc2626">Lost reason: <?= e($opp['lost_reason']) ?></div>
     <?php endif; ?>
@@ -158,7 +163,17 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
                             </tr>
                             <tr>
                                 <td id="lostReasonRow" style="<?= $stage === 'closed_lost' ? '' : 'display:none' ?>;padding-bottom:.6rem">
-                                    <input type="text" name="lost_reason" value="<?= e($opp['lost_reason'] ?? '') ?>" placeholder="Lost reason (optional)" style="width:100%;padding:.55rem .75rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
+                                    <?php /* The code is required and the detail is not: one is what the
+                                             report counts, the other is what a person reads. The field
+                                             used to be a single optional text box, which is why
+                                             lost_reason was empty on every lost deal in the system. */ ?>
+                                    <select name="lost_reason_code" style="width:100%;padding:.55rem .75rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;font-family:inherit;margin-bottom:.4rem">
+                                        <option value="">Why was it lost? —</option>
+                                        <?php foreach (\App\Services\LostReasons::all() as $lrCode => $lrLabel): ?>
+                                            <option value="<?= e($lrCode) ?>" <?= ($opp['lost_reason_code'] ?? '') === $lrCode ? 'selected' : '' ?>><?= e($lrLabel) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <input type="text" name="lost_reason" value="<?= e($opp['lost_reason'] ?? '') ?>" placeholder="Detail — who to, what price, what they said (optional)" style="width:100%;padding:.55rem .75rem;border:1px solid #d1d5db;border-radius:6px;font-size:.9rem;font-family:inherit;box-sizing:border-box">
                                 </td>
                             </tr>
                             <tr>

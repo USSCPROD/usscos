@@ -74,6 +74,41 @@ class OpportunityController extends Controller
         ]);
     }
 
+    /**
+     * Win/loss and why we lose.
+     *
+     * Period defaults to the last twelve months rather than all time: "why do we lose" is
+     * a question about how the business is selling now, and a 2024 pricing problem that
+     * was fixed would sit in the all-time figures for years making it look unfixed.
+     */
+    public function analysis(Request $request, Response $response): Response
+    {
+        $period = (string)($request->query('period') ?? '12m');
+        $since  = match ($period) {
+            'all' => null,
+            '3m'  => date('Y-m-d', strtotime('-3 months')),
+            '24m' => date('Y-m-d', strtotime('-24 months')),
+            default => date('Y-m-d', strtotime('-12 months')),
+        };
+
+        $reasonCode = $request->query('reason');
+
+        return $this->view('opportunities.analysis', [
+            'title'    => 'Win / loss',
+            'period'   => $period,
+            'since'    => $since,
+            'totals'   => $this->opps->winLoss(null, $since),
+            'byRep'    => $this->opps->winLossByRep($since),
+            'reasons'  => $this->opps->lostReasons($since),
+            'reason'   => $reasonCode,
+            // 'none' is how the URL carries "no reason recorded", because an empty query
+            // parameter is indistinguishable from the filter not being applied at all.
+            'losses'   => $reasonCode !== null
+                ? $this->opps->lossesForReason($reasonCode === 'none' ? null : (string)$reasonCode, $since)
+                : [],
+        ]);
+    }
+
     public function byCustomer(Request $request, Response $response, string $id = '0'): Response
     {
         $opps = $this->opps->getByCustomer((int)$id);
@@ -184,10 +219,28 @@ class OpportunityController extends Controller
 
     public function updateStage(Request $request, Response $response, string $id = '0'): Response
     {
-        $stage      = $_POST['stage']       ?? '';
+        $stage      = $_POST['stage']            ?? '';
         $lostReason = trim($_POST['lost_reason'] ?? '') ?: null;
+        $lostCode   = trim($_POST['lost_reason_code'] ?? '');
+
         $opp = $this->opps->find((int)$id);
-        $this->opps->updateStage((int)$id, $stage, $lostReason);
+
+        /*
+         * A loss has to say why. Without this the board's "Lost" button posted the stage
+         * and nothing else, so lost_reason sat empty from the initial commit onwards and
+         * there was nothing to report on - the column existed, which is the part that made
+         * it look handled.
+         *
+         * Refused rather than defaulted to 'other': a default would fill the report with
+         * the one value that tells nobody anything, and it would be indistinguishable from
+         * reasons somebody actually chose.
+         */
+        if ($stage === 'closed_lost' && !\App\Services\LostReasons::isValid($lostCode)) {
+            Session::flash('error', 'Choose why the deal was lost before closing it.');
+            return $response->redirect('/opportunities/' . (int)$id);
+        }
+
+        $this->opps->updateStage((int)$id, $stage, $lostReason, $lostCode ?: null);
 
         if ($opp && $stage !== ($opp['stage'] ?? '')) {
             Activity::log(
@@ -195,7 +248,10 @@ class OpportunityController extends Controller
                 'Opportunity "' . $opp['name'] . '" moved from '
                     . str_replace('_', ' ', (string)$opp['stage'])
                     . ' to ' . str_replace('_', ' ', $stage)
-                    . ($lostReason !== null ? ' - ' . $lostReason : '') . '.',
+                    . ($stage === 'closed_lost'
+                        ? ' - ' . \App\Services\LostReasons::label($lostCode)
+                            . ($lostReason !== null ? ': ' . $lostReason : '')
+                        : '') . '.',
                 $this->oppParty((int)$id, $opp['customer_id'] ?? null, $opp['lead_id'] ?? null)
             );
         }
