@@ -220,7 +220,18 @@ class OpportunityController extends Controller
      */
     private function logOppEdit(array $before, array $data): void
     {
-        $party = $this->oppParty((int)$before['id'], $data[':customer_id'], $data[':lead_id']);
+        /*
+         * From the STORED row, not the posted data. The edit form does not render the
+         * lead_id / customer_id inputs, so $data has null for both - taking the party from
+         * there put every opportunity edit in the log with no lead and no customer against
+         * it, which meant none of it reached the account's own timeline. The row knows who
+         * it is for; the form was never asked.
+         */
+        $party = $this->oppParty(
+            (int)$before['id'],
+            $before['customer_id'] ?? null,
+            $before['lead_id'] ?? null
+        );
 
         $wasStep = trim((string)($before['next_step'] ?? ''));
         $isStep  = trim((string)($data[':next_step'] ?? ''));
