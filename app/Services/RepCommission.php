@@ -66,7 +66,11 @@ final class RepCommission
 
         $row = Database::selectOne("
             SELECT
-                COUNT(*)                                   AS lines,
+                -- line_count, not `lines`: LINES is a reserved word in MySQL and an
+                -- unquoted alias is a syntax error. summary() therefore never ran at
+                -- all until this was found on 24 Nov 2026 - the page only rendered
+                -- while no rep was selected, which skips this query entirely.
+                COUNT(*)                                   AS line_count,
                 COUNT(DISTINCT i.id)                       AS invoices,
                 COALESCE(SUM(ili.line_total), 0)           AS revenue,
                 COALESCE(SUM({$wholesale} * ili.qty), 0)   AS wholesale,
@@ -92,7 +96,7 @@ final class RepCommission
             'total'              => (float)($row['total'] ?? 0),
             'revenue'            => (float)($row['revenue'] ?? 0),
             'wholesale'          => (float)($row['wholesale'] ?? 0),
-            'lines'              => (int)($row['lines'] ?? 0),
+            'lines'              => (int)($row['line_count'] ?? 0),
             'invoices'           => (int)($row['invoices'] ?? 0),
             'lines_snapshotted'  => (int)($row['lines_snapshotted'] ?? 0),
             'lines_estimated'    => (int)($row['lines_estimated'] ?? 0),
