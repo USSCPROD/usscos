@@ -73,7 +73,12 @@ final class RepCommission
                 COALESCE(SUM(ili.line_total - ({$wholesale} * ili.qty)), 0) AS total,
                 SUM(ili.wholesale_price IS NOT NULL)       AS lines_snapshotted,
                 SUM(ili.wholesale_price IS NULL AND {$wholesale} IS NOT NULL) AS lines_estimated,
-                SUM({$wholesale} IS NULL)                  AS lines_no_wholesale
+                SUM({$wholesale} IS NULL)                  AS lines_no_wholesale,
+                -- Split, because the two have different fixes: a line with no product link
+                -- is an import that never matched the QuickBooks item, while a linked
+                -- product with no wholesale price is a gap in the price list.
+                SUM(ili.product_id IS NULL)                AS lines_no_product,
+                COALESCE(SUM(CASE WHEN {$wholesale} IS NULL THEN ili.line_total END), 0) AS revenue_uncosted
             FROM invoice_line_items ili
             JOIN invoices i   ON i.id = ili.invoice_id
             JOIN customers c  ON c.id = i.customer_id
@@ -91,10 +96,19 @@ final class RepCommission
             'invoices'           => (int)($row['invoices'] ?? 0),
             'lines_snapshotted'  => (int)($row['lines_snapshotted'] ?? 0),
             'lines_estimated'    => (int)($row['lines_estimated'] ?? 0),
-            // A line whose product has no wholesale price at all contributes its FULL
-            // line total to the margin, which would overstate the commission. Counted and
-            // surfaced rather than silently inflating the figure.
+            /*
+             * A line with no wholesale price is EXCLUDED from the total, not inflated into
+             * it: the margin expression is NULL for that line and SUM skips NULLs. So the
+             * commission figure is UNDERSTATED by whatever those lines would have earned,
+             * and revenue_uncosted says how much was sold through them.
+             *
+             * Understating is the safer direction - it pays nobody for a line nobody can
+             * cost - but it has to be visible, because a rep whose figure silently omits
+             * 40% of their lines will believe it and then dispute the pay run.
+             */
             'lines_no_wholesale' => (int)($row['lines_no_wholesale'] ?? 0),
+            'lines_no_product'   => (int)($row['lines_no_product'] ?? 0),
+            'revenue_uncosted'   => (float)($row['revenue_uncosted'] ?? 0),
         ];
     }
 
@@ -152,6 +166,10 @@ final class RepCommission
             WHERE i.status <> 'void'
               AND i.invoice_date BETWEEN :from AND :to
               AND sr.rep_type IN ('person','employee','owner')
+              -- is_active too, matching AdminRepository::activeSellingReps(). Without it
+              -- this listed retired reps the goals screen does not, so the two screens
+              -- disagreed about who the team is.
+              AND sr.is_active = 1
             GROUP BY {$attributed}, sr.name
             ORDER BY total DESC
         ", [':from' => $from, ':to' => $to]);

@@ -70,6 +70,10 @@ $link = static function (array $over) use ($periodType, $periodDate, $rep): stri
     <?php
     $estimated   = (int)$summary['lines_estimated'];
     $noWholesale = (int)$summary['lines_no_wholesale'];
+    $noProduct   = (int)$summary['lines_no_product'];
+    $uncosted    = (float)$summary['revenue_uncosted'];
+    // The two have different causes and different fixes, so they are counted apart.
+    $noPrice     = max(0, $noWholesale - $noProduct);
     ?>
 
     <div class="kpi-row">
@@ -116,9 +120,21 @@ $link = static function (array $over) use ($periodType, $periodDate, $rep): stri
             <?php endif; ?>
             <?php if ($noWholesale > 0): ?>
                 <div style="margin-top:<?= $estimated > 0 ? '.4rem' : '0' ?>">
-                    <strong><?= $noWholesale ?> line<?= $noWholesale === 1 ? ' has' : 's have' ?> no wholesale price at all</strong>
-                    — the product has neither a 2026 nor a QuickBooks distributor price, so the
-                    whole line counts as margin and this total is overstated by that much.
+                    <strong><?= $noWholesale ?> of <?= (int)$summary['lines'] ?> lines cannot be costed,
+                    covering <?= money($uncosted) ?> of what was sold.</strong>
+                    They are <em>left out</em> of the commission above, so this figure is understated
+                    by whatever they would have earned — it is not inflated by them.
+                    <ul style="margin:.35rem 0 0;padding-left:1.1rem">
+                        <?php if ($noProduct > 0): ?>
+                            <li><?= $noProduct ?> <?= $noProduct === 1 ? 'line is' : 'lines are' ?>
+                                not linked to a product at all — a QuickBooks item the import never
+                                matched. Fixed by the clean reimport, not here.</li>
+                        <?php endif; ?>
+                        <?php if ($noPrice > 0): ?>
+                            <li><?= $noPrice ?> <?= $noPrice === 1 ? 'line is' : 'lines are' ?> linked to a
+                                product with no distributor price on it. Fixed by filling in the price list.</li>
+                        <?php endif; ?>
+                    </ul>
                 </div>
             <?php endif; ?>
         </div>
@@ -199,7 +215,9 @@ $link = static function (array $over) use ($periodType, $periodDate, $rep): stri
                     <td style="padding:.5rem 1.1rem">
                         <a href="<?= e($link(['rep' => (int)$r['sales_rep_id']])) ?>" style="color:#0A3D91;text-decoration:none"><?= e($r['rep_name']) ?></a>
                         <?php if ((int)$r['lines_no_wholesale'] > 0): ?>
-                            <div style="font-size:.74rem;color:#b45309"><?= (int)$r['lines_no_wholesale'] ?> line<?= (int)$r['lines_no_wholesale'] === 1 ? '' : 's' ?> with no wholesale price</div>
+                            <div style="font-size:.74rem;color:#b45309">
+                                <?= (int)$r['lines_no_wholesale'] ?> uncosted line<?= (int)$r['lines_no_wholesale'] === 1 ? '' : 's' ?> left out
+                            </div>
                         <?php endif; ?>
                     </td>
                     <td style="padding:.5rem .5rem;text-align:right;font-size:.88rem"><?= money((float)$r['revenue']) ?></td>
