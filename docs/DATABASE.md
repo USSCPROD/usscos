@@ -31,15 +31,50 @@ Run them with `php database/migrate.php`, or paste into phpMyAdmin → SQL.
 | `companies` | Single row (id = 1) holding company-wide defaults |
 | `users` | Auth + role enum |
 | `departments` | Org structure |
-| `activity_log` | Audit trail |
+| `activity_log` | The timeline: what happened, to what, by whom, when. Written through `App\Services\Activity` |
 | `settings` | Key/value store — lead routing config lives here |
+
+### The activity log
+
+`activity_log` was created in migration 003 and nothing wrote to it until 24 Nov 2026.
+It now carries two kinds of entry:
+
+- **System events** — `quote.sent`, `order.shipped`, `customer.rep_changed`. Written by the
+  code that does the thing, with a whole sentence in `description` including the numbers,
+  because a timeline of "updated" entries answers nothing.
+- **Logged interactions** — `note.call`, `note.email`, `note.meeting`, `note.note`. What a
+  rep did, in their own words, through the form on a lead or opportunity.
+
+Three things about it that are easy to get wrong:
+
+1. **It has a party axis as well as a subject.** `subject_type`/`subject_id` is the record
+   ("invoice 412"); `customer_id`/`lead_id` is who it is about. Migration 126 added the
+   second because a customer timeline spans seven tables and would otherwise be a
+   seven-way UNION rewritten every time a module is added. Set both.
+2. **Writing to it must never be able to fail the work.** `Activity::log()` swallows every
+   throwable into the error log, deliberately. Recording that an invoice was issued must
+   not be able to stop an invoice being issued.
+3. **Nothing edits or deletes entries**, and the audit screen says so. A logged call is a
+   contemporaneous record; being able to revise it is most of what would make it
+   untrustworthy. Corrections are logged as corrections.
+
+The customer page's "All Activity" tab is the derived seven-way UNION *plus* the log as an
+eighth branch, excluding the three events a derived branch already covers
+(`quote.created`, `order.created`, `customer.created`). The derived branches infer events
+from records that still exist, so they can say "invoice issued" but never "rep changed" —
+the log is the only branch carrying things somebody *did*.
+
+**Known seam:** customers log notes into `customer_notes`; leads and opportunities log into
+`activity_log`. Two mechanisms for the same idea. Customers kept theirs because the form
+and its history predate the log, and migrating it is a separate decision — both render in
+the customer timeline either way.
 
 ### Customers & vendors
 
 | Table | Notes |
 |---|---|
 | `customers` | Billing/shipping addresses, terms, tax, type |
-| `customer_notes` | Free-text notes per customer |
+| `customer_notes` | Free-text notes per customer, with a type (note/call/email/meeting). **Predates `activity_log`** — see the note below |
 | `distributors`, `customer_distributor_links` | Channel structure |
 | `vendors` | Suppliers |
 
