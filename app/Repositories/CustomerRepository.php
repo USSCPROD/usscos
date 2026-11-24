@@ -543,7 +543,16 @@ class CustomerRepository extends Repository
                 SELECT 'action',
                        a.created_at,
                        DATE(a.created_at),
-                       REPLACE(SUBSTRING_INDEX(a.event, '.', -1), '_', ' '),
+                       /* Every other branch titles its rows as a sentence - 'Invoice
+                          issued', 'Quote accepted' - so a bare 'call' read as a fragment
+                          next to them. A logged interaction says what it is; a system
+                          event keeps the event's own wording. */
+                       CASE WHEN a.event LIKE 'note.%' THEN CONCAT(
+                                UPPER(LEFT(SUBSTRING_INDEX(a.event, '.', -1), 1)),
+                                SUBSTRING(SUBSTRING_INDEX(a.event, '.', -1), 2),
+                                ' logged')
+                            ELSE REPLACE(SUBSTRING_INDEX(a.event, '.', -1), '_', ' ')
+                       END,
                        a.description,
                        NULL,
                        NULL,
