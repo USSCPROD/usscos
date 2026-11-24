@@ -1104,6 +1104,11 @@ ul, ol { list-style: none; }
 .activity-type-icon--inventory { background: var(--color-success-bg); color: var(--color-success); }
 .activity-type-icon--work     { background: var(--color-ai-bg); color: var(--color-ai); }
 .activity-type-icon--payment  { background: #F0FDFA; color: #0D9488; }
+/* 'order' and 'action' are emitted by the feed and had no rule, so those rows drew an
+   icon with no background at all. 'action' is a logged activity - teal, matching the
+   colour logged interactions get in the timeline feed. */
+.activity-type-icon--order    { background: #F5F3FF; color: #7C3AED; }
+.activity-type-icon--action   { background: #F0FDFA; color: #0F766E; }
 
 .activity-type-wrap {
     display: flex;

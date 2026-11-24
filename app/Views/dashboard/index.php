@@ -527,20 +527,42 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($activity as $row): ?>
+                <?php
+                $typeLabels = [
+                    'invoice'   => 'Invoice',
+                    'order'     => 'Order',
+                    'inventory' => 'Stock',
+                    'action'    => 'Activity',
+                ];
+                foreach ($activity as $row):
+                    $rowType = (string)($row['type'] ?? 'invoice');
+                    $rowLink = $row['link'] ?? null;
+                ?>
                 <tr>
                     <td>
+                        <?php /* The TYPE cell says the type. It printed the description instead,
+                                 so every row showed its description twice - once here and again
+                                 in the next cell. */ ?>
                         <div class="activity-type-wrap">
-                            <div class="activity-type-icon activity-type-icon--<?= e($row['type'] ?? 'invoice') ?>">
+                            <div class="activity-type-icon activity-type-icon--<?= e($rowType) ?>">
                                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
                             </div>
-                            <?= e($row['description'] ?? '') ?>
+                            <?= e($typeLabels[$rowType] ?? ucfirst($rowType)) ?>
                         </div>
                     </td>
                     <td><?= e($row['description'] ?? '') ?></td>
-                    <td><a href="#" class="activity-ref"><?= e($row['reference'] ?? '') ?></a></td>
+                    <td>
+                        <?php /* Was <a href="#"> on every row - a reference that looked clickable
+                                 and went nowhere. Linked where the record can be opened, plain
+                                 text where it cannot (a stock movement has no page of its own). */ ?>
+                        <?php if ($rowLink): ?>
+                            <a href="<?= e($rowLink) ?>" class="activity-ref"><?= e($row['reference'] ?? '') ?></a>
+                        <?php else: ?>
+                            <span class="text-muted"><?= e($row['reference'] ?? '') ?></span>
+                        <?php endif; ?>
+                    </td>
                     <td class="activity-time"><?= e($row['time'] ?? '') ?></td>
                     <td>
                         <div class="activity-user">
@@ -553,9 +575,14 @@ $priBadge   = ['low'=>'badge--secondary','medium'=>'badge--info','high'=>'badge-
             </tbody>
         </table>
         <?php endif; ?>
+        <?php /* /activity has never existed - this was a 404 for everybody who clicked it.
+                 The whole log lives at /admin/activity, which is gated to owners, admins and
+                 the bookkeeper, so the link is only offered to those who can open it. */ ?>
+        <?php if (in_array(auth()['role'] ?? '', ['owner', 'admin', 'bookkeeper'], true)): ?>
         <div class="activity-card__footer">
-            <a href="/activity" class="btn btn--ghost btn--sm">View all activity →</a>
+            <a href="/admin/activity" class="btn btn--ghost btn--sm">View all activity →</a>
         </div>
+        <?php endif; ?>
     </div>
 
     <?php endif; // activity ?>

@@ -499,12 +499,36 @@ class DashboardService extends Service
      * things somebody would want to notice, and separate lists nobody opens is how they go
      * unnoticed.
      */
+    /**
+     * The recent-activity feed.
+     *
+     * The activity log joins the derived branches rather than replacing them, for the same
+     * reason it does on the customer timeline - and the reason is worth stating, because
+     * "unify onto the log" sounds like it should mean replacement:
+     *
+     *   - The log holds nothing before 24 Nov 2026. Replacing the derived branches would
+     *     empty this panel of every real event in the business's history.
+     *   - Backfilling it from the records would mean inventing a "who" and a "when it was
+     *     noticed" for events nobody recorded. Same mistake as backfilling a lead's
+     *     originating site: a confident wrong answer where a blank was honest.
+     *   - Inventory transactions are already their own purpose-built log, with quantity,
+     *     product and reference. Copying each stock movement into activity_log would add
+     *     no information and would swamp both the table and the audit screen - every
+     *     shipment line is a row. Machine events of that volume belong in their own table;
+     *     activity_log is for what deserves a line on a human timeline.
+     *
+     * So: records keep reporting themselves, and the log contributes what no record can -
+     * things somebody DID. A rep's logged call now appears here beside the invoice it led
+     * to, which is the whole point.
+     */
     private function getRecentActivity(): array
     {
         $rows = Database::select("
             (SELECT 'invoice' AS type,
                     CONCAT('Invoice ', i.invoice_number, ' — ', c.company_name) AS description,
-                    i.invoice_number AS reference, i.created_at AS at,
+                    i.invoice_number AS reference,
+                    CONCAT('/invoices/', i.id) AS link,
+                    i.created_at AS at,
                     TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,''))) AS user
              FROM invoices i
              JOIN customers c ON c.id = i.customer_id
@@ -513,7 +537,9 @@ class DashboardService extends Service
              ORDER BY i.id DESC LIMIT 8)
             UNION ALL
             (SELECT 'order', CONCAT('Order ', so.so_number, ' — ', c.company_name),
-                    so.so_number, so.created_at,
+                    so.so_number,
+                    CONCAT('/sales-orders/', so.id),
+                    so.created_at,
                     TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,'')))
              FROM sales_orders so
              JOIN customers c ON c.id = so.customer_id
@@ -530,19 +556,41 @@ class DashboardService extends Service
                             ELSE 'Adjusted '
                         END,
                         TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM ABS(t.qty))), ' ', p.name),
-                    COALESCE(t.reference_num, ''), t.created_at,
+                    COALESCE(t.reference_num, ''),
+                    NULL,
+                    t.created_at,
                     TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,'')))
              FROM inventory_transactions t
              JOIN products p ON p.id = t.product_id
              LEFT JOIN users u ON u.id = t.created_by
              ORDER BY t.id DESC LIMIT 8)
+            UNION ALL
+            (SELECT 'action',
+                    a.description,
+                    REPLACE(a.event, '_', ' '),
+                    CASE a.subject_type
+                        WHEN 'Lead'        THEN CONCAT('/leads/', a.subject_id)
+                        WHEN 'Customer'    THEN CONCAT('/customers/', a.subject_id)
+                        WHEN 'Quote'       THEN CONCAT('/quotes/', a.subject_id)
+                        WHEN 'SalesOrder'  THEN CONCAT('/sales-orders/', a.subject_id)
+                        WHEN 'Invoice'     THEN CONCAT('/invoices/', a.subject_id)
+                        WHEN 'Opportunity' THEN CONCAT('/opportunities/', a.subject_id)
+                        ELSE NULL
+                    END,
+                    a.created_at,
+                    TRIM(CONCAT(COALESCE(u.first_name,''), ' ', COALESCE(u.last_name,'')))
+             FROM activity_log a
+             LEFT JOIN users u ON u.id = a.user_id
+             ORDER BY a.id DESC LIMIT 8)
             ORDER BY at DESC
             LIMIT 12
         ");
 
         foreach ($rows as &$r) {
             $r['time'] = $this->ago((string)$r['at']);
-            $r['user'] = trim((string)$r['user']) ?: 'System';
+            // 'System' for a record with no creator; the log says 'Website' for the same
+            // idea, so say which it was rather than flattening both to one word.
+            $r['user'] = trim((string)$r['user']) ?: ($r['type'] === 'action' ? 'Website' : 'System');
         }
 
         return $rows;
