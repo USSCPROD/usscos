@@ -50,6 +50,7 @@ $isAtRisk = isset($stats['days_since']) && $stats['days_since'] !== null && $sta
     </div>
     <div class="page-header__right">
         <a href="/customers/<?= (int)$c['id'] ?>/edit" class="btn btn--secondary">Edit</a>
+        <a href="/customers/<?= (int)$c['id'] ?>/pricing" class="btn btn--secondary">Pricing</a>
         <a href="/quotes/create?customer_id=<?= (int)$c['id'] ?>" class="btn btn--secondary">New Quote</a>
         <a href="/sales-orders/create?customer_id=<?= (int)$c['id'] ?>" class="btn btn--secondary">New Sales Order</a>
         <a href="/customers/<?= (int)$c['id'] ?>/payment" class="btn btn--secondary">Receive Payment</a>

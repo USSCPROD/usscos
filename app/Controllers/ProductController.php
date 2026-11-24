@@ -121,12 +121,34 @@ class ProductController extends Controller
         $stmt->execute([':s' => $like, ':s2' => $like, ':s3' => $like]);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+        /*
+         * Agreed prices for the whole result set in one query, not one per row. Fifteen
+         * rows come back on every keystroke; per-row lookups would be fifteen queries a
+         * character.
+         *
+         * qty is taken from the line being edited where the form sends it. Without it the
+         * any-quantity price is used, which is the safe default - quoting the 100+ break
+         * to somebody typing a line they have not put a quantity on yet would read as the
+         * price and then change under them.
+         */
+        $agreedRows = [];
+        if ($customerId > 0) {
+            $agreedRows = (new \App\Repositories\CustomerPriceRepository())->priceForMany(
+                $customerId,
+                array_column($rows, 'id'),
+                (float)($request->query('qty') ?? 1)
+            );
+        }
+
         foreach ($rows as $i => $row) {
-            $chosen = \App\Services\CustomerPricing::priceFor($row, $customerType);
+            $row['_agreed'] = $agreedRows[(int)$row['id']] ?? null;
+
+            $chosen = \App\Services\CustomerPricing::priceFor($row, $customerType, $customerId ?: null);
 
             $rows[$i]['price']       = $chosen['price'];
             $rows[$i]['price_label'] = $chosen['label'];
             $rows[$i]['price_fell_back'] = $chosen['fell_back'];
+            $rows[$i]['price_agreed']    = $chosen['agreed'];
 
             // The other tiers are nobody's business on this screen, and a distributor
             // price sitting in a response that a retail order renders is one view bug

@@ -137,6 +137,9 @@ Router::group(['middleware' => ['auth', 'company', 'internal', 'warehouse', 'csr
     Router::get('/customers/{id}/edit',      [CustomerController::class, 'edit'])->name('customers.edit');
     Router::post('/customers/{id}/edit',     [CustomerController::class, 'update'])->name('customers.update');
     Router::post('/customers/{id}/note',     [CustomerController::class, 'storeNote'])->name('customers.note');
+    Router::get('/customers/{id}/pricing',   [CustomerController::class, 'pricing'])->name('customers.pricing');
+    Router::post('/customers/{id}/pricing',  [CustomerController::class, 'storePrice'])->name('customers.pricing.store');
+    Router::post('/customers/{id}/pricing/{priceId}/delete', [CustomerController::class, 'deletePrice'])->name('customers.pricing.delete');
     Router::post('/leads/{id}/log',           [LeadController::class, 'log'])->name('leads.log');
     Router::post('/opportunities/{id}/log',   [OpportunityController::class, 'log'])->name('opportunities.log');
 

@@ -8,8 +8,11 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Database;
 use App\Core\Session;
+use App\Repositories\CustomerPriceRepository;
 use App\Repositories\CustomerRepository;
+use App\Services\Activity;
 use App\Services\CustomerService;
 
 class CustomerController extends Controller
@@ -142,6 +145,109 @@ class CustomerController extends Controller
             return $this->json([]);
         }
         return $this->json($data['customer']);
+    }
+
+    /**
+     * GET /customers/{id}/pricing — the prices agreed with this account.
+     *
+     * Its own page rather than another tab on the customer record. A price list is
+     * reference material somebody works through, not a thing they glance at, and the
+     * customer page already carries seven tabs.
+     */
+    public function pricing(Request $request, Response $response, string $id = '0'): Response
+    {
+        $customer = (new CustomerRepository())->findWithDetails((int)$id);
+        if (!$customer) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        return $this->view('customers.pricing', [
+            'title'    => 'Pricing — ' . $customer['company_name'],
+            'customer' => $customer,
+            'prices'   => (new CustomerPriceRepository())->forCustomer((int)$id),
+        ]);
+    }
+
+    /**
+     * POST /customers/{id}/pricing — agree a price.
+     *
+     * Logged to the activity timeline. An agreed price is a money term: who set it, when,
+     * and what it was before are exactly the questions asked six months later when an
+     * invoice looks wrong, and the row itself only holds the current figure.
+     */
+    public function storePrice(Request $request, Response $response, string $id = '0'): Response
+    {
+        $customer = (new CustomerRepository())->findWithDetails((int)$id);
+        if (!$customer) {
+            return $this->view('errors.404', ['title' => 'Not Found'], 404);
+        }
+
+        $productId = (int)($_POST['product_id'] ?? 0);
+        $minQty    = max(1.0, (float)str_replace(',', '', (string)($_POST['min_qty'] ?? '1')));
+        $price     = round((float)str_replace(',', '', (string)($_POST['unit_price'] ?? '0')), 4);
+        $note      = trim((string)($_POST['note'] ?? '')) ?: null;
+
+        $product = $productId > 0
+            ? Database::selectOne('SELECT id, sku, name, price FROM products WHERE id = ?', [$productId])
+            : false;
+
+        if (!$product) {
+            Session::flash('error', 'Pick a product from the list before saving a price.');
+            return $response->redirect('/customers/' . (int)$id . '/pricing');
+        }
+        if ($price <= 0) {
+            // Zero is refused rather than stored. A product priced at nothing is almost
+            // always a typo, and the one time it is not, a 100% discount belongs in a
+            // conversation rather than in a price list.
+            Session::flash('error', 'Give a price above zero. To stop using an agreed price, remove it.');
+            return $response->redirect('/customers/' . (int)$id . '/pricing');
+        }
+
+        $repo     = new CustomerPriceRepository();
+        $existing = $repo->priceFor((int)$id, $productId, $minQty);
+        $wasExact = $existing !== null && (float)$existing['min_qty'] === $minQty;
+
+        $repo->upsert((int)$id, $productId, $minQty, $price, $note, Auth::id());
+
+        Activity::log(
+            'customer.price_agreed',
+            ($wasExact ? 'Agreed price changed' : 'Agreed price set') . ' for ' . $product['sku']
+                . ' at ' . money($price)
+                . ($minQty > 1 ? ' for ' . rtrim(rtrim(number_format($minQty, 2), '0'), '.') . '+' : '')
+                . ($wasExact ? ', was ' . money((float)$existing['unit_price']) : '')
+                . ' (list ' . money((float)$product['price']) . ')'
+                . ($note !== null ? ' - ' . $note : '') . '.',
+            ['subject_type' => 'Customer', 'subject_id' => (int)$id, 'customer_id' => (int)$id]
+        );
+
+        Session::flash('success', 'Price agreed for ' . $product['sku'] . '.');
+        return $response->redirect('/customers/' . (int)$id . '/pricing');
+    }
+
+    /** POST /customers/{id}/pricing/{priceId}/delete — stop honouring an agreed price. */
+    public function deletePrice(Request $request, Response $response, string $id = '0', string $priceId = '0'): Response
+    {
+        $repo  = new CustomerPriceRepository();
+        $price = $repo->find((int)$priceId);
+
+        if (!$price || (int)$price['customer_id'] !== (int)$id) {
+            // Checked against the customer in the URL, not just the id: without it a
+            // guessed price id would delete another account's terms.
+            Session::flash('error', 'That price does not belong to this customer.');
+            return $response->redirect('/customers/' . (int)$id . '/pricing');
+        }
+
+        $repo->delete((int)$priceId);
+
+        Activity::log(
+            'customer.price_removed',
+            'Agreed price removed for ' . $price['sku'] . ' (was ' . money((float)$price['unit_price'])
+                . '); this account now pays its tier price.',
+            ['subject_type' => 'Customer', 'subject_id' => (int)$id, 'customer_id' => (int)$id]
+        );
+
+        Session::flash('success', 'Agreed price removed.');
+        return $response->redirect('/customers/' . (int)$id . '/pricing');
     }
 
     public function storeNote(Request $request, Response $response, string $id = '0'): Response

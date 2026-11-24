@@ -13,6 +13,10 @@ namespace App\Services;
  * the only person who finds out is the customer.
  *
  * So the tier is decided here, once, and the line says which one it used.
+ *
+ * Since 24 Nov 2026 an AGREED price for a specific customer and product overrides the tier
+ * entirely - see migration 131. The tier answers what a class of customer pays; an agreed
+ * price is what this one was promised, and the second is not a refinement of the first.
  */
 class CustomerPricing
 {
@@ -46,6 +50,7 @@ class CustomerPricing
 
     /** Human labels for the column actually used, so a fallback is visible. */
     private const LABELS = [
+        'agreed'          => 'agreed',
         'stocking_dist'   => 'stocking dist',
         'dist_price_2026' => 'distributor',
         'dist_price'      => 'distributor (QB)',
@@ -54,10 +59,58 @@ class CustomerPricing
 
     /**
      * @param array<string,mixed> $product
-     * @return array{price:float, column:string, label:string, fell_back:bool}
+     * @param int|null $customerId When given, an agreed price for this customer beats the
+     *                             tier ladder entirely. Optional so existing callers keep
+     *                             working unchanged and simply get tier pricing.
+     * @param float $qty           Which volume break applies. Defaults to 1, so a caller
+     *                             that does not know the quantity gets the any-quantity
+     *                             price rather than the best one.
+     * @return array{price:float, column:string, label:string, fell_back:bool, agreed:bool,
+     *               min_qty:float|null, note:string|null}
      */
-    public static function priceFor(array $product, ?string $customerType): array
-    {
+    public static function priceFor(
+        array $product,
+        ?string $customerType,
+        ?int $customerId = null,
+        float $qty = 1.0
+    ): array {
+        /*
+         * An agreed price wins outright - it is not another rung on the ladder.
+         *
+         * The ladder answers "what does a distributor pay". Once somebody has negotiated a
+         * figure for this account, the tier is no longer the question: a deal struck at
+         * $38.50 does not become $41 because the customer type changed, and a deal below
+         * the distributor price must not be overridden by the distributor price.
+         */
+        $productId = (int)($product['id'] ?? 0);
+
+        if ($customerId !== null && $customerId > 0 && $productId > 0) {
+            // A caller working through a list will have fetched these in one query and put
+            // the row on the product as _agreed. Only a lone call hits the database here.
+            $agreed = $product['_agreed'] ?? null;
+
+            if ($agreed === null) {
+                $agreed = (new \App\Repositories\CustomerPriceRepository())
+                    ->priceFor($customerId, $productId, $qty);
+            }
+
+            if ($agreed !== null && (float)$agreed['unit_price'] > 0) {
+                return [
+                    'price'     => round((float)$agreed['unit_price'], 2),
+                    'column'    => 'agreed',
+                    'label'     => (float)$agreed['min_qty'] > 1
+                        ? 'agreed @ ' . rtrim(rtrim((string)$agreed['min_qty'], '0'), '.') . '+'
+                        : 'agreed',
+                    // Never a fallback: this is the most specific answer there is, and
+                    // colouring it as a fallback would read as a fault.
+                    'fell_back' => false,
+                    'agreed'    => true,
+                    'min_qty'   => (float)$agreed['min_qty'],
+                    'note'      => $agreed['note'],
+                ];
+            }
+        }
+
         $type   = trim((string)$customerType);
         $ladder = self::LADDER[$type] ?? self::LADDER[self::RETAIL];
 
@@ -73,11 +126,22 @@ class CustomerPricing
                     // down the list answered instead. Worth showing: a distributor
                     // quietly billed at retail is the fault this class exists to stop.
                     'fell_back' => $i > 0,
+                    'agreed'    => false,
+                    'min_qty'   => null,
+                    'note'      => null,
                 ];
             }
         }
 
-        return ['price' => 0.0, 'column' => 'price', 'label' => 'no price', 'fell_back' => true];
+        return [
+            'price'     => 0.0,
+            'column'    => 'price',
+            'label'     => 'no price',
+            'fell_back' => true,
+            'agreed'    => false,
+            'min_qty'   => null,
+            'note'      => null,
+        ];
     }
 
     /** The columns any tier might read, for a SELECT. */
