@@ -70,10 +70,27 @@ class OpportunityRepository
     {
         $pdo  = Database::connection();
         $stmt = $pdo->prepare("
+            /*
+             * lead_id and customer_id are NOT written here, and that is the fix for a
+             * silent data loss.
+             *
+             * The edit form only renders the hidden lead_id / customer_id inputs when it
+             * is handed a lead or customer, and edit() hands it neither - so on every
+             * edit those keys were absent from $_POST, mapPost() turned the absence into
+             * null, and this statement wrote NULL over both. Saving an opportunity
+             * unlinked it from the account it belonged to, said 'Opportunity updated.',
+             * and left the pipeline card reading '-' where the company name had been.
+             * In place since the initial commit (3 Aug 2026), found 24 Nov 2026 while
+             * testing the next-step nag.
+             *
+             * Rather than make the form post them back, the statement no longer claims
+             * them: nothing on this form edits which account an opportunity is for. It is
+             * set when the opportunity is raised, and changed by the actions built for it
+             * (linking a quote, converting a lead). A statement that writes a column no
+             * form offers can only ever get that column wrong.
+             */
             UPDATE opportunities SET
                 name           = :name,
-                lead_id        = :lead_id,
-                customer_id    = :customer_id,
                 rep_id         = :rep_id,
                 stage          = :stage,
                 expected_value = :expected_value,
@@ -87,7 +104,7 @@ class OpportunityRepository
         ");
         $data[':id'] = $id;
         $stmt->execute($this->only($data, [
-            ':name', ':lead_id', ':customer_id', ':rep_id', ':stage',
+            ':name', ':rep_id', ':stage',
             ':expected_value', ':probability', ':next_step', ':next_step_date',
             ':expected_close', ':notes', ':lost_reason', ':id',
         ]));
