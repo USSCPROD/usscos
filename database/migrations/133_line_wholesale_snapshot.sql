@@ -17,9 +17,13 @@
 -- lines look snapshotted when they are a guess, and the NULL is the only thing that tells
 -- a reader which is which.
 
+-- COMMENT comes before AFTER. Column attributes first, then the position clause: writing
+-- `... AFTER unit_price COMMENT '...'` is a syntax error, and MySQL reports it as a problem
+-- at COMMENT, which reads like the comment itself is the trouble.
 ALTER TABLE invoice_line_items
-    ADD COLUMN wholesale_price DECIMAL(12,4) NULL AFTER unit_price
-        COMMENT 'Wholesale at the time of invoicing; NULL for lines written before 24 Nov 2026';
+    ADD COLUMN wholesale_price DECIMAL(12,4) NULL
+        COMMENT 'Wholesale at the time of invoicing; NULL for lines written before 24 Nov 2026'
+        AFTER unit_price;
 
 -- Commission reads every line of every invoice in a period for one rep, so the join path
 -- is invoice_id first.
