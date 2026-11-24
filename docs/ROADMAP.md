@@ -522,6 +522,15 @@ convention).
   the master spreadsheet is final, since re-importing would recreate them.
 - **Spreadsheet gaps** — ~70 SKUs missing (the ROBO line especially); the Brand column on
   the secondary tabs holds product names; the `Amazon Deals` tab has no header row.
+- **Ten products price distributors ABOVE retail** — `dist_price_2026 > price`. An import
+  artefact, confirmed by Chip 24 Nov 2026, and deferred to the clean reimport since fixing
+  it now would be undone by it. **Worth checking in the reimport dry-run**, because this is
+  live pricing in the meantime and the tier ladder will quietly charge it.
+  `PT-WHT.5G` $95 → $575, `DTMR-5G` and `DTMW-5G` $47.95 → $189.75 (all three look like a
+  unit-of-measure mismatch between the two columns), `DSWGLO` +$15, `AS-IGOW-1.3` +$10,
+  `ASNCB` +$4, `BWBLACK`/`BWBROWN`/`BWRED` +$4, `AS-CUBEW` +$0.95.
+  The query: `SELECT sku, price, dist_price_2026 FROM products
+  WHERE dist_price_2026 > price AND price > 0;`
 - **`price` vs `retail_price`** — duplicate columns on `products`. `price` is canonical
   and `retail_price` is kept mirrored; the dead column could be dropped.
 - **Product documents are per-product** — a shared library with per-product links would
