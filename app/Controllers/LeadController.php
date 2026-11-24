@@ -145,6 +145,73 @@ class LeadController extends Controller
         $lead = $this->leads->find((int)$id);
         if (!$lead) return $this->view('errors.404', ['title' => 'Not Found'], 404);
 
+        if (!empty($lead['customer_id'])) {
+            Session::flash('error', 'This lead has already been converted.');
+            return $response->redirect('/leads/' . (int)$id);
+        }
+
+        /*
+         * Does this company already exist?
+         *
+         * Adding a customer by hand has warned about near-matches since it was built.
+         * Converting a lead did not — it went straight to insertFromLead() — so the one
+         * path that creates a customer from data somebody else typed, on a public form,
+         * was the one path with no check on it. Two enquiries from the same school in a
+         * season is normal, and it produced two customer records with the orders split
+         * between them.
+         */
+        $service    = new \App\Services\CustomerService();
+        $duplicates = $service->possibleDuplicates(
+            (string)$lead['company_name'],
+            (string)($lead['email'] ?? ''),
+            (string)($lead['phone'] ?? '')
+        );
+
+        $linkTo  = (int)($_POST['link_customer_id'] ?? 0);
+        $confirm = !empty($_POST['confirm_duplicate']);
+
+        /*
+         * Attaching the lead to the customer that already exists is the RIGHT answer most
+         * of the time, and the hand-entry form cannot offer it - it has no lead to attach.
+         * convert() brings the lead's quotes and opportunities across with it, so the
+         * enquiry ends up on the account that already has the history.
+         */
+        if ($linkTo > 0) {
+            // Only a customer this user was actually shown. possibleDuplicates() redacts
+            // matches belonging to another rep, and a redacted match must not become a
+            // customer id a restricted rep can attach their lead to.
+            $allowed = array_filter($duplicates, static fn (array $d) => $d['visible'] && (int)$d['id'] === $linkTo);
+
+            if ($allowed === []) {
+                Session::flash('error', 'That customer is not one of the suggested matches.');
+                return $response->redirect('/leads/' . (int)$id);
+            }
+
+            $this->leads->convert((int)$id, $linkTo);
+
+            Activity::log(
+                'lead.linked',
+                'Lead attached to the existing customer rather than creating a new one.',
+                [
+                    'subject_type' => 'Lead',
+                    'subject_id'   => (int)$id,
+                    'lead_id'      => (int)$id,
+                    'customer_id'  => $linkTo,
+                ]
+            );
+
+            Session::flash('success', 'Lead attached to the existing customer.');
+            return $response->redirect('/customers/' . $linkTo);
+        }
+
+        if ($duplicates !== [] && !$confirm) {
+            return $this->view('leads.convert_confirm', [
+                'title'      => 'Convert ' . $lead['company_name'],
+                'lead'       => $lead,
+                'duplicates' => $duplicates,
+            ]);
+        }
+
         // Create customer from lead data
         $customerRepo = new CustomerRepository();
         $customerId   = $customerRepo->insertFromLead([
@@ -169,7 +236,11 @@ class LeadController extends Controller
             'customer_id'  => $customerId,
         ]);
         Activity::log('customer.created', 'Customer created by converting lead #' . (int)$id
-            . ' (source: ' . ($lead['source'] ?? 'other') . ').', [
+            . ' (source: ' . ($lead['source'] ?? 'other') . ')'
+            . ($duplicates !== []
+                ? ', despite ' . count($duplicates) . ' possible duplicate'
+                    . (count($duplicates) === 1 ? '' : 's') . '.'
+                : '.'), [
             'subject_type' => 'Customer',
             'subject_id'   => $customerId,
             'customer_id'  => $customerId,
