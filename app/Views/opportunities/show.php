@@ -141,10 +141,16 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
                 </table>
             </div>
 
-            <!-- Move Stage -->
-            <?php if ($isOpen): ?>
+            <!--
+              Move Stage. Shown on CLOSED deals too, which it was not.
+              Two things were impossible while this was hidden: reopening a deal closed by
+              mistake, and giving a reason to a deal already lost - so every loss recorded
+              before the reason became required was stuck under "No reason recorded" on the
+              win/loss report for good, and the one row that most needs clearing down was
+              the one row nobody could act on.
+            -->
             <div style="background:#fff;border:1px solid #d1d5db;border-radius:8px;overflow:hidden">
-                <div style="padding:.75rem 1.25rem;background:#f8f9fb;border-bottom:1px solid #d1d5db;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280">Move Stage</div>
+                <div style="padding:.75rem 1.25rem;background:#f8f9fb;border-bottom:1px solid #d1d5db;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280"><?= $isOpen ? 'Move Stage' : 'Reopen or Correct' ?></div>
                 <div style="padding:1rem 1.25rem">
                     <form method="post" action="/opportunities/<?= (int)$opp['id'] ?>/stage">
                     <?= csrf_field() ?>
@@ -190,7 +196,6 @@ $doneTasks = array_filter($tasks, fn($t) => in_array($t['status'], ['completed',
                     </script>
                 </div>
             </div>
-            <?php endif; ?>
         </td>
 
         <!-- RIGHT: Quotes + Tasks -->
