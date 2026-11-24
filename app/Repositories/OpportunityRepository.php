@@ -76,7 +76,7 @@ class OpportunityRepository
              *
              * The edit form only renders the hidden lead_id / customer_id inputs when it
              * is handed a lead or customer, and edit() hands it neither - so on every
-             * edit those keys were absent from $_POST, mapPost() turned the absence into
+             * edit those keys were absent from the posted data, mapPost() turned that into
              * null, and this statement wrote NULL over both. Saving an opportunity
              * unlinked it from the account it belonged to, said 'Opportunity updated.',
              * and left the pipeline card reading '-' where the company name had been.
